@@ -92,7 +92,7 @@ Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
 
 Normal modda `Space` tuşuna kısa süre basılı bekleyin: Which-key kullanılabilir devam tuşlarını gösterir.
 
-`Space R`, ayarları Neovim'i kapatmadan yeniden yükler. Bunu yalnızca `init.lua` değiştiğinde kullanmanız gerekir.
+`Space R`, eklentileri Lazy ile senkronize eder. `init.lua` içindeki eklenti ya da ayar değişikliklerinin uygulanması için Neovim'i bir kez kapatıp açın; Lazy bu dosyanın tekrar source edilmesini desteklemez.
 
 ## Yapılandırma
 

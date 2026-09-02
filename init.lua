@@ -56,12 +56,7 @@ vim.keymap.set("n", "<leader>tt", toggle_terminal, { desc = "Toggle terminal" })
 vim.keymap.set("n", "<leader>tw", function() run_in_terminal("dotnet test --watch") end, { desc = "Test: Watch" })
 vim.keymap.set("n", "<leader>rr", function() run_in_terminal("dotnet test") end, { desc = "Test: Run suite" })
 
-local config_file = vim.fn.stdpath("config") .. "/init.lua"
-vim.api.nvim_create_user_command("ReloadConfig", function()
-  vim.cmd("source " .. vim.fn.fnameescape(config_file))
-  vim.notify("Neovim configuration reloaded")
-end, { force = true, desc = "Reload Neovim configuration" })
-vim.keymap.set("n", "<leader>R", "<CMD>ReloadConfig<CR>", { desc = "Reload config" })
+vim.keymap.set("n", "<leader>R", "<CMD>Lazy sync<CR>", { desc = "Sync plugins" })
 
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazypath) then
@@ -106,7 +101,7 @@ require("lazy").setup({
         { "<leader>d", group = "Debug" },
         { "<leader>r", group = "Refactor / Run" },
         { "<leader>t", group = "Terminal / Test" },
-        { "<leader>R", desc = "Reload config" },
+        { "<leader>R", desc = "Sync plugins" },
       },
     },
   },
