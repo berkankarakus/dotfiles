@@ -129,7 +129,7 @@ require("lazy").setup({
     opts = {
       view = { width = 34 },
       renderer = {
-        icons = { show = { file = false, folder = false, folder_arrow = false, git = false } },
+        icons = { show = { file = true, folder = true, folder_arrow = true, git = true } },
       },
       filters = { dotfiles = false },
       on_attach = function(bufnr)
