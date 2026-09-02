@@ -116,6 +116,20 @@ require("lazy").setup({
     },
   },
   {
+    "nvim-tree/nvim-tree.lua",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    opts = {
+      view = { width = 34 },
+      renderer = {
+        icons = { show = { file = false, folder = false, folder_arrow = false, git = false } },
+      },
+      filters = { dotfiles = false },
+    },
+    keys = {
+      { "<leader>n", "<CMD>NvimTreeToggle<CR>", desc = "Toggle file tree" },
+    },
+  },
+  {
     "folke/trouble.nvim",
     opts = { focus = true },
     keys = {
