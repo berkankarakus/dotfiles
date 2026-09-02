@@ -60,7 +60,7 @@ vim.keymap.set("n", "<leader>R", "<CMD>Lazy sync<CR>", { desc = "Sync plugins" }
 
 -- In the file tree the selected row is clearer than a block cursor drawn over an icon.
 local default_guicursor = vim.o.guicursor
-local tree_guicursor = "n-v-c:ver25,i-ci-ve:ver25,r-cr:hor20,o:hor50"
+local tree_guicursor = "n-v-c:ver1-CursorLine,i-ci-ve:ver25,r-cr:hor20,o:hor50"
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "NvimTree",
   callback = function(event)
