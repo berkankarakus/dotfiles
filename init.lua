@@ -124,6 +124,14 @@ require("lazy").setup({
         icons = { show = { file = false, folder = false, folder_arrow = false, git = false } },
       },
       filters = { dotfiles = false },
+      on_attach = function(bufnr)
+        local api = require("nvim-tree.api")
+        api.config.mappings.default_on_attach(bufnr)
+        vim.keymap.set("n", "<Right>", api.node.open.edit, {
+          buffer = bufnr,
+          desc = "Open selected file or folder",
+        })
+      end,
     },
     keys = {
       { "<leader>n", "<CMD>NvimTreeToggle<CR>", desc = "Toggle file tree" },
