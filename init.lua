@@ -131,6 +131,10 @@ require("lazy").setup({
           buffer = bufnr,
           desc = "Open selected file or folder",
         })
+        vim.keymap.set("n", "<Left>", api.node.navigate.parent_close, {
+          buffer = bufnr,
+          desc = "Close folder or go to parent",
+        })
       end,
     },
     keys = {

@@ -50,6 +50,7 @@ Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
 | `Space o` | Dosya gezginini aç |
 | `Space n` | Soldaki dosya ağacını aç/kapat |
 | `→` (dosya ağacında) | Seçili dosyayı aç; klasörü genişlet |
+| `←` (dosya ağacında) | Klasörü daralt; üst klasöre dön |
 
 ## Debugger
 
