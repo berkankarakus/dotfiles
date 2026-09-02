@@ -58,6 +58,16 @@ vim.keymap.set("n", "<leader>rr", function() run_in_terminal("dotnet test") end,
 
 vim.keymap.set("n", "<leader>R", "<CMD>Lazy sync<CR>", { desc = "Sync plugins" })
 
+-- In the file tree the selected row is clearer than a block cursor drawn over an icon.
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "NvimTree",
+  callback = function()
+    vim.wo.cursorline = true
+    local winhighlight = vim.wo.winhighlight
+    vim.wo.winhighlight = winhighlight == "" and "Cursor:CursorLine" or winhighlight .. ",Cursor:CursorLine"
+  end,
+})
+
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazypath) then
   vim.notify("lazy.nvim is missing. Run the setup command again.", vim.log.levels.ERROR)
