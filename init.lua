@@ -124,9 +124,11 @@ require("lazy").setup({
     opts = {
       view = { width = 34 },
       renderer = {
-        icons = { show = { file = true, folder = true, folder_arrow = true, git = true } },
+        indent_markers = { enable = true },
+        icons = { show = { file = true, folder = true, folder_arrow = false, git = false } },
       },
       filters = { dotfiles = false },
+      git = { enable = false },
       on_attach = function(bufnr)
         local api = require("nvim-tree.api")
         api.config.mappings.default_on_attach(bufnr)
