@@ -36,6 +36,7 @@ Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
 | `Space r n` | Sembolü yeniden adlandır |
 | `Space c a` | Kod aksiyonu |
 | `Space e` | Hata ayrıntısı |
+| `Space x` | Hata listesini panelde aç/kapat |
 | `[d` / `]d` | Önceki / sonraki hata |
 
 ## Arama
@@ -46,6 +47,7 @@ Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
 | `Space f g` | Proje metninde ara |
 | `Space f b` | Açık dosyalarda ara |
 | `Space f h` | Neovim yardımında ara |
+| `Space o` | Dosya gezginini aç |
 
 ## Debugger
 
@@ -64,12 +66,45 @@ Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
 
 ## Terminal
 
-`Space t t` altta yerleşik terminali açar veya kapatır. Terminal modundan normal moda dönmek için `Ctrl-\\`, sonra `Ctrl-n` kullanın.
+`Space t t` altta yerleşik terminali açar veya kapatır. `Space t w` `dotnet test --watch` başlatır; `Space r r` test paketini bir kez çalıştırır. Terminal modundan normal moda dönmek için `Ctrl-\\`, sonra `Ctrl-n` kullanın.
+
+## Terminal Araçları
+
+| Komut | İşlev |
+| --- | --- |
+| `z isim` | Sık kullanılan bir klasöre geçer; ör. `z api` |
+| `fd isim` | Dosya adına göre hızlı arama |
+| `bat dosya.cs` | Syntax highlighting ile dosya içeriğini gösterir |
+
+## Zsh / Ghostty
+
+| Kısayol | İşlev |
+| --- | --- |
+| `Ctrl-r` | Altta geçmiş komut aramasını açar; yazdıkça filtreler |
+| `Enter` | Açık geçmiş önerisini prompt'a alır; sonraki `Enter` komutu çalıştırır |
+| `Option-Delete` | İmlecin solundaki kelimeyi siler |
+| `fn-Delete` | İmlecin sağındaki karakteri siler |
+
+## Kısayol Yardımı
+
+Normal modda `Space` tuşuna kısa süre basılı bekleyin: Which-key kullanılabilir devam tuşlarını gösterir.
 
 ## Yapılandırma
 
 - `init.lua`: Tüm Neovim ayarları
 - `lazy-lock.json`: Eklentilerin sabitlenmiş sürümleri
 - `README.md`: Bu rehber
+- `bootstrap-macos.sh`: Yeni bir Mac'i aynı ortamla kurar
+
+## Yeni Mac'e Taşıma
+
+Bu klasörü yeni Mac'e taşıyın (Git deposu olarak ya da sıkıştırılmış dosyayla) ve ardından çalıştırın:
+
+```sh
+cd ~/.config/nvim
+./bootstrap-macos.sh
+```
+
+Script Homebrew, .NET SDK, Neovim, Ghostty, font, CSharpier, terminal araçları ve Zsh eklentisini kurar. Var olan yapılandırma dosyalarını `~/.config/neovim-csharp-backup` altında yedekler.
 
 macOS Terminal'in varsayılan Menlo fontuyla uyum için Nerd Font ikonları kapalıdır.

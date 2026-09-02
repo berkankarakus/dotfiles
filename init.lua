@@ -21,11 +21,10 @@ vim.opt.list = true
 vim.opt.listchars = { space = "·", multispace = "·", tab = "→ " }
 
 local terminal_buf
-local function toggle_terminal()
+local function show_terminal()
   if terminal_buf and vim.api.nvim_buf_is_valid(terminal_buf) then
     for _, window in ipairs(vim.api.nvim_list_wins()) do
       if vim.api.nvim_win_get_buf(window) == terminal_buf then
-        vim.api.nvim_win_close(window, true)
         return
       end
     end
@@ -37,7 +36,25 @@ local function toggle_terminal()
   end
   vim.cmd("startinsert")
 end
+local function toggle_terminal()
+  if terminal_buf and vim.api.nvim_buf_is_valid(terminal_buf) then
+    for _, window in ipairs(vim.api.nvim_list_wins()) do
+      if vim.api.nvim_win_get_buf(window) == terminal_buf then
+        vim.api.nvim_win_close(window, true)
+        return
+      end
+    end
+  end
+  show_terminal()
+end
+local function run_in_terminal(command)
+  show_terminal()
+  local job_id = vim.b[terminal_buf].terminal_job_id
+  if job_id then vim.fn.chansend(job_id, command .. "\n") end
+end
 vim.keymap.set("n", "<leader>tt", toggle_terminal, { desc = "Toggle terminal" })
+vim.keymap.set("n", "<leader>tw", function() run_in_terminal("dotnet test --watch") end, { desc = "Test: Watch" })
+vim.keymap.set("n", "<leader>rr", function() run_in_terminal("dotnet test") end, { desc = "Test: Run suite" })
 
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.uv.fs_stat(lazypath) then
@@ -70,8 +87,41 @@ require("lazy").setup({
     },
   },
   { "nvim-tree/nvim-web-devicons" },
+  {
+    "folke/which-key.nvim",
+    event = "VeryLazy",
+    opts = {
+      delay = 350,
+      icons = { mappings = false },
+      spec = {
+        { "<leader>f", group = "Find" },
+        { "<leader>b", group = "Breakpoint" },
+        { "<leader>d", group = "Debug" },
+        { "<leader>r", group = "Refactor / Run" },
+        { "<leader>t", group = "Terminal / Test" },
+      },
+    },
+  },
   { "windwp/nvim-autopairs", event = "InsertEnter", opts = {} },
   { "lewis6991/gitsigns.nvim", opts = {} },
+  {
+    "stevearc/oil.nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    opts = {
+      columns = { "permissions", "size", "mtime" },
+      view_options = { show_hidden = true },
+    },
+    keys = {
+      { "<leader>o", "<CMD>Oil<CR>", desc = "Open file explorer" },
+    },
+  },
+  {
+    "folke/trouble.nvim",
+    opts = { focus = true },
+    keys = {
+      { "<leader>x", "<CMD>Trouble diagnostics toggle<CR>", desc = "Diagnostics panel" },
+    },
+  },
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
