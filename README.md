@@ -58,7 +58,27 @@ C# dosyaları kaydedilirken import'lar düzenlenir. Eksik bir import için hatal
 | `Space f f` | Dosya bul |
 | `Space f g` | Proje metninde ara |
 | `Space f b` | Açık dosyalarda ara |
+| `Space f s` | Açık dosyadaki sınıf/metotları ara |
+| `Space f S` | Proje genelindeki sınıf/metotları ara |
 | `Space f h` | Neovim yardımında ara |
+
+## Git Değişiklikleri
+
+| Kısayol | İşlev |
+| --- | --- |
+| `]h` / `[h` | Sonraki / önceki değişen blok |
+| `Space g p` | Değişen bloğun önceki hâlini göster |
+| `Space g r` | Değişen bloğu geri al |
+| `Space g s` | Değişen bloğu stage'e ekle |
+| `Space g b` | Satırın Git geçmişini göster |
+
+## Surround
+
+| Kısayol | İşlev |
+| --- | --- |
+| `sa` sonra çevreleyici | Metni çevrele; ör. `saiw)` kelimeyi paranteze alır |
+| `sd` sonra çevreleyici | Çevreleyiciyi sil; ör. `sd)` |
+| `sr` eski/yeni çevreleyici | Çevreleyiciyi değiştir; ör. `sr)]` |
 | `Space o` | Dosya gezginini aç |
 | `Space n` | Soldaki, ikonlu dosya ağacını aç/kapat |
 | `→` (dosya ağacında) | Seçili dosyayı aç; klasörü genişlet |

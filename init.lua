@@ -176,7 +176,19 @@ require("lazy").setup({
     },
   },
   { "windwp/nvim-autopairs", event = "InsertEnter", opts = {} },
-  { "lewis6991/gitsigns.nvim", opts = {} },
+  {
+    "lewis6991/gitsigns.nvim",
+    opts = {},
+    keys = {
+      { "]h", function() require("gitsigns").next_hunk() end, desc = "Next Git hunk" },
+      { "[h", function() require("gitsigns").prev_hunk() end, desc = "Previous Git hunk" },
+      { "<leader>gp", function() require("gitsigns").preview_hunk() end, desc = "Preview Git hunk" },
+      { "<leader>gr", function() require("gitsigns").reset_hunk() end, desc = "Revert Git hunk" },
+      { "<leader>gs", function() require("gitsigns").stage_hunk() end, desc = "Stage Git hunk" },
+      { "<leader>gb", function() require("gitsigns").blame_line({ full = true }) end, desc = "Git blame line" },
+    },
+  },
+  { "echasnovski/mini.surround", version = false, opts = {} },
   {
     "stevearc/oil.nvim",
     dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -257,6 +269,8 @@ require("lazy").setup({
       vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Find files" })
       vim.keymap.set("n", "<leader>fg", builtin.live_grep, { desc = "Search project text" })
       vim.keymap.set("n", "<leader>fb", builtin.buffers, { desc = "Find buffers" })
+      vim.keymap.set("n", "<leader>fs", builtin.lsp_document_symbols, { desc = "Search document symbols" })
+      vim.keymap.set("n", "<leader>fS", builtin.lsp_dynamic_workspace_symbols, { desc = "Search workspace symbols" })
       vim.keymap.set("n", "<leader>fh", builtin.help_tags, { desc = "Search help" })
     end,
   },
