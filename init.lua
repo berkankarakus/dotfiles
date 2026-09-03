@@ -269,14 +269,32 @@ require("lazy").setup({
       local dap = require("dap")
       local dapui = require("dapui")
       local netcoredbg = vim.fn.stdpath("data") .. "/mason/bin/netcoredbg"
+      local function dotnet_project_file()
+        local buffer_name = vim.api.nvim_buf_get_name(0)
+        local start_path = buffer_name ~= "" and vim.fs.dirname(buffer_name) or vim.fn.getcwd()
+        return vim.fs.find(function(name) return name:sub(-7) == ".csproj" end, {
+          path = start_path,
+          upward = true,
+          limit = 1,
+        })[1]
+      end
+      local function dotnet_program()
+        local project_file = dotnet_project_file()
+        if project_file then
+          local project_dir = vim.fs.dirname(project_file)
+          local project_name = vim.fn.fnamemodify(project_file, ":t:r")
+          for _, dll in ipairs(vim.fn.globpath(project_dir, "bin/Debug/**/*.dll", false, true)) do
+            if vim.fn.fnamemodify(dll, ":t") == project_name .. ".dll" then return dll end
+          end
+          return vim.fn.input("Path to DLL: ", project_dir .. "/bin/Debug/", "file")
+        end
+        return vim.fn.input("Path to DLL: ", vim.fn.getcwd() .. "/bin/Debug/", "file")
+      end
       dap.adapters.coreclr = { type = "executable", command = netcoredbg, args = { "--interpreter=vscode" } }
       dap.configurations.cs = {
         {
           type = "coreclr", name = "Launch .NET project", request = "launch",
-          program = function()
-            local default = vim.fn.getcwd() .. "/bin/Debug"
-            return vim.fn.input("Path to DLL: ", default, "file")
-          end,
+          program = dotnet_program,
           cwd = "${workspaceFolder}", stopAtEntry = false,
         },
       }
