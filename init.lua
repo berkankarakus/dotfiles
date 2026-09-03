@@ -20,6 +20,13 @@ vim.opt.tabstop = 4
 vim.opt.list = true
 vim.opt.listchars = { space = "·", multispace = "·", tab = "→ " }
 
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "cs",
+  callback = function()
+    vim.opt_local.formatoptions:remove({ "r", "o" })
+  end,
+})
+
 local terminal_buf
 local function show_terminal()
   if terminal_buf and vim.api.nvim_buf_is_valid(terminal_buf) then
