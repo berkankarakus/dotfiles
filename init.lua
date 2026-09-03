@@ -111,6 +111,52 @@ vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
   end,
 })
 
+local function insert_csharp_docstring()
+  if vim.bo.filetype ~= "cs" then
+    vim.notify("Docstring shortcut is only available in C# files.", vim.log.levels.WARN)
+    return
+  end
+
+  local bufnr = vim.api.nvim_get_current_buf()
+  local line_number = vim.api.nvim_win_get_cursor(0)[1]
+  local declaration = vim.api.nvim_buf_get_lines(bufnr, line_number - 1, line_number, false)[1]
+  local previous = line_number > 1 and vim.api.nvim_buf_get_lines(bufnr, line_number - 2, line_number - 1, false)[1] or ""
+  if previous:match("^%s*///") then
+    vim.notify("This declaration already has a docstring.", vim.log.levels.INFO)
+    return
+  end
+
+  local indent = declaration:match("^(%s*)") or ""
+  local lines = { indent .. "/// <summary>", indent .. "/// ", indent .. "/// </summary>" }
+  local signature = declaration
+  for next_line = line_number + 1, math.min(line_number + 6, vim.api.nvim_buf_line_count(bufnr)) do
+    if signature:find("%(") and signature:find("%)") then break end
+    signature = signature .. " " .. vim.api.nvim_buf_get_lines(bufnr, next_line - 1, next_line, false)[1]
+  end
+
+  local parameters = signature:match("%b()")
+  if parameters then
+    for parameter in parameters:sub(2, -2):gmatch("[^,]+") do
+      local name = parameter:gsub("=.*", ""):match("([%a_][%w_]*)%s*$")
+      if name then table.insert(lines, indent .. '/// <param name="' .. name .. '"></param>') end
+    end
+  end
+
+  local before_method = signature:match("^(.-)%s+[%a_][%w_]*%s*%(")
+  local return_type = before_method and before_method:match("([%w_%.<>%[%]?]+)%s*$")
+  local current_class
+  for search_line = line_number, 1, -1 do
+    current_class = vim.api.nvim_buf_get_lines(bufnr, search_line - 1, search_line, false)[1]:match("class%s+([%w_]+)")
+    if current_class then break end
+  end
+  if return_type and return_type ~= "void" and return_type ~= current_class then
+    table.insert(lines, indent .. "/// <returns></returns>")
+  end
+
+  vim.api.nvim_buf_set_lines(bufnr, line_number - 1, line_number - 1, false, lines)
+  vim.api.nvim_win_set_cursor(0, { line_number + 1, #indent + 4 })
+end
+
 -- In the file tree the selected row is clearer than a block cursor drawn over an icon.
 local default_guicursor = vim.o.guicursor
 local tree_guicursor = "n-v-c:ver1-CursorLine,i-ci-ve:ver25,r-cr:hor20,o:hor50"
@@ -169,6 +215,7 @@ require("lazy").setup({
         { "<leader>f", group = "Find" },
         { "<leader>b", group = "Breakpoint" },
         { "<leader>d", group = "Debug" },
+        { "<leader>c", group = "Code" },
         { "<leader>r", group = "Refactor / Run" },
         { "<leader>t", group = "Terminal / Test" },
         { "<leader>R", desc = "Sync plugins" },
@@ -306,6 +353,7 @@ require("lazy").setup({
           map("<leader>s", vim.lsp.buf.signature_help, "Signature help")
           map("<leader>rn", vim.lsp.buf.rename, "Rename")
           map("<leader>ca", vim.lsp.buf.code_action, "Code action")
+          map("<leader>cd", insert_csharp_docstring, "Insert C# docstring")
           map("<leader>e", vim.diagnostic.open_float, "Diagnostics")
           map("[d", vim.diagnostic.goto_prev, "Previous diagnostic")
           map("]d", vim.diagnostic.goto_next, "Next diagnostic")

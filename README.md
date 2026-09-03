@@ -20,6 +20,8 @@ Yazma modunda `ctor`, `prop`, `propg`, `if`, `for`, `foreach`, `try` veya `cw` y
 
 Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi code action'larını gösterir.
 
+İmleci sınıf, metot veya property bildiriminin üstüne getirin ve `Space c d` ile XML docstring ekleyin. Metot parametreleri için `<param>` satırları da üretilir.
+
 ## Temel Vim
 
 | Kısayol | İşlev |
@@ -45,6 +47,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `Space s` | Metod parametrelerini göster |
 | `Space r n` | Sembolü yeniden adlandır |
 | `Space c a` | Kod aksiyonu |
+| `Space c d` | C# XML docstring ekle |
 | `Space e` | Hata ayrıntısı |
 | `Space x` | Hata listesini panelde aç/kapat |
 | `[d` / `]d` | Önceki / sonraki hata |
