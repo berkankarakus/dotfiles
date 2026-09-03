@@ -29,6 +29,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `i` | Yazma modu |
 | `Esc` | Normal moda dön |
 | `:w` | Kaydet |
+| `Space w a` | Tüm değişmiş dosyaları kaydet |
 | `:q` | Çık |
 | `:wq` | Kaydet ve çık |
 | `u` / `Ctrl-r` | Geri al / ileri al |
@@ -86,6 +87,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 | `Space n` | Soldaki, ikonlu dosya ağacını aç/kapat |
 | `→` (dosya ağacında) | Seçili dosyayı aç; klasörü genişlet |
 | `←` (dosya ağacında) | Klasörü daralt; üst klasöre dön |
+| `W` (dosya ağacında) | Tüm klasörleri kapat |
 
 ## Debugger
 

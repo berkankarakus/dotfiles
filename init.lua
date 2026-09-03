@@ -62,6 +62,7 @@ end
 vim.keymap.set("n", "<leader>tt", toggle_terminal, { desc = "Toggle terminal" })
 vim.keymap.set("n", "<leader>tw", function() run_in_terminal("dotnet test --watch") end, { desc = "Test: Watch" })
 vim.keymap.set("n", "<leader>rr", function() run_in_terminal("dotnet test") end, { desc = "Test: Run suite" })
+vim.keymap.set("n", "<leader>wa", "<CMD>wall<CR>", { desc = "Save all files" })
 
 vim.keymap.set("n", "<leader>R", "<CMD>Lazy sync<CR>", { desc = "Sync plugins" })
 
@@ -240,6 +241,7 @@ require("lazy").setup({
         { "<leader>c", group = "Code" },
         { "<leader>r", group = "Refactor / Run" },
         { "<leader>t", group = "Terminal / Test" },
+        { "<leader>w", group = "Write" },
         { "<leader>R", desc = "Sync plugins" },
       },
     },
