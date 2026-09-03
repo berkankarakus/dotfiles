@@ -33,6 +33,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `:q` | Çık |
 | `:wq` | Kaydet ve çık |
 | `u` / `Ctrl-r` | Geri al / ileri al |
+| `Option-Left` / `Option-Right` (yazma modunda) | Önceki / sonraki kelimeye git |
 | `/metin`, `n` | Ara / sonraki sonuç |
 
 ## Kod Gezinme

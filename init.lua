@@ -20,6 +20,9 @@ vim.opt.tabstop = 4
 vim.opt.list = true
 vim.opt.listchars = { space = "·", multispace = "·", tab = "→ " }
 
+vim.keymap.set("i", "<M-f>", "<C-o>w", { desc = "Next word" })
+vim.keymap.set("i", "<M-Right>", "<C-o>w", { desc = "Next word" })
+
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "cs",
   callback = function()
