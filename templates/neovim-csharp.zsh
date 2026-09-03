@@ -34,8 +34,13 @@ bindkey '^[[3~' delete-char
 
 ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(fzf_history_widget)
 fzf_history_widget() {
-  local selection
-  selection=$(fc -rl 1 | awk '{ line = $0; sub(/^[[:space:]]*[0-9]+\\*?[[:space:]]+/, "", line); if (!seen[line]++) print line }' | fzf --height=45% --layout=reverse --border --prompt='History> ' --query="$LBUFFER") || return
+  local selection status
+  selection=$(fc -rl 1 | awk '{ line = $0; sub(/^[[:space:]]*[0-9]+\\*?[[:space:]]+/, "", line); if (!seen[line]++) print line }' | fzf --height=45% --layout=reverse --border --prompt='History> ' --query="$LBUFFER")
+  status=$?
+  if (( status != 0 )); then
+    zle reset-prompt
+    return
+  fi
   BUFFER="$selection"
   CURSOR=$#BUFFER
   zle reset-prompt
