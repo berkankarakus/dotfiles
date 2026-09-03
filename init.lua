@@ -58,6 +58,53 @@ vim.keymap.set("n", "<leader>rr", function() run_in_terminal("dotnet test") end,
 
 vim.keymap.set("n", "<leader>R", "<CMD>Lazy sync<CR>", { desc = "Sync plugins" })
 
+local function namespace_root_from_project(project_file)
+  local project_dir = vim.fs.dirname(project_file)
+  for _, line in ipairs(vim.fn.readfile(project_file)) do
+    local root_namespace = line:match("<RootNamespace>([%w_.]+)</RootNamespace>")
+    if root_namespace then return root_namespace end
+  end
+
+  for _, source_file in ipairs(vim.fn.globpath(project_dir, "**/*.cs", false, true)) do
+    if not source_file:find("/bin/") and not source_file:find("/obj/") then
+      for _, line in ipairs(vim.fn.readfile(source_file)) do
+        local namespace = line:match("^%s*namespace%s+([%w_.]+)%s*[;{]")
+        if namespace then
+          local relative_dir = vim.fs.relpath(project_dir, vim.fs.dirname(source_file))
+          if relative_dir and relative_dir ~= "." then
+            local suffix = "." .. relative_dir:gsub("[/\\]", ".")
+            if namespace:sub(-#suffix) == suffix then return namespace:sub(1, #namespace - #suffix) end
+          end
+          return namespace
+        end
+      end
+    end
+  end
+  return vim.fn.fnamemodify(project_file, ":t:r")
+end
+
+vim.api.nvim_create_autocmd("BufNewFile", {
+  pattern = "*.cs",
+  callback = function(event)
+    local file_dir = vim.fs.dirname(vim.api.nvim_buf_get_name(event.buf))
+    local project_file = vim.fs.find(function(name) return name:sub(-7) == ".csproj" end, {
+      path = file_dir,
+      upward = true,
+      limit = 1,
+    })[1]
+    if not project_file then return end
+
+    local project_dir = vim.fs.dirname(project_file)
+    local relative_dir = vim.fs.relpath(project_dir, file_dir)
+    local namespace = namespace_root_from_project(project_file)
+    if relative_dir and relative_dir ~= "." then
+      namespace = namespace .. "." .. relative_dir:gsub("[/\\]", "."):gsub("[^%w_.]", "_")
+    end
+    vim.api.nvim_buf_set_lines(event.buf, 0, -1, false, { "namespace " .. namespace .. ";", "", "" })
+    vim.api.nvim_win_set_cursor(0, { 3, 0 })
+  end,
+})
+
 -- In the file tree the selected row is clearer than a block cursor drawn over an icon.
 local default_guicursor = vim.o.guicursor
 local tree_guicursor = "n-v-c:ver1-CursorLine,i-ci-ve:ver25,r-cr:hor20,o:hor50"

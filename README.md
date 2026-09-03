@@ -12,6 +12,8 @@ nvim .
 
 Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
 
+Yeni bir `.cs` dosyası oluşturduğunuzda Neovim, bulunduğu `.csproj` ve klasör yolundan file-scoped namespace satırını otomatik ekler.
+
 ## Temel Vim
 
 | Kısayol | İşlev |
