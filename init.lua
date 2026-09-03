@@ -63,6 +63,10 @@ local function run_in_terminal(command)
   if job_id then vim.fn.chansend(job_id, command .. "\n") end
 end
 vim.keymap.set("n", "<leader>tt", toggle_terminal, { desc = "Toggle terminal" })
+vim.keymap.set("t", "<C-\\>", function()
+  vim.cmd("stopinsert")
+  vim.schedule(toggle_terminal)
+end, { desc = "Hide terminal" })
 vim.keymap.set("n", "<leader>tw", function() run_in_terminal("dotnet test --watch") end, { desc = "Test: Watch" })
 vim.keymap.set("n", "<leader>rr", function() run_in_terminal("dotnet test") end, { desc = "Test: Run suite" })
 vim.keymap.set("n", "<leader>wa", "<CMD>wall<CR>", { desc = "Save all files" })
