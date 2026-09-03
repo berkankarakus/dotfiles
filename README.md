@@ -47,12 +47,13 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `Space s` | Metod parametrelerini göster |
 | `Space r n` | Sembolü yeniden adlandır |
 | `Space c a` | Kod aksiyonu |
+| `Space c o` | Import düzenleme aksiyonlarını göster |
 | `Space c d` | C# XML docstring ekle |
 | `Space e` | Hata ayrıntısı |
 | `Space x` | Hata listesini panelde aç/kapat |
 | `[d` / `]d` | Önceki / sonraki hata |
 
-C# dosyaları kaydedilirken import'lar düzenlenir. Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add using...** seçin.
+Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add using...** seçin. Import sıralama/temizleme için `Space c o` kullanın; bu işlem kaydetmede otomatik çalışmaz.
 
 ## Arama
 
