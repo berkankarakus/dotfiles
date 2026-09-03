@@ -1,6 +1,7 @@
 # C# / Neovim için sade, okunaklı Ghostty profili.
 theme = TokyoNight Moon
-font-family = JetBrainsMonoNL Nerd Font
+font-family = JetBrainsMono Nerd Font
+font-feature = calt, liga
 font-size = 14
 window-padding-x = 10
 window-padding-y = 8
