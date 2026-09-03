@@ -83,10 +83,16 @@ local function namespace_root_from_project(project_file)
   return vim.fn.fnamemodify(project_file, ":t:r")
 end
 
-vim.api.nvim_create_autocmd("BufNewFile", {
+vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
   pattern = "*.cs",
   callback = function(event)
-    local file_dir = vim.fs.dirname(vim.api.nvim_buf_get_name(event.buf))
+    local filename = vim.api.nvim_buf_get_name(event.buf)
+    -- BufReadPost is included so `touch NewClass.cs` works too; only empty
+    -- files receive a namespace.
+    if event.event == "BufReadPost" and vim.fn.getfsize(filename) ~= 0 then return end
+    if vim.api.nvim_buf_get_lines(event.buf, 0, -1, false)[1] ~= "" then return end
+
+    local file_dir = vim.fs.dirname(filename)
     local project_file = vim.fs.find(function(name) return name:sub(-7) == ".csproj" end, {
       path = file_dir,
       upward = true,
@@ -191,7 +197,12 @@ require("lazy").setup({
         indent_markers = { enable = true },
         icons = { show = { file = true, folder = true, folder_arrow = false, git = false } },
       },
-      filters = { dotfiles = false },
+      filters = {
+        dotfiles = true,
+        custom = { "^bin$", "^obj$", "^%.DS_Store$" },
+      },
+      update_focused_file = { enable = true, update_root = false },
+      actions = { remove_file = { close_window = false } },
       git = { enable = false },
       on_attach = function(bufnr)
         local api = require("nvim-tree.api")
@@ -219,8 +230,12 @@ require("lazy").setup({
   },
   {
     "nvim-treesitter/nvim-treesitter",
+    lazy = false,
     build = ":TSUpdate",
-    opts = { ensure_installed = { "c_sharp", "lua", "json", "xml", "markdown", "bash" }, highlight = { enable = true } },
+    config = function()
+      require("nvim-treesitter").setup({ install_dir = vim.fn.stdpath("data") .. "/site" })
+      vim.opt.rtp:append(vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/runtime")
+    end,
   },
   {
     "nvim-telescope/telescope.nvim",
