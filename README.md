@@ -58,7 +58,7 @@ C# dosyaları kaydedilirken import'lar düzenlenir. Eksik bir import için hatal
 
 | Kısayol | İşlev |
 | --- | --- |
-| `Space f f` | Dosya bul |
+| `Space f f` | Dosya bul; son kullanılanlar önce gelir |
 | `Space f g` | Proje metninde ara |
 | `Space f b` | Açık dosyalarda ara |
 | `Space f s` | Açık dosyadaki sınıf/metotları ara |

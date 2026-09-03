@@ -313,12 +313,20 @@ require("lazy").setup({
       })
       pcall(telescope.load_extension, "fzf")
       local builtin = require("telescope.builtin")
-      vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Find files" })
+      vim.keymap.set("n", "<leader>ff", function()
+        telescope.extensions.frecency.frecency({ workspace = "CWD" })
+      end, { desc = "Find files (recent first)" })
       vim.keymap.set("n", "<leader>fg", builtin.live_grep, { desc = "Search project text" })
       vim.keymap.set("n", "<leader>fb", builtin.buffers, { desc = "Find buffers" })
       vim.keymap.set("n", "<leader>fs", builtin.lsp_document_symbols, { desc = "Search document symbols" })
       vim.keymap.set("n", "<leader>fS", builtin.lsp_dynamic_workspace_symbols, { desc = "Search workspace symbols" })
       vim.keymap.set("n", "<leader>fh", builtin.help_tags, { desc = "Search help" })
+    end,
+  },
+  {
+    "nvim-telescope/telescope-frecency.nvim",
+    config = function()
+      require("telescope").load_extension("frecency")
     end,
   },
   {
