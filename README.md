@@ -54,7 +54,7 @@ Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
 
 ## Debugger
 
-Önce `dotnet build` çalıştırın. Ardından `F5`, açık C# dosyasının projesindeki Debug `.dll` çıktısını otomatik bulur. Bulamazsa yalnızca o zaman DLL yolunu sorar.
+Önce `dotnet build` çalıştırın. Ardından `F5`, açık C# dosyasının projesindeki Debug `.dll` çıktısını otomatik bulur. Projede `Properties/launchSettings.json` varsa `commandLineArgs`, `workingDirectory` ve environment değerleri de otomatik uygulanır. Bulamazsa yalnızca o zaman DLL yolunu sorar.
 
 | Kısayol | İşlev |
 | --- | --- |

@@ -290,12 +290,39 @@ require("lazy").setup({
         end
         return vim.fn.input("Path to DLL: ", vim.fn.getcwd() .. "/bin/Debug/", "file")
       end
+      local function dotnet_launch_profile()
+        local project_file = dotnet_project_file()
+        if not project_file then return { cwd = vim.fn.getcwd(), args = {}, env = {} } end
+
+        local project_dir = vim.fs.dirname(project_file)
+        local launch_settings = project_dir .. "/Properties/launchSettings.json"
+        if vim.fn.filereadable(launch_settings) == 0 then
+          return { cwd = project_dir, args = {}, env = {} }
+        end
+
+        local ok, settings = pcall(vim.json.decode, table.concat(vim.fn.readfile(launch_settings), "\n"))
+        if not ok then
+          vim.notify("Could not read launchSettings.json", vim.log.levels.WARN)
+          return { cwd = project_dir, args = {}, env = {} }
+        end
+
+        for _, profile in pairs(settings.profiles or {}) do
+          if profile.commandName == "Project" then
+            local args = profile.commandLineArgs and require("dap.utils").splitstr(profile.commandLineArgs) or {}
+            return { cwd = project_dir, args = args, env = profile.environmentVariables or {} }
+          end
+        end
+        return { cwd = project_dir, args = {}, env = {} }
+      end
       dap.adapters.coreclr = { type = "executable", command = netcoredbg, args = { "--interpreter=vscode" } }
       dap.configurations.cs = {
         {
           type = "coreclr", name = "Launch .NET project", request = "launch",
           program = dotnet_program,
-          cwd = "${workspaceFolder}", stopAtEntry = false,
+          args = function() return dotnet_launch_profile().args end,
+          cwd = function() return dotnet_launch_profile().cwd end,
+          env = function() return dotnet_launch_profile().env end,
+          stopAtEntry = false,
         },
       }
       dap.listeners.after.event_initialized["dapui"] = dapui.open
