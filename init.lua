@@ -120,14 +120,29 @@ local function insert_csharp_docstring()
   local bufnr = vim.api.nvim_get_current_buf()
   local line_number = vim.api.nvim_win_get_cursor(0)[1]
   local declaration = vim.api.nvim_buf_get_lines(bufnr, line_number - 1, line_number, false)[1]
-  local previous = line_number > 1 and vim.api.nvim_buf_get_lines(bufnr, line_number - 2, line_number - 1, false)[1] or ""
+  while declaration:match("^%s*$") and line_number < vim.api.nvim_buf_line_count(bufnr) do
+    line_number = line_number + 1
+    declaration = vim.api.nvim_buf_get_lines(bufnr, line_number - 1, line_number, false)[1]
+  end
+  if declaration:match("^%s*$") then
+    vim.notify("Place the cursor on a C# declaration or the blank line directly above it.", vim.log.levels.WARN)
+    return
+  end
+
+  local previous_line = line_number - 1
+  local previous = ""
+  while previous_line > 0 do
+    previous = vim.api.nvim_buf_get_lines(bufnr, previous_line - 1, previous_line, false)[1]
+    if not previous:match("^%s*$") then break end
+    previous_line = previous_line - 1
+  end
   if previous:match("^%s*///") then
     vim.notify("This declaration already has a docstring.", vim.log.levels.INFO)
     return
   end
 
   local indent = declaration:match("^(%s*)") or ""
-  local lines = { indent .. "/// <summary>", indent .. "/// ", indent .. "/// </summary>" }
+  local lines = { indent .. "/// <summary></summary>" }
   local signature = declaration
   for next_line = line_number + 1, math.min(line_number + 6, vim.api.nvim_buf_line_count(bufnr)) do
     if signature:find("%(") and signature:find("%)") then break end
@@ -154,7 +169,7 @@ local function insert_csharp_docstring()
   end
 
   vim.api.nvim_buf_set_lines(bufnr, line_number - 1, line_number - 1, false, lines)
-  vim.api.nvim_win_set_cursor(0, { line_number + 1, #indent + 4 })
+  vim.api.nvim_win_set_cursor(0, { line_number, #(indent .. "/// <summary>") })
 end
 
 -- In the file tree the selected row is clearer than a block cursor drawn over an icon.
