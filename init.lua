@@ -263,12 +263,14 @@ require("lazy").setup({
     "mfussenegger/nvim-dap",
     dependencies = {
       { "rcarriga/nvim-dap-ui", dependencies = { "nvim-neotest/nvim-nio" }, opts = {} },
+      { "Cliffback/netcoredbg-macOS-arm64.nvim" },
       { "jay-babu/mason-nvim-dap.nvim", opts = { ensure_installed = { "netcoredbg" }, automatic_installation = true } },
     },
     config = function()
       local dap = require("dap")
+      dap.set_log_level("INFO")
       local dapui = require("dapui")
-      local netcoredbg = vim.fn.stdpath("data") .. "/mason/bin/netcoredbg"
+      local netcoredbg = vim.fn.stdpath("data") .. "/lazy/netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg"
       local function dotnet_project_file()
         local buffer_name = vim.api.nvim_buf_get_name(0)
         local start_path = buffer_name ~= "" and vim.fs.dirname(buffer_name) or vim.fn.getcwd()
