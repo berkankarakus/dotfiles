@@ -14,6 +14,12 @@ Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
 
 Yeni bir `.cs` dosyası oluşturduğunuzda Neovim, bulunduğu `.csproj` ve klasör yolundan file-scoped namespace satırını otomatik ekler.
 
+## C# Şablonları
+
+Yazma modunda `ctor`, `prop`, `propg`, `if`, `for`, `foreach`, `try` veya `cw` yazın; completion menüsünden şablonu `Enter` ile seçin. `Tab` sonraki yer tutucuya, `Shift-Tab` öncekine gider. `ctor`, içinde bulunduğunuz sınıfın adını otomatik kullanır.
+
+Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi code action'larını gösterir.
+
 ## Temel Vim
 
 | Kısayol | İşlev |
