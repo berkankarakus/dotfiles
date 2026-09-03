@@ -286,13 +286,36 @@ require("lazy").setup({
             vim.keymap.set("n", keys, func, { buffer = event.buf, desc = desc })
           end
           map("gd", vim.lsp.buf.definition, "Go to definition")
+          map("gi", vim.lsp.buf.implementation, "Go to implementation")
           map("gr", vim.lsp.buf.references, "References")
           map("K", vim.lsp.buf.hover, "Documentation")
+          map("<leader>s", vim.lsp.buf.signature_help, "Signature help")
           map("<leader>rn", vim.lsp.buf.rename, "Rename")
           map("<leader>ca", vim.lsp.buf.code_action, "Code action")
           map("<leader>e", vim.diagnostic.open_float, "Diagnostics")
           map("[d", vim.diagnostic.goto_prev, "Previous diagnostic")
           map("]d", vim.diagnostic.goto_next, "Next diagnostic")
+
+          if vim.bo[event.buf].filetype == "cs" then
+            vim.api.nvim_create_autocmd("BufWritePre", {
+              buffer = event.buf,
+              callback = function()
+                local client = vim.lsp.get_clients({ bufnr = event.buf, name = "csharp_ls" })[1]
+                if not client or not client:supports_method("textDocument/codeAction", event.buf) then return end
+                local params = vim.lsp.util.make_range_params(0, client.offset_encoding)
+                params.context = { diagnostics = {}, only = { "source.organizeImports" } }
+                local response = client:request_sync("textDocument/codeAction", params, 1000, event.buf)
+                for _, action in ipairs(response and response.result or {}) do
+                  if not action.edit and not action.command then
+                    local resolved = client:request_sync("codeAction/resolve", action, 1000, event.buf)
+                    action = resolved and resolved.result or action
+                  end
+                  if action.edit then vim.lsp.util.apply_workspace_edit(action.edit, client.offset_encoding) end
+                  if action.command then vim.lsp.buf.execute_command(action.command) end
+                end
+              end,
+            })
+          end
         end,
       })
     end,

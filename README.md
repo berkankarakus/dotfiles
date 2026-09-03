@@ -39,13 +39,17 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | Kısayol | İşlev |
 | --- | --- |
 | `gd` | Tanıma git |
+| `gi` | Implementation'a git |
 | `gr` | Referansları göster |
 | `K` | Dokümantasyonu aç |
+| `Space s` | Metod parametrelerini göster |
 | `Space r n` | Sembolü yeniden adlandır |
 | `Space c a` | Kod aksiyonu |
 | `Space e` | Hata ayrıntısı |
 | `Space x` | Hata listesini panelde aç/kapat |
 | `[d` / `]d` | Önceki / sonraki hata |
+
+C# dosyaları kaydedilirken import'lar düzenlenir. Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add using...** seçin.
 
 ## Arama
 
