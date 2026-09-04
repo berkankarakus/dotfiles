@@ -172,7 +172,7 @@ vim.keymap.set("n", "<leader>tt", toggle_terminal, { desc = "Toggle terminal" })
 vim.keymap.set("t", "<C-\\>", function()
   vim.cmd("stopinsert")
   vim.schedule(toggle_terminal)
-end, { desc = "Hide terminal" })
+end, { desc = "Hide terminal", nowait = true })
 vim.keymap.set("n", "<leader>tw", function() run_in_terminal("dotnet test --watch") end, { desc = "Test: Watch" })
 vim.keymap.set("n", "<leader>rr", function() run_in_terminal("dotnet test") end, { desc = "Test: Run suite" })
 

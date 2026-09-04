@@ -113,7 +113,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 
 ## Terminal
 
-`Space t t` altta yerleşik terminali açar veya kapatır. `Space t w` `dotnet test --watch` başlatır; `Space r r` test paketini bir kez çalıştırır. Terminaldeyken `Ctrl-\\` terminali gizler ve son editör pencerenize döner. Terminal penceresinde kalıp normal moda geçmek için `Ctrl-\\`, ardından `Ctrl-n` kullanın.
+`Space t t` altta yerleşik terminali açar veya kapatır. `Space t w` `dotnet test --watch` başlatır; `Space r r` test paketini bir kez çalıştırır. Terminaldeyken `Ctrl-\\` terminali anında gizler ve son editör pencerenize döner.
 
 ## Terminal Araçları
 
