@@ -34,8 +34,8 @@ vim.api.nvim_create_autocmd("FileType", {
   pattern = "cs",
   callback = function()
     vim.opt_local.formatoptions:remove({ "r", "o" })
-    vim.opt_local.foldmethod = "marker"
-    vim.opt_local.foldmarker = "#region,#endregion"
+    vim.opt_local.foldmethod = "expr"
+    vim.opt_local.foldexpr = "v:lua.vim.treesitter.foldexpr()"
     vim.opt_local.foldlevel = 99
     vim.opt_local.foldenable = true
   end,
