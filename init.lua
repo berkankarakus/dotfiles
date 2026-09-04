@@ -188,6 +188,9 @@ local function insert_csharp_docstring()
   vim.api.nvim_buf_set_lines(bufnr, line_number - 1, line_number - 1, false, lines)
   vim.api.nvim_win_set_cursor(0, { line_number + 1, #indent + 4 })
   vim.cmd("startinsert")
+  vim.schedule(function()
+    vim.api.nvim_feedkeys(vim.keycode("<Right>"), "n", false)
+  end)
 end
 
 -- In the file tree the selected row is clearer than a block cursor drawn over an icon.
