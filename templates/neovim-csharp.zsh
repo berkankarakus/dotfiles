@@ -29,10 +29,8 @@ zle -N accept_suggestion_or_line
 bindkey '^M' accept_suggestion_or_line
 bindkey '^J' accept_suggestion_or_line
 
-# Option + Delete removes a word; fn + Delete removes the next character.
-bindkey '^[^?' backward-kill-word
-bindkey '^[^H' backward-kill-word
-bindkey '^[[3~' delete-char
+# Option + Delete removes the next word.
+bindkey '^[d' kill-word
 
 ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(fzf_history_widget)
 fzf_history_widget() {

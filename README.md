@@ -130,8 +130,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 | `Ctrl-r` | Altta geçmiş komut aramasını açar; yazdıkça filtreler |
 | `Enter` | Açık geçmiş önerisini prompt'a alır; sonraki `Enter` komutu çalıştırır |
 | `Ctrl-g` | Silik geçmiş önerisini kapatır; yazılan komutu korur |
-| `Option-Delete` | İmlecin solundaki kelimeyi siler |
-| `fn-Delete` | İmlecin sağındaki karakteri siler |
+| `Option-Delete` | İmlecin sağındaki kelimeyi siler |
 
 ## Kısayol Yardımı
 
