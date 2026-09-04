@@ -159,7 +159,7 @@ local function insert_csharp_docstring()
   end
 
   local indent = declaration:match("^(%s*)") or ""
-  local lines = { indent .. "/// <summary>", indent .. "/// ", indent .. "/// </summary>" }
+  local lines = { indent .. "/// <summary>", indent .. "///  ", indent .. "/// </summary>" }
   local signature = declaration
   for next_line = line_number + 1, math.min(line_number + 6, vim.api.nvim_buf_line_count(bufnr)) do
     if signature:find("%(") and signature:find("%)") then break end
