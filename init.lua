@@ -486,21 +486,23 @@ require("lazy").setup({
     opts = {},
   },
   {
-    "williamboman/mason-lspconfig.nvim",
-    dependencies = { "williamboman/mason.nvim", "neovim/nvim-lspconfig" },
-    opts = { ensure_installed = { "csharp_ls" }, automatic_installation = true },
+    "seblyng/roslyn.nvim",
+    dependencies = { "neovim/nvim-lspconfig" },
+    opts = {},
   },
   {
     "neovim/nvim-lspconfig",
     config = function()
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
-      vim.lsp.config("csharp_ls", {
+      vim.lsp.config("roslyn", {
         capabilities = capabilities,
+        cmd = { vim.fn.expand("~/.dotnet/tools/roslyn-language-server"), "--stdio" },
         settings = {
           ["csharp|inlay_hints"] = { csharp_enable_inlay_hints_for_implicit_object_creation = true },
+          ["csharp|completion"] = { dotnet_show_completion_items_from_unimported_namespaces = true },
         },
       })
-      vim.lsp.enable("csharp_ls")
+      vim.lsp.enable("roslyn")
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(event)
           local map = function(keys, func, desc)
