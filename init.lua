@@ -26,10 +26,21 @@ vim.opt.whichwrap:append(">")
 vim.opt.whichwrap:append("h")
 vim.opt.whichwrap:append("l")
 
-vim.keymap.set("i", "<M-f>", "<C-o>w", { desc = "Next word" })
-vim.keymap.set("i", "<M-Right>", "<C-o>w", { desc = "Next word" })
-vim.keymap.set("i", "<M-b>", "<C-o>b", { desc = "Previous word" })
-vim.keymap.set("i", "<M-Left>", "<C-o>b", { desc = "Previous word" })
+local function move_word_within_line(direction)
+  local line = vim.api.nvim_get_current_line()
+  local column = vim.api.nvim_win_get_cursor(0)[2]
+  if direction == "left" then
+    if line:sub(1, column):match("%S") then return "<C-o>b" end
+    return "<C-o>0"
+  end
+  if line:sub(column + 1):match("%s+%S") then return "<C-o>w" end
+  return "<C-o>$"
+end
+
+vim.keymap.set("i", "<M-f>", function() return move_word_within_line("right") end, { expr = true, desc = "Next word on line" })
+vim.keymap.set("i", "<M-Right>", function() return move_word_within_line("right") end, { expr = true, desc = "Next word on line" })
+vim.keymap.set("i", "<M-b>", function() return move_word_within_line("left") end, { expr = true, desc = "Previous word on line" })
+vim.keymap.set("i", "<M-Left>", function() return move_word_within_line("left") end, { expr = true, desc = "Previous word on line" })
 vim.keymap.set("i", "<M-d>", "<C-o>dw", { desc = "Delete next word" })
 vim.keymap.set("i", "<Home>", "<C-o>0", { desc = "Start of line" })
 vim.keymap.set("i", "<End>", "<C-o>$", { desc = "End of line" })
@@ -536,6 +547,7 @@ require("lazy").setup({
         s("if", { t("if ("), i(1, "condition"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("for", { t("for (var i = 0; i < "), i(1, "count"), t({ "; i++ )", "{", "    " }), i(0), t({ "", "}" }) }),
         s("foreach", { t("foreach (var "), i(1, "item"), t(" in "), i(2, "items"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
+        s("dowhile", { t({ "do", "{", "    " }), i(1), t({ "", "} while (" }), i(2, "condition"), t(");"), i(0) }),
         s("try", { t({ "try", "{", "    " }), i(1), t({ "", "}", "catch (" }), i(2, "Exception ex"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("cw", { t("Console.WriteLine("), i(1), t(");") }),
       })
