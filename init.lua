@@ -19,6 +19,8 @@ vim.opt.shiftwidth = 4
 vim.opt.tabstop = 4
 vim.opt.list = true
 vim.opt.listchars = { space = "·", multispace = "·", tab = "→ " }
+vim.opt.whichwrap:append("[")
+vim.opt.whichwrap:append("]")
 
 vim.keymap.set("i", "<M-f>", "<C-o>w", { desc = "Next word" })
 vim.keymap.set("i", "<M-Right>", "<C-o>w", { desc = "Next word" })
