@@ -506,13 +506,16 @@ require("lazy").setup({
           local map = function(keys, func, desc)
             vim.keymap.set("n", keys, func, { buffer = event.buf, desc = desc })
           end
+          local code_action = function()
+            vim.lsp.buf.code_action()
+          end
           map("gd", vim.lsp.buf.definition, "Go to definition")
           map("gi", vim.lsp.buf.implementation, "Go to implementation")
           map("gr", vim.lsp.buf.references, "References")
           map("K", vim.lsp.buf.hover, "Documentation")
           map("<leader>s", vim.lsp.buf.signature_help, "Signature help")
           map("<leader>rn", vim.lsp.buf.rename, "Rename")
-          map("<leader>ca", vim.lsp.buf.code_action, "Code action")
+          vim.keymap.set({ "n", "x" }, "<leader>ca", code_action, { buffer = event.buf, desc = "Code action" })
           map("<leader>cd", insert_csharp_docstring, "Insert C# docstring")
           map("<leader>e", vim.diagnostic.open_float, "Diagnostics")
           map("[d", vim.diagnostic.goto_prev, "Previous diagnostic")
