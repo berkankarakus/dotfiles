@@ -37,6 +37,8 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `Option-Left` / `Option-Right` (yazma modunda) | Önceki / sonraki kelimeye git |
 | `Command-Left` / `Command-Right` (yazma modunda) | Satır başına / sonuna git |
 | `Left` / `Right` (satır başı/sonunda, yazma modunda) | Önceki satırın sonuna / sonraki satırın başına git |
+| `za` (`#region` üstünde) | Region'ı aç/kapat |
+| `zM` / `zR` | Tüm region'ları kapat / aç |
 | `/metin`, `n` | Ara / sonraki sonuç |
 
 ## Kod Gezinme
