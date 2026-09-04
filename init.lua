@@ -24,6 +24,7 @@ vim.keymap.set("i", "<M-f>", "<C-o>w", { desc = "Next word" })
 vim.keymap.set("i", "<M-Right>", "<C-o>w", { desc = "Next word" })
 vim.keymap.set("i", "<M-b>", "<C-o>b", { desc = "Previous word" })
 vim.keymap.set("i", "<M-Left>", "<C-o>b", { desc = "Previous word" })
+vim.keymap.set("i", "<M-BS>", "<C-w>", { desc = "Delete previous word" })
 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "cs",
