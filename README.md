@@ -31,7 +31,6 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `i` | Yazma modu |
 | `Esc` | Normal moda dön |
 | `:w` | Kaydet |
-| `Space w a` | Tüm değişmiş dosyaları kaydet |
 | `:q` | Çık |
 | `:wq` | Kaydet ve çık |
 | `u` / `Ctrl-r` | Geri al / ileri al |
