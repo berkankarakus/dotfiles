@@ -8,3 +8,5 @@ window-padding-y = 8
 window-decoration = auto
 window-inherit-font-size = true
 keybind = option+backspace=text:\\x17
+keybind = command+arrow_left=csi:H
+keybind = command+arrow_right=csi:F
