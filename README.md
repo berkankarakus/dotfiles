@@ -10,6 +10,8 @@ Bir .NET projesinin kök klasöründe Neovim'i açın:
 nvim .
 ```
 
+`nvim .`, aynı proje klasöründe en son düzenlediğiniz dosyayı açar.
+
 Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
 
 Yeni bir `.cs` dosyası oluşturduğunuzda Neovim, bulunduğu `.csproj` ve klasör yolundan file-scoped namespace satırını otomatik ekler.
