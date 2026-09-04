@@ -7,7 +7,7 @@ window-padding-x = 10
 window-padding-y = 8
 window-decoration = auto
 window-inherit-font-size = true
-keybind = option+backspace=esc:d
+keybind = option+backspace=text:\x17
 keybind = option+delete=esc:d
 keybind = command+arrow_left=csi:H
 keybind = command+arrow_right=csi:F
