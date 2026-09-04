@@ -133,7 +133,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 
 Normal modda `Space` tuşuna kısa süre basılı bekleyin: Which-key kullanılabilir devam tuşlarını gösterir.
 
-`Space R`, eklentileri Lazy ile senkronize eder. `init.lua` içindeki eklenti ya da ayar değişikliklerinin uygulanması için Neovim'i bir kez kapatıp açın; Lazy bu dosyanın tekrar source edilmesini desteklemez.
+Eklentileri güncellemek gerektiğinde `:Lazy sync` çalıştırın. `init.lua` içindeki eklenti ya da ayar değişikliklerinin uygulanması için `:restart` kullanın; Lazy bu dosyanın tekrar source edilmesini desteklemez.
 
 ## Yapılandırma
 

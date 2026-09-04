@@ -129,8 +129,6 @@ end, { desc = "Hide terminal" })
 vim.keymap.set("n", "<leader>tw", function() run_in_terminal("dotnet test --watch") end, { desc = "Test: Watch" })
 vim.keymap.set("n", "<leader>rr", function() run_in_terminal("dotnet test") end, { desc = "Test: Run suite" })
 
-vim.keymap.set("n", "<leader>R", "<CMD>Lazy sync<CR>", { desc = "Sync plugins" })
-
 local function namespace_root_from_project(project_file)
   local project_dir = vim.fs.dirname(project_file)
   for _, line in ipairs(vim.fn.readfile(project_file)) do
