@@ -35,6 +35,17 @@ vim.api.nvim_create_autocmd("FileType", {
   end,
 })
 
+vim.api.nvim_create_autocmd("BufReadPost", {
+  callback = function(event)
+    if vim.bo[event.buf].buftype ~= "" or vim.bo[event.buf].filetype == "gitcommit" then return end
+    if vim.api.nvim_win_get_buf(0) ~= event.buf then return end
+    local last_position = vim.api.nvim_buf_get_mark(event.buf, '"')
+    if last_position[1] > 0 and last_position[1] <= vim.api.nvim_buf_line_count(event.buf) then
+      vim.api.nvim_win_set_cursor(0, last_position)
+    end
+  end,
+})
+
 local terminal_buf
 local function show_terminal()
   if terminal_buf and vim.api.nvim_buf_is_valid(terminal_buf) then
