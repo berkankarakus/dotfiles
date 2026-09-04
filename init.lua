@@ -159,7 +159,7 @@ local function insert_csharp_docstring()
   end
 
   local indent = declaration:match("^(%s*)") or ""
-  local lines = { indent .. "/// <summary>", indent .. "///  ", indent .. "/// </summary>" }
+  local lines = { indent .. "/// <summary>", indent .. "/// ", indent .. "/// </summary>" }
   local signature = declaration
   for next_line = line_number + 1, math.min(line_number + 6, vim.api.nvim_buf_line_count(bufnr)) do
     if signature:find("%(") and signature:find("%)") then break end
@@ -187,6 +187,7 @@ local function insert_csharp_docstring()
 
   vim.api.nvim_buf_set_lines(bufnr, line_number - 1, line_number - 1, false, lines)
   vim.api.nvim_win_set_cursor(0, { line_number + 1, #indent + 4 })
+  vim.cmd("startinsert")
 end
 
 -- In the file tree the selected row is clearer than a block cursor drawn over an icon.
