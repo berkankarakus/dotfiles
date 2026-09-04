@@ -21,6 +21,10 @@ vim.opt.list = true
 vim.opt.listchars = { space = "·", multispace = "·", tab = "→ " }
 vim.opt.whichwrap:append("[")
 vim.opt.whichwrap:append("]")
+vim.opt.whichwrap:append("<")
+vim.opt.whichwrap:append(">")
+vim.opt.whichwrap:append("h")
+vim.opt.whichwrap:append("l")
 
 vim.keymap.set("i", "<M-f>", "<C-o>w", { desc = "Next word" })
 vim.keymap.set("i", "<M-Right>", "<C-o>w", { desc = "Next word" })
