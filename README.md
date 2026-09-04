@@ -67,7 +67,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 | Kısayol | İşlev |
 | --- | --- |
 | `Space f f` | Dosya bul; son kullanılanlar önce gelir |
-| `Space f g` | Proje metninde ara |
+| `Space f g` | Proje metninde, büyük/küçük harf duyarsız ara |
 | `Space f b` | Açık dosyalarda ara |
 | `Space f s` | Açık dosyadaki sınıf/metotları ara |
 | `Space f S` | Proje genelindeki sınıf/metotları ara |

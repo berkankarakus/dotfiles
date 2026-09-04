@@ -442,11 +442,14 @@ require("lazy").setup({
     },
     config = function()
       local telescope = require("telescope")
+      local vimgrep_arguments = vim.deepcopy(require("telescope.config").values.vimgrep_arguments)
+      table.insert(vimgrep_arguments, "--ignore-case")
       telescope.setup({
         defaults = {
           layout_strategy = "horizontal",
           sorting_strategy = "ascending",
           disable_devicons = true,
+          vimgrep_arguments = vimgrep_arguments,
         },
       })
       pcall(telescope.load_extension, "fzf")
