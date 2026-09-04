@@ -1,3 +1,3 @@
 ; extends
 
-(preproc_region) @fold
+(if_statement) @fold
