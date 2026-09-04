@@ -12,6 +12,8 @@ if (( $+commands[zoxide] )); then
 fi
 
 source "$HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(autosuggest-clear)
+bindkey '^G' autosuggest-clear
 
 ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(accept_suggestion_or_line)
 accept_suggestion_or_line() {
