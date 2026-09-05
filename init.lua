@@ -335,6 +335,10 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
   { "folke/tokyonight.nvim", priority = 1000, opts = { style = "moon" } },
   {
+    "lukas-reineke/virt-column.nvim",
+    opts = { char = "┊" },
+  },
+  {
     "nvim-lualine/lualine.nvim",
     dependencies = { "nvim-tree/nvim-web-devicons" },
     opts = {
@@ -687,3 +691,4 @@ require("lazy").setup({
 }, { checker = { enabled = true }, change_detection = { notify = false } })
 
 vim.cmd.colorscheme("tokyonight")
+vim.api.nvim_set_hl(0, "VirtColumn", { fg = "#3b4261" })
