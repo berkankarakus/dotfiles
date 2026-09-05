@@ -45,6 +45,10 @@ vim.keymap.set("i", "<M-Left>", function() return move_word_within_line("left") 
 vim.keymap.set("i", "<M-d>", "<C-o>dw", { desc = "Delete next word" })
 vim.keymap.set("i", "<Home>", "<C-o>0", { desc = "Start of line" })
 vim.keymap.set("i", "<End>", "<C-o>$", { desc = "End of line" })
+vim.keymap.set("n", "<S-Up>", "<CMD>move .-2<CR>==", { desc = "Move line up" })
+vim.keymap.set("n", "<S-Down>", "<CMD>move .+1<CR>==", { desc = "Move line down" })
+vim.keymap.set("x", "<S-Up>", ":move '<-2<CR>gv=gv", { desc = "Move selection up" })
+vim.keymap.set("x", "<S-Down>", ":move '>+1<CR>gv=gv", { desc = "Move selection down" })
 
 local csharp_fold_cache = {}
 function _G.csharp_foldexpr()
