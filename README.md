@@ -83,6 +83,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 | --- | --- |
 | `Ctrl-n` | İmleçteki kelimeyi seç; her tekrarda sonraki eşleşmeye imleç ekle |
 | `g Ctrl-n` | Kelimenin tüm eşleşmelerini seç |
+| `Option-j` / `Option-k` | Aşağıya / yukarıya dikey imleç ekler |
 | `Esc` | Çoklu imleç modundan çık |
 
 ## Arama

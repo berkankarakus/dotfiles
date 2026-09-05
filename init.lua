@@ -392,7 +392,15 @@ require("lazy").setup({
     },
   },
   { "echasnovski/mini.surround", version = false, opts = {} },
-  { "mg979/vim-visual-multi" },
+  {
+    "mg979/vim-visual-multi",
+    init = function()
+      vim.g.VM_maps = {
+        ["Add Cursor Down"] = "<M-j>",
+        ["Add Cursor Up"] = "<M-k>",
+      }
+    end,
+  },
   {
     "stevearc/oil.nvim",
     dependencies = { "nvim-tree/nvim-web-devicons" },
