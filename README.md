@@ -77,6 +77,14 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 
 Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add using...** seçin.
 
+## Çoklu İmleç
+
+| Kısayol | İşlev |
+| --- | --- |
+| `Ctrl-n` | İmleçteki kelimeyi seç; her tekrarda sonraki eşleşmeye imleç ekle |
+| `g Ctrl-n` | Kelimenin tüm eşleşmelerini seç |
+| `Esc` | Çoklu imleç modundan çık |
+
 ## Arama
 
 | Kısayol | İşlev |

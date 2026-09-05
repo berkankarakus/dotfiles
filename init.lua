@@ -392,6 +392,7 @@ require("lazy").setup({
     },
   },
   { "echasnovski/mini.surround", version = false, opts = {} },
+  { "mg979/vim-visual-multi" },
   {
     "stevearc/oil.nvim",
     dependencies = { "nvim-tree/nvim-web-devicons" },
