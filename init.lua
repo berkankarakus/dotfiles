@@ -50,6 +50,13 @@ vim.keymap.set("n", "<S-Down>", "<CMD>move .+1<CR>==", { desc = "Move line down"
 vim.keymap.set("x", "<S-Up>", ":move '<-2<CR>gv=gv", { desc = "Move selection up" })
 vim.keymap.set("x", "<S-Down>", ":move '>+1<CR>gv=gv", { desc = "Move selection down" })
 
+vim.keymap.set("c", "<CR>", function()
+  if vim.fn.getcmdtype() == ":" and vim.fn.getcmdline() == "q" then
+    return "<C-u>wall | q<CR>"
+  end
+  return "<CR>"
+end, { expr = true, desc = "Save all before quit" })
+
 local csharp_fold_cache = {}
 function _G.csharp_foldexpr()
   local bufnr = vim.api.nvim_get_current_buf()
