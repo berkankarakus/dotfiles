@@ -12,9 +12,22 @@ nvim .
 
 `nvim .`, aynı proje klasöründe en son düzenlediğiniz dosyayı açar.
 
-Kaydetme (`:w`) C# dosyalarını CSharpier ile otomatik biçimlendirir.
+Kaydetme (`:w`) C# dosyalarını Roslyn ile otomatik biçimlendirir. Biçim kuralları, projenin kökündeki `.editorconfig` dosyasından okunur.
 
 Yeni bir `.cs` dosyası oluşturduğunuzda Neovim, bulunduğu `.csproj` ve klasör yolundan file-scoped namespace satırını otomatik ekler.
+
+## C# Biçimlendirme
+
+CSharpier otomatik formatlamada kullanılmaz; Roslyn `.editorconfig` kurallarını uygular. Örneğin proje köküne aşağıdakine benzer bir dosya koyabilirsiniz:
+
+```ini
+[*.cs]
+indent_style = space
+indent_size = 4
+csharp_new_line_before_open_brace = all
+csharp_preserve_single_line_blocks = true
+csharp_preserve_single_line_statements = true
+```
 
 ## C# Şablonları
 
