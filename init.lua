@@ -423,6 +423,10 @@ require("lazy").setup({
           buffer = bufnr,
           desc = "Close folder or go to parent",
         })
+        vim.keymap.set("n", "p", api.node.open.preview, {
+          buffer = bufnr,
+          desc = "Preview selected file",
+        })
       end,
     },
     keys = {

@@ -94,6 +94,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 | `Space n` | Soldaki, ikonlu dosya ağacını aç/kapat |
 | `→` (dosya ağacında) | Seçili dosyayı aç; klasörü genişlet |
 | `←` (dosya ağacında) | Klasörü daralt; üst klasöre dön |
+| `p` veya `Tab` (dosya ağacında) | Seçili dosyayı geçici preview olarak aç; odak ağaçta kalır |
 | `W` (dosya ağacında) | Tüm klasörleri kapat |
 
 ## Debugger
