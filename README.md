@@ -51,6 +51,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `gd` | Tanıma git |
 | `gi` | Implementation'a git |
 | `gr` | Referansları göster |
+| Değişken/metot üzerinde kısa süre bekle | Açık dosyadaki kullanımlarını vurgula |
 | `K` | Dokümantasyonu aç |
 | `Space s` | Metod parametrelerini göster |
 | `Space r n` | Sembolü yeniden adlandır |

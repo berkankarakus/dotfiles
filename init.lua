@@ -508,6 +508,7 @@ require("lazy").setup({
           local map = function(keys, func, desc)
             vim.keymap.set("n", keys, func, { buffer = event.buf, desc = desc })
           end
+          local client = vim.lsp.get_client_by_id(event.data.client_id)
           local code_action = function()
             vim.lsp.buf.code_action()
           end
@@ -522,6 +523,20 @@ require("lazy").setup({
           map("<leader>e", vim.diagnostic.open_float, "Diagnostics")
           map("[d", vim.diagnostic.goto_prev, "Previous diagnostic")
           map("]d", vim.diagnostic.goto_next, "Next diagnostic")
+
+          if client and client.server_capabilities.documentHighlightProvider then
+            local group = vim.api.nvim_create_augroup("LspDocumentHighlight" .. event.buf, { clear = true })
+            vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+              group = group,
+              buffer = event.buf,
+              callback = vim.lsp.buf.document_highlight,
+            })
+            vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+              group = group,
+              buffer = event.buf,
+              callback = vim.lsp.buf.clear_references,
+            })
+          end
         end,
       })
     end,
