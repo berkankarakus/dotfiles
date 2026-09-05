@@ -47,6 +47,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `:q` | Çık |
 | `:wq` | Kaydet ve çık |
 | `u` / `Ctrl-r` | Geri al / ileri al |
+| 80. sütundaki ince çizgi | Önerilen satır uzunluğu rehberi |
 | `Option-Left` / `Option-Right` (yazma modunda) | Önceki / sonraki kelimeye git |
 | `Command-Left` / `Command-Right` (yazma modunda) | Satır başına / sonuna git |
 | `Left` / `Right` (satır başı/sonunda, yazma modunda) | Önceki satırın sonuna / sonraki satırın başına git |

@@ -19,6 +19,7 @@ vim.opt.shiftwidth = 4
 vim.opt.tabstop = 4
 vim.opt.list = true
 vim.opt.listchars = { space = "·", multispace = "·", tab = "→ " }
+vim.opt.colorcolumn = "80"
 vim.opt.whichwrap:append("[")
 vim.opt.whichwrap:append("]")
 vim.opt.whichwrap:append("<")
@@ -161,6 +162,7 @@ local function show_terminal()
     vim.cmd("botright 15split | terminal")
     terminal_buf = vim.api.nvim_get_current_buf()
   end
+  vim.wo.colorcolumn = ""
   vim.cmd("startinsert")
 end
 local function toggle_terminal()
@@ -314,6 +316,7 @@ vim.api.nvim_create_autocmd("FileType", {
     local function use_tree_cursor() vim.o.guicursor = tree_guicursor end
     local function use_default_cursor() vim.o.guicursor = default_guicursor end
     vim.wo.cursorline = true
+    vim.wo.colorcolumn = ""
     local winhighlight = vim.wo.winhighlight
     vim.wo.winhighlight = winhighlight == "" and "Cursor:CursorLine" or winhighlight .. ",Cursor:CursorLine"
     use_tree_cursor()
