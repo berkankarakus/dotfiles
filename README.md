@@ -149,6 +149,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 | `z isim` | Sık kullanılan bir klasöre geçer; ör. `z api` |
 | `fd isim` | Dosya adına göre hızlı arama |
 | `bat dosya.cs` | Syntax highlighting ile dosya içeriğini gösterir |
+| `fossil status` / `fossil timeline` | Durum ve geçmişi renkli gösterir |
 
 ## Zsh / Ghostty
 

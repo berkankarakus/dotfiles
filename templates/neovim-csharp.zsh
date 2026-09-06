@@ -47,3 +47,53 @@ fzf_history_widget() {
 }
 zle -N fzf_history_widget
 bindkey '^R' fzf_history_widget
+
+fossil() {
+  if [[ "$1" == "diff" ]]; then
+    shift
+    command fossil diff "$@" | less -R
+    return ${pipestatus[1]}
+  fi
+  if [[ "$1" == "status" ]]; then
+    shift
+    command fossil status "$@" | awk '
+      /^ADDED[[:space:]]/    { color="\033[1;36m" }
+      /^EDITED[[:space:]]/   { color="\033[33m" }
+      /^DELETED[[:space:]]/  { color="\033[31m" }
+      /^MISSING[[:space:]]/  { color="\033[31m" }
+      /^RENAMED[[:space:]]/  { color="\033[36m" }
+      /^CONFLICT[[:space:]]/ { color="\033[35m" }
+      { print (color ? color : "") $0 (color ? "\033[0m" : ""); color="" }
+    '
+    return ${pipestatus[1]}
+  fi
+  if [[ "$1" == "timeline" ]]; then
+    shift
+    command fossil timeline "$@" | awk '
+      /^=== / { print "\033[1;36m" $0 "\033[0m"; next }
+      {
+        line = $0
+        if (match(line, /^[0-9][0-9]:[0-9][0-9]:[0-9][0-9]/)) {
+          line = "\033[2m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+        }
+        if (match(line, /\[[0-9a-f]+\]/)) {
+          line = substr(line, 1, RSTART - 1) "\033[1;33m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+        }
+        if (match(line, /(feat|fix|refactor|chore|docs|test):/)) {
+          kind = substr(line, RSTART, RLENGTH)
+          color = kind ~ /^feat:/ ? "\033[1;32m" : kind ~ /^fix:/ ? "\033[1;33m" : kind ~ /^refactor:/ ? "\033[1;35m" : "\033[1;34m"
+          line = substr(line, 1, RSTART - 1) color kind "\033[0m" substr(line, RSTART + RLENGTH)
+        }
+        if (match(line, /\(user: [^)]+\)/)) {
+          line = substr(line, 1, RSTART - 1) "\033[36m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+        }
+        if (match(line, /tags: [^)]+/)) {
+          line = substr(line, 1, RSTART - 1) "\033[2;34m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+        }
+        print line
+      }
+    '
+    return ${pipestatus[1]}
+  fi
+  command fossil "$@"
+}
