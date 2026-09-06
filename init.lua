@@ -403,7 +403,11 @@ require("lazy").setup({
       { "<leader>gb", function() require("gitsigns").blame_line({ full = true }) end, desc = "Git blame line" },
     },
   },
-  { "echasnovski/mini.surround", version = false, opts = {} },
+  {
+    "echasnovski/mini.surround",
+    version = false,
+    opts = { mappings = { delete = "ds" } },
+  },
   {
     "mg979/vim-visual-multi",
     init = function()
