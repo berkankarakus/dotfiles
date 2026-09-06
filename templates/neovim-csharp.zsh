@@ -54,9 +54,10 @@ fossil() {
     command fossil diff "$@" | less -R
     return ${pipestatus[1]}
   fi
-  if [[ "$1" == "status" ]]; then
+  if [[ "$1" == "status" || "$1" == "changes" ]]; then
+    local subcommand=$1
     shift
-    command fossil status "$@" | awk '
+    command fossil "$subcommand" "$@" | awk '
       /^ADDED[[:space:]]/    { color="\033[1;36m" }
       /^EDITED[[:space:]]/   { color="\033[33m" }
       /^DELETED[[:space:]]/  { color="\033[31m" }
@@ -65,6 +66,11 @@ fossil() {
       /^CONFLICT[[:space:]]/ { color="\033[35m" }
       { print (color ? color : "") $0 (color ? "\033[0m" : ""); color="" }
     '
+    return ${pipestatus[1]}
+  fi
+  if [[ "$1" == "extras" ]]; then
+    shift
+    command fossil extras "$@" | awk '{ print "\033[1;36m" $0 "\033[0m" }'
     return ${pipestatus[1]}
   fi
   if [[ "$1" == "timeline" ]]; then
@@ -89,6 +95,59 @@ fossil() {
         }
         if (match(line, /tags: [^)]+/)) {
           line = substr(line, 1, RSTART - 1) "\033[2;34m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+        }
+        print line
+      }
+    '
+    return ${pipestatus[1]}
+  fi
+  if [[ "$1" == "branch" && ( "$2" == "list" || "$2" == "ls" || "$2" == "lsh" ) ]]; then
+    local subcommand=$2
+    shift 2
+    command fossil branch "$subcommand" "$@" | awk '
+      /\*/ { print "\033[1;32m" $0 "\033[0m"; next }
+      /#/  { print "\033[35m" $0 "\033[0m"; next }
+      { print "\033[36m" $0 "\033[0m" }
+    '
+    return ${pipestatus[1]}
+  fi
+  if [[ "$1" == "tag" && ( "$2" == "list" || "$2" == "ls" ) ]]; then
+    local subcommand=$2
+    shift 2
+    command fossil tag "$subcommand" "$@" | awk '
+      /^sym-/ { print "\033[1;32m" $0 "\033[0m"; next }
+      /^(branch|closed|hidden|private)$/ { print "\033[35m" $0 "\033[0m"; next }
+      { print "\033[36m" $0 "\033[0m" }
+    '
+    return ${pipestatus[1]}
+  fi
+  if [[ "$1" == "info" ]]; then
+    shift
+    command fossil info "$@" | awk '
+      {
+        line = $0
+        if (match(line, /^[^:]+:/)) {
+          line = "\033[1;34m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+        }
+        if (match(line, /[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]+/)) {
+          line = substr(line, 1, RSTART - 1) "\033[1;33m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+        }
+        print line
+      }
+    '
+    return ${pipestatus[1]}
+  fi
+  if [[ "$1" == "annotate" || "$1" == "blame" || "$1" == "praise" ]]; then
+    local subcommand=$1
+    shift
+    command fossil "$subcommand" "$@" | awk '
+      {
+        line = $0
+        if (match(line, /^[0-9a-fA-F]+/)) {
+          line = "\033[1;33m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+        }
+        if (match(line, /[[:space:]][0-9]+:/)) {
+          line = substr(line, 1, RSTART - 1) "\033[2m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
         }
         print line
       }
