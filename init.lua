@@ -647,20 +647,55 @@ require("lazy").setup({
           limit = 1,
         })[1]
       end
+      local function project_is_executable(project_file)
+        if not project_file or vim.fn.filereadable(project_file) == 0 then return false end
+        local project_text = table.concat(vim.fn.readfile(project_file), "\n")
+        return project_text:match("<OutputType>%s*[Ww]?Exe%s*</OutputType>") ~= nil
+      end
+      local function debug_project_file()
+        local nearest_project = dotnet_project_file()
+        if project_is_executable(nearest_project) then return nearest_project end
+
+        local start_path = nearest_project and vim.fs.dirname(nearest_project) or vim.fn.getcwd()
+        local solution_file = vim.fs.find(function(name) return name:match("%.slnx?$") ~= nil end, {
+          path = start_path,
+          upward = true,
+          limit = 1,
+        })[1]
+        if not solution_file then return nearest_project end
+
+        local executable_projects = {}
+        for _, project_file in ipairs(vim.fn.globpath(vim.fs.dirname(solution_file), "**/*.csproj", false, true)) do
+          if project_is_executable(project_file) then table.insert(executable_projects, project_file) end
+        end
+        if #executable_projects == 1 then return executable_projects[1] end
+        if #executable_projects > 1 then
+          local choices = { "Select executable project:" }
+          for index, project_file in ipairs(executable_projects) do
+            choices[index + 1] = vim.fn.fnamemodify(project_file, ":.")
+          end
+          local selection = vim.fn.inputlist(choices)
+          return executable_projects[selection]
+        end
+        return nearest_project
+      end
       local function dotnet_program()
-        local project_file = dotnet_project_file()
+        local project_file = debug_project_file()
         if project_file then
           local project_dir = vim.fs.dirname(project_file)
           local project_name = vim.fn.fnamemodify(project_file, ":t:r")
           for _, dll in ipairs(vim.fn.globpath(project_dir, "bin/Debug/**/*.dll", false, true)) do
-            if vim.fn.fnamemodify(dll, ":t") == project_name .. ".dll" then return dll end
+            local runtime_config = dll:gsub("%.dll$", ".runtimeconfig.json")
+            if vim.fn.fnamemodify(dll, ":t") == project_name .. ".dll" and vim.fn.filereadable(runtime_config) == 1 then
+              return dll
+            end
           end
           return vim.fn.input("Path to DLL: ", project_dir .. "/bin/Debug/", "file")
         end
         return vim.fn.input("Path to DLL: ", vim.fn.getcwd() .. "/bin/Debug/", "file")
       end
       local function dotnet_launch_profile()
-        local project_file = dotnet_project_file()
+        local project_file = debug_project_file()
         if not project_file then return { cwd = vim.fn.getcwd(), args = {}, env = {} } end
 
         local project_dir = vim.fs.dirname(project_file)

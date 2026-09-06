@@ -124,7 +124,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 
 ## Debugger
 
-Önce `dotnet build` çalıştırın. Ardından `F5`, açık C# dosyasının projesindeki Debug `.dll` çıktısını otomatik bulur. Projede `Properties/launchSettings.json` varsa `commandLineArgs`, `workingDirectory` ve environment değerleri de otomatik uygulanır. Bulamazsa yalnızca o zaman DLL yolunu sorar. Apple Silicon macOS'ta yerel ARM netcoredbg ikilisi kullanılır.
+Önce `dotnet build` çalıştırın. Ardından `F5`, açık dosya bir class library içindeyse çözümdeki çalıştırılabilir (`OutputType=Exe`) projeyi bulup onun Debug `.dll` çıktısını başlatır. Projede `Properties/launchSettings.json` varsa `commandLineArgs`, `workingDirectory` ve environment değerleri de otomatik uygulanır. Bulamazsa yalnızca o zaman DLL yolunu sorar. Apple Silicon macOS'ta yerel ARM netcoredbg ikilisi kullanılır.
 
 | Kısayol | İşlev |
 | --- | --- |
