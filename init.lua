@@ -11,6 +11,7 @@ vim.opt.smartcase = true
 vim.opt.signcolumn = "yes"
 vim.opt.updatetime = 250
 vim.opt.timeoutlen = 400
+vim.opt.shortmess:append("W")
 vim.opt.splitright = true
 vim.opt.splitbelow = true
 vim.opt.undofile = true
