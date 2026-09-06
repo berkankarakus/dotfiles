@@ -492,10 +492,65 @@ require("lazy").setup({
       })
       pcall(telescope.load_extension, "fzf")
       local builtin = require("telescope.builtin")
+      local pickers = require("telescope.pickers")
+      local finders = require("telescope.finders")
+      local make_entry = require("telescope.make_entry")
+      local telescope_config = require("telescope.config").values
+
+      local function fuzzy_grep()
+        local opts = {}
+        opts.entry_maker = make_entry.gen_from_vimgrep(opts)
+        local source_globs = {
+          "*.cs",
+          "*.pas",
+          "*.csproj",
+          "*.sln",
+          "*.slnx",
+          "*.props",
+          "*.targets",
+          "*.json",
+          "*.xml",
+          "*.config",
+          ".editorconfig",
+        }
+
+        local function fuzzy_pattern(prompt)
+          local characters = {}
+          for _, character in ipairs(vim.fn.split(prompt, [[\zs]])) do
+            if not character:match("%s") then
+              table.insert(characters, vim.fn.escape(character, [[\.^$|?*+()[]{}]]))
+            end
+          end
+          return table.concat(characters, ".*")
+        end
+
+        pickers
+          .new(opts, {
+            prompt_title = "Fuzzy Grep",
+            finder = finders.new_job(function(prompt)
+              if not prompt or prompt == "" then
+                return nil
+              end
+
+              local args = { "rg", "--vimgrep", "--ignore-case" }
+              for _, glob in ipairs(source_globs) do
+                table.insert(args, "--glob=" .. glob)
+              end
+              table.insert(args, "--")
+              table.insert(args, fuzzy_pattern(prompt))
+              return args
+            end, opts.entry_maker, nil, opts.cwd),
+            previewer = telescope_config.grep_previewer(opts),
+            sorter = telescope_config.generic_sorter(opts),
+          })
+          :find()
+      end
+
       vim.keymap.set("n", "<leader>ff", function()
         telescope.extensions.frecency.frecency({ workspace = "CWD" })
       end, { desc = "Find files (recent first)" })
       vim.keymap.set("n", "<leader>fg", builtin.live_grep, { desc = "Search project text" })
+      vim.keymap.set("n", "<leader>fG", fuzzy_grep, { desc = "Fuzzy search project text" })
       vim.keymap.set("n", "<leader>fb", builtin.buffers, { desc = "Find buffers" })
       vim.keymap.set("n", "<leader>fs", builtin.lsp_document_symbols, { desc = "Search document symbols" })
       vim.keymap.set("n", "<leader>fS", builtin.lsp_dynamic_workspace_symbols, { desc = "Search workspace symbols" })
