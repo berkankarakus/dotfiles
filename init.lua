@@ -134,6 +134,17 @@ vim.api.nvim_create_autocmd("BufReadPost", {
   end,
 })
 
+local autosave_group = vim.api.nvim_create_augroup("SaveModifiedFileOnLeave", { clear = true })
+vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost" }, {
+  group = autosave_group,
+  callback = function(event)
+    local options = vim.bo[event.buf]
+    if not options.modified or options.readonly or not options.modifiable or options.buftype ~= "" then return end
+    if vim.api.nvim_buf_get_name(event.buf) == "" then return end
+    vim.api.nvim_buf_call(event.buf, function() vim.cmd("silent update") end)
+  end,
+})
+
 local last_file_state = vim.fn.stdpath("state") .. "/last-file-by-directory.json"
 local function project_key()
   return vim.uv.fs_realpath(vim.fn.getcwd()) or vim.fn.getcwd()

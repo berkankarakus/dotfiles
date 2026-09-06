@@ -44,6 +44,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `i` | Yazma modu |
 | `Esc` | Normal moda dön |
 | `:w` | Kaydet |
+| Buffer değiştirince veya Neovim odağı kaybedince | Değişmiş, normal dosyayı otomatik kaydet |
 | `:q` | Tüm dosyaları kaydet, sonra çık |
 | `:wq` | Kaydet ve çık |
 | `u` / `Ctrl-r` | Geri al / ileri al |
