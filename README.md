@@ -47,7 +47,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `:q` | Tüm dosyaları kaydet, sonra çık |
 | `:wq` | Kaydet ve çık |
 | `u` / `Ctrl-r` | Geri al / ileri al |
-| `Shift-↑` / `Shift-↓` | Satırı clipboard’a dokunmadan yukarı / aşağı taşı |
+| `Shift-↑` / `Shift-↓` | Satırı clipboard’a dokunmadan yukarı / aşağı taşı; yazma modunda da çalışır |
 | 80. sütundaki ince çizgi | Önerilen satır uzunluğu rehberi |
 | `Option-Left` / `Option-Right` (yazma modunda) | Önceki / sonraki kelimeye git |
 | `Command-Left` / `Command-Right` (yazma modunda) | Satır başına / sonuna git |
