@@ -677,6 +677,22 @@ require("lazy").setup({
         }),
         sources = cmp.config.sources({ { name = "nvim_lsp" }, { name = "luasnip" }, { name = "path" } }, { { name = "buffer" } }),
       })
+      cmp.event:on("confirm_done", function(event)
+        if event.commit_character then return end
+
+        local item = event.entry:get_completion_item()
+        local kinds = cmp.lsp.CompletionItemKind
+        if item.kind ~= kinds.Method and item.kind ~= kinds.Function then return end
+
+        local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+        local line = vim.api.nvim_get_current_line()
+        if line:sub(column - 1, column) == "()" then
+          vim.api.nvim_win_set_cursor(0, { row, column - 1 })
+        elseif line:sub(column + 1, column + 1) ~= "(" then
+          vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column, { "()" })
+          vim.api.nvim_win_set_cursor(0, { row, column + 1 })
+        end
+      end)
     end,
   },
   {
