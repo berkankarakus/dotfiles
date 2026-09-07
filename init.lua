@@ -692,6 +692,9 @@ require("lazy").setup({
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
           ["<CR>"] = cmp.mapping.confirm({ select = true }),
+          -- Some terminal emulators report Return as Ctrl-M rather than CR.
+          -- Treat both forms identically so a visible completion is accepted.
+          ["<C-m>"] = cmp.mapping.confirm({ select = true }),
           ["<Tab>"] = cmp.mapping(function(fallback)
             if cmp.visible() then cmp.select_next_item()
             elseif ls.expand_or_locally_jumpable() then ls.expand_or_jump()
