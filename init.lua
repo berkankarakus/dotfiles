@@ -731,16 +731,22 @@ require("lazy").setup({
           end
         end
 
-        vim.schedule(function()
-          local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-          local line = vim.api.nvim_get_current_line()
-          if line:sub(column - 1, column) == "()" then
-            if not takes_no_parameters then vim.api.nvim_win_set_cursor(0, { row, column - 1 }) end
-          elseif line:sub(column + 1, column + 1) ~= "(" then
-            vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column, { "()" })
-            vim.api.nvim_win_set_cursor(0, { row, takes_no_parameters and column + 2 or column + 1 })
-          end
-        end)
+        local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+        local word = event.entry:get_word()
+        local start_column = event.entry:get_offset() - 1
+        if word ~= "" and start_column >= 0 and column >= start_column then
+          vim.api.nvim_buf_set_text(0, row - 1, start_column, row - 1, column, { word })
+          column = start_column + #word
+          vim.api.nvim_win_set_cursor(0, { row, column })
+        end
+
+        local line = vim.api.nvim_get_current_line()
+        if line:sub(column - 1, column) == "()" then
+          if not takes_no_parameters then vim.api.nvim_win_set_cursor(0, { row, column - 1 }) end
+        elseif line:sub(column + 1, column + 1) ~= "(" then
+          vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column, { "()" })
+          vim.api.nvim_win_set_cursor(0, { row, takes_no_parameters and column + 2 or column + 1 })
+        end
       end)
     end,
   },
