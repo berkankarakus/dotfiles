@@ -692,6 +692,9 @@ require("lazy").setup({
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
           ["<CR>"] = cmp.mapping.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace }),
+          ["<Esc>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then cmp.abort() else fallback() end
+          end, { "i", "s" }),
           ["<Tab>"] = cmp.mapping(function(fallback)
             if cmp.visible() then cmp.select_next_item()
             elseif ls.expand_or_locally_jumpable() then ls.expand_or_jump()
@@ -717,6 +720,14 @@ require("lazy").setup({
       })
 
     end,
+  },
+  {
+    "windwp/nvim-autopairs",
+    event = "InsertEnter",
+    opts = {
+      check_ts = true,
+      disable_filetype = { "TelescopePrompt", "vim" },
+    },
   },
   {
     "stevearc/conform.nvim",
