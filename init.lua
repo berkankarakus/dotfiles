@@ -689,10 +689,6 @@ require("lazy").setup({
         s("cw", { t("Console.WriteLine("), i(1), t(");") }),
       })
       cmp.setup({
-        enabled = function()
-          local context = require("cmp.config.context")
-          return not context.in_treesitter_capture("comment") and not context.in_syntax_group("Comment")
-        end,
         snippet = { expand = function(args) require("luasnip").lsp_expand(args.body) end },
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
@@ -708,7 +704,17 @@ require("lazy").setup({
             else fallback() end
           end, { "i", "s" }),
         }),
-        sources = cmp.config.sources({ { name = "nvim_lsp" }, { name = "luasnip" }, { name = "path" } }, { { name = "buffer" } }),
+        sources = cmp.config.sources({
+          { name = "nvim_lsp" },
+          {
+            name = "luasnip",
+            entry_filter = function()
+              local context = require("cmp.config.context")
+              return not context.in_treesitter_capture("comment") and not context.in_syntax_group("Comment")
+            end,
+          },
+          { name = "path" },
+        }, { { name = "buffer" } }),
       })
       cmp.event:on("confirm_done", function(event)
         if event.commit_character then return end
