@@ -103,6 +103,13 @@ vim.keymap.set("n", "<S-Down>", "<CMD>move .+1<CR>==", { desc = "Move line down"
 vim.keymap.set("x", "<S-Up>", ":move '<-2<CR>gv=gv", { desc = "Move selection up" })
 vim.keymap.set("x", "<S-Down>", ":move '>+1<CR>gv=gv", { desc = "Move selection down" })
 
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "cs",
+  callback = function()
+    vim.opt_local.formatoptions:remove({ "r", "o" })
+  end,
+})
+
 -- Remove the old command-line Enter mapping on reload, then forward Enter
 -- unchanged for every command except an exact `:q`.
 pcall(vim.keymap.del, "c", "<CR>")
