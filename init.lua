@@ -66,6 +66,7 @@ vim.keymap.set("i", "<M-Right>", function() return move_word_within_line("right"
 vim.keymap.set("i", "<M-b>", function() return move_word_within_line("left") end, { expr = true, desc = "Previous word on line" })
 vim.keymap.set("i", "<M-Left>", function() return move_word_within_line("left") end, { expr = true, desc = "Previous word on line" })
 vim.keymap.set("i", "<M-d>", "<C-o>dw", { desc = "Delete next word" })
+vim.keymap.set("i", "<C-_>", "<C-o>u", { desc = "Undo" })
 vim.keymap.set("i", "<Home>", smart_home, { expr = true, desc = "Smart start of line" })
 vim.keymap.set("i", "<End>", smart_end, { expr = true, desc = "Smart end of line" })
 vim.keymap.set("i", "<S-Left>", function() select_word("left") end, { desc = "Select previous word" })
