@@ -731,14 +731,16 @@ require("lazy").setup({
           end
         end
 
-        local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-        local line = vim.api.nvim_get_current_line()
-        if line:sub(column - 1, column) == "()" then
-          if not takes_no_parameters then vim.api.nvim_win_set_cursor(0, { row, column - 1 }) end
-        elseif line:sub(column + 1, column + 1) ~= "(" then
-          vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column, { "()" })
-          vim.api.nvim_win_set_cursor(0, { row, takes_no_parameters and column + 2 or column + 1 })
-        end
+        vim.schedule(function()
+          local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+          local line = vim.api.nvim_get_current_line()
+          if line:sub(column - 1, column) == "()" then
+            if not takes_no_parameters then vim.api.nvim_win_set_cursor(0, { row, column - 1 }) end
+          elseif line:sub(column + 1, column + 1) ~= "(" then
+            vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column, { "()" })
+            vim.api.nvim_win_set_cursor(0, { row, takes_no_parameters and column + 2 or column + 1 })
+          end
+        end)
       end)
     end,
   },
