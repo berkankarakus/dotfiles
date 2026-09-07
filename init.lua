@@ -57,26 +57,6 @@ local function smart_end()
   return "<C-o>^"
 end
 
-local function continue_csharp_block_comment()
-  if vim.bo.filetype ~= "cs" then return "<CR>" end
-
-  local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-  for line_number = row, 1, -1 do
-    local line = vim.api.nvim_buf_get_lines(0, line_number - 1, line_number, false)[1]
-    if line_number == row then line = line:sub(1, column) end
-
-    local last_open, last_close = 0, 0
-    for position in line:gmatch("()/%*") do last_open = position end
-    for position in line:gmatch("()%*/") do last_close = position end
-    if last_close > last_open then return "<CR>" end
-    if last_open > 0 then
-      local indentation = line:sub(1, last_open - 1):match("^%s*") or ""
-      return "<CR><C-o>0" .. indentation .. " * "
-    end
-  end
-  return "<CR>"
-end
-
 local function select_word(direction)
   vim.cmd("normal! v" .. (direction == "left" and "b" or "w"))
 end
@@ -106,7 +86,10 @@ vim.keymap.set("x", "<S-Down>", ":move '>+1<CR>gv=gv", { desc = "Move selection 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "cs",
   callback = function()
-    vim.opt_local.formatoptions:remove({ "r", "o" })
+    -- Keep Neovim's built-in block-comment continuation, but exclude `//`.
+    vim.opt_local.comments = vim.bo.comments:gsub(",://", "")
+    vim.opt_local.formatoptions:append("r")
+    vim.opt_local.formatoptions:remove("o")
   end,
 })
 
@@ -613,13 +596,7 @@ require("lazy").setup({
         snippet = { expand = function(args) require("luasnip").lsp_expand(args.body) end },
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
-          ["<CR>"] = cmp.mapping(function(fallback)
-            if cmp.visible() then
-              cmp.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace })
-              return
-            end
-            vim.api.nvim_feedkeys(vim.keycode(continue_csharp_block_comment()), "n", false)
-          end, { "i", "s" }),
+          ["<CR>"] = cmp.mapping.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace }),
           ["<Esc>"] = cmp.mapping(function(fallback)
             if cmp.visible() then cmp.abort() else fallback() end
           end, { "i", "s" }),
