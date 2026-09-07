@@ -716,9 +716,6 @@ require("lazy").setup({
         }, { { name = "buffer" } }),
       })
 
-      -- Ensure cmp installs its Insert-mode key listeners even when Lazy loads
-      -- this plugin after Neovim's initial InsertEnter event.
-      cmp.core:prepare()
     end,
   },
   {
