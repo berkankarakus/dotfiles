@@ -715,39 +715,6 @@ require("lazy").setup({
           { name = "path" },
         }, { { name = "buffer" } }),
       })
-      cmp.event:on("confirm_done", function(event)
-        if event.commit_character then return end
-
-        local item = event.entry:get_completion_item()
-        local kinds = cmp.lsp.CompletionItemKind
-        if item.kind ~= kinds.Method and item.kind ~= kinds.Function then return end
-
-        local takes_no_parameters = false
-        for _, signature in ipairs({ item.detail, item.label, item.insertText }) do
-          local parameters = signature and signature:match("%b()")
-          if parameters then
-            takes_no_parameters = parameters == "()"
-            break
-          end
-        end
-
-        local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-        local word = event.entry:get_word()
-        local start_column = event.entry:get_offset() - 1
-        if word ~= "" and start_column >= 0 and column >= start_column then
-          vim.api.nvim_buf_set_text(0, row - 1, start_column, row - 1, column, { word })
-          column = start_column + #word
-          vim.api.nvim_win_set_cursor(0, { row, column })
-        end
-
-        local line = vim.api.nvim_get_current_line()
-        if line:sub(column - 1, column) == "()" then
-          if not takes_no_parameters then vim.api.nvim_win_set_cursor(0, { row, column - 1 }) end
-        elseif line:sub(column + 1, column + 1) ~= "(" then
-          vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column, { "()" })
-          vim.api.nvim_win_set_cursor(0, { row, takes_no_parameters and column + 2 or column + 1 })
-        end
-      end)
     end,
   },
   {
