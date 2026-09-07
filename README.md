@@ -115,7 +115,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 | Kısayol | İşlev |
 | --- | --- |
 | `sa` sonra çevreleyici | Metni çevrele; ör. `saiw)` kelimeyi paranteze alır |
-| `ds` sonra çevreleyici | Çevreleyiciyi sil; ör. `ds)` |
+| `ds` sonra çevreleyici | Çevreleyiciyi sil; ör. `ds}` çok satırlı bloğu da bir seviye geri alır |
 | `sr` eski/yeni çevreleyici | Çevreleyiciyi değiştir; ör. `sr)]` |
 | `Space o` | Dosya gezginini aç |
 | `Space n` | Soldaki, ikonlu dosya ağacını aç/kapat |

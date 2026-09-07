@@ -432,7 +432,10 @@ require("lazy").setup({
   {
     "echasnovski/mini.surround",
     version = false,
-    opts = { mappings = { delete = "ds" } },
+    opts = {
+      mappings = { delete = "ds" },
+      respect_selection_type = true,
+    },
   },
   {
     "mg979/vim-visual-multi",
