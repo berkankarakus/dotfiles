@@ -84,7 +84,6 @@ vim.keymap.set("i", "<M-Left>", function() return move_word_within_line("left") 
 vim.keymap.set("i", "<M-d>", "<C-o>dw", { desc = "Delete next word" })
 vim.keymap.set("i", "<Home>", smart_home, { expr = true, desc = "Smart start of line" })
 vim.keymap.set("i", "<End>", smart_end, { expr = true, desc = "Smart end of line" })
-vim.keymap.set("i", "<CR>", continue_csharp_block_comment, { expr = true, desc = "Continue C# block comment" })
 vim.keymap.set("i", "<S-Left>", function() select_word("left") end, { desc = "Select previous word" })
 vim.keymap.set("i", "<S-Right>", function() select_word("right") end, { desc = "Select next word" })
 vim.keymap.set("i", "<S-Up>", function()
@@ -725,7 +724,7 @@ require("lazy").setup({
         s("foreach", { t("foreach (var "), i(1, "item"), t(" in "), i(2, "items"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("dowhile", { t({ "do", "{", "    " }), i(1), t({ "", "} while (" }), i(2, "condition"), t(");"), i(0) }),
         s("region", { t("#region "), i(1, "Name"), t({ "", "" }), i(0), t({ "", "#endregion" }) }),
-        s("mcomment", { t({ "/*", " * " }), i(1), t({ "", " */", "" }), i(0) }),
+        s("comment", { t({ "/*", " * " }), i(1), t({ "", " */", "" }), i(0) }),
         s("try", { t({ "try", "{", "    " }), i(1), t({ "", "}", "catch (" }), i(2, "Exception ex"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("cw", { t("Console.WriteLine("), i(1), t(");") }),
       })
@@ -733,7 +732,13 @@ require("lazy").setup({
         snippet = { expand = function(args) require("luasnip").lsp_expand(args.body) end },
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
-          ["<CR>"] = cmp.mapping.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace }),
+          ["<CR>"] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace })
+              return
+            end
+            vim.api.nvim_feedkeys(vim.keycode(continue_csharp_block_comment()), "n", false)
+          end, { "i", "s" }),
           ["<Esc>"] = cmp.mapping(function(fallback)
             if cmp.visible() then cmp.abort() else fallback() end
           end, { "i", "s" }),
@@ -777,19 +782,29 @@ require("lazy").setup({
       cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
       cmp.event:on("confirm_done", function(event)
         local item = event.entry:get_completion_item()
-        local signature = item.detail or ""
-        if item.kind ~= cmp.lsp.CompletionItemKind.Method
-          and item.kind ~= cmp.lsp.CompletionItemKind.Function
-          or not signature:match("%(%s*%)") then
-          return
+        local signatures = {
+          item.detail,
+          item.insertText,
+          item.textEdit and item.textEdit.newText,
+          item.labelDetails and item.labelDetails.detail,
+        }
+        local parameterless = false
+        for _, signature in pairs(signatures) do
+          if type(signature) == "string" and signature:match("%(%s*%)") then
+            parameterless = true
+            break
+          end
         end
+        if not parameterless then return end
 
         vim.schedule(function()
-          local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-          local line = vim.api.nvim_get_current_line()
-          if line:sub(column, column) == "(" and line:sub(column + 1, column + 1) == ")" then
-            vim.api.nvim_win_set_cursor(0, { row, column + 1 })
-          end
+          vim.schedule(function()
+            local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+            local line = vim.api.nvim_get_current_line()
+            if line:sub(column, column) == "(" and line:sub(column + 1, column + 1) == ")" then
+              vim.api.nvim_win_set_cursor(0, { row, column + 1 })
+            end
+          end)
         end)
       end)
       cmp.event:on("confirm_done", function(event)
