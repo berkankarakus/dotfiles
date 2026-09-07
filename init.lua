@@ -39,12 +39,21 @@ local function move_word_within_line(direction)
   return "<C-o>$"
 end
 
+local function smart_home()
+  local line = vim.api.nvim_get_current_line()
+  local first_nonblank = line:find("%S")
+  if not first_nonblank then return "<C-o>0" end
+  first_nonblank = first_nonblank - 1
+  if vim.api.nvim_win_get_cursor(0)[2] == first_nonblank then return "<C-o>0" end
+  return "<C-o>^"
+end
+
 vim.keymap.set("i", "<M-f>", function() return move_word_within_line("right") end, { expr = true, desc = "Next word on line" })
 vim.keymap.set("i", "<M-Right>", function() return move_word_within_line("right") end, { expr = true, desc = "Next word on line" })
 vim.keymap.set("i", "<M-b>", function() return move_word_within_line("left") end, { expr = true, desc = "Previous word on line" })
 vim.keymap.set("i", "<M-Left>", function() return move_word_within_line("left") end, { expr = true, desc = "Previous word on line" })
 vim.keymap.set("i", "<M-d>", "<C-o>dw", { desc = "Delete next word" })
-vim.keymap.set("i", "<Home>", "<C-o>0", { desc = "Start of line" })
+vim.keymap.set("i", "<Home>", smart_home, { expr = true, desc = "Smart start of line" })
 vim.keymap.set("i", "<End>", "<C-o>$", { desc = "End of line" })
 vim.keymap.set("i", "<S-Up>", function()
   vim.cmd("move .-2")
