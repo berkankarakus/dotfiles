@@ -718,18 +718,6 @@ require("lazy").setup({
           { name = "path" },
         }, { { name = "buffer" } }),
       })
-
-      -- Bypass cmp's terminal key layer: Ghostty sends Return in a form that
-      -- reaches Neovim but was not being consumed by cmp's configured mapping.
-      local function confirm_completion_or_newline()
-        if cmp.visible() then
-          cmp.confirm({ select = true })
-          return
-        end
-        vim.api.nvim_feedkeys(vim.keycode("<CR>"), "n", false)
-      end
-      vim.keymap.set("i", "<CR>", confirm_completion_or_newline, { desc = "Accept completion" })
-      vim.keymap.set("i", "<C-m>", confirm_completion_or_newline, { desc = "Accept completion" })
     end,
   },
   {
