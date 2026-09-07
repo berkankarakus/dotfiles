@@ -691,32 +691,7 @@ require("lazy").setup({
         snippet = { expand = function(args) require("luasnip").lsp_expand(args.body) end },
         mapping = cmp.mapping.preset.insert({
           ["<C-Space>"] = cmp.mapping.complete(),
-          ["<CR>"] = cmp.mapping(function(fallback)
-            local entry = cmp.get_selected_entry()
-            local item = entry and entry:get_completion_item()
-
-            -- Roslyn may return an override Method item whose text edit does
-            -- not apply in a member declaration. Insert its identifier only;
-            -- arguments and parentheses remain under the user's control.
-            if item and item.kind == cmp.lsp.CompletionItemKind.Method then
-              local candidate = item.insertText or (item.textEdit and item.textEdit.newText) or item.label
-              local method_name = candidate and candidate:match("^([%a_][%w_]*)")
-              if method_name then
-                local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-                local line = vim.api.nvim_get_current_line()
-                local start_column = column
-                while start_column > 0 and line:sub(start_column, start_column):match("[%w_]") do
-                  start_column = start_column - 1
-                end
-                cmp.abort()
-                vim.api.nvim_buf_set_text(0, row - 1, start_column, row - 1, column, { method_name })
-                vim.api.nvim_win_set_cursor(0, { row, start_column + #method_name })
-                return
-              end
-            end
-
-            if not cmp.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace }) then fallback() end
-          end, { "i", "s" }),
+          ["<CR>"] = cmp.mapping.confirm({ select = true, behavior = cmp.ConfirmBehavior.Replace }),
           ["<Esc>"] = cmp.mapping(function(fallback)
             if cmp.visible() then cmp.abort() else fallback() end
           end, { "i", "s" }),
