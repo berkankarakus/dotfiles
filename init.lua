@@ -728,7 +728,7 @@ require("lazy").setup({
         s("foreach", { t("foreach (var "), i(1, "item"), t(" in "), i(2, "items"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("dowhile", { t({ "do", "{", "    " }), i(1), t({ "", "} while (" }), i(2, "condition"), t(");"), i(0) }),
         s("region", { t("#region "), i(1, "Name"), t({ "", "" }), i(0), t({ "", "#endregion" }) }),
-        s("comment", { t({ "/*", "* " }), i(1), t({ "", " */", "" }), i(0) }),
+        s("comment", { t({ "/*", " * " }), i(1), t({ "", " */", "" }), i(0) }),
         s("try", { t({ "try", "{", "    " }), i(1), t({ "", "}", "catch (" }), i(2, "Exception ex"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("cw", { t("Console.WriteLine("), i(1), t(");") }),
       })
