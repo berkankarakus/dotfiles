@@ -69,7 +69,8 @@ local function continue_csharp_block_comment()
   for position in text_before_cursor:gmatch("()%*/") do last_close = position end
   if last_open <= last_close then return "<CR>" end
 
-  local indentation = vim.api.nvim_get_current_line():match("^%s*") or ""
+  local opening_line = text_before_cursor:sub(1, last_open - 1):match("[^\n]*$") or ""
+  local indentation = opening_line:match("^%s*") or ""
   return "<CR><C-o>0" .. indentation .. " * "
 end
 
@@ -724,7 +725,7 @@ require("lazy").setup({
         s("foreach", { t("foreach (var "), i(1, "item"), t(" in "), i(2, "items"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("dowhile", { t({ "do", "{", "    " }), i(1), t({ "", "} while (" }), i(2, "condition"), t(");"), i(0) }),
         s("region", { t("#region "), i(1, "Name"), t({ "", "" }), i(0), t({ "", "#endregion" }) }),
-        s("comment", { t({ "/*", " * " }), i(1), t({ "", " */", "" }), i(0) }),
+        s("comment", { t({ "/*", "* " }), i(1), t({ "", " */", "" }), i(0) }),
         s("try", { t({ "try", "{", "    " }), i(1), t({ "", "}", "catch (" }), i(2, "Exception ex"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("cw", { t("Console.WriteLine("), i(1), t(");") }),
       })
