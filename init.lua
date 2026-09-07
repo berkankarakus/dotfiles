@@ -123,10 +123,10 @@ function _G.csharp_foldexpr()
   local tick = vim.api.nvim_buf_get_changedtick(bufnr)
   local cache = csharp_fold_cache[bufnr]
   if not cache or cache.tick ~= tick then
-    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-    local line_count = #lines
+    local line_count = vim.api.nvim_buf_line_count(bufnr)
     local levels, region_depth = {}, 0
-    for line_number, line in ipairs(lines) do
+    for line_number = 1, line_count do
+      local line = vim.api.nvim_buf_get_lines(bufnr, line_number - 1, line_number, false)[1]
       if line:match("^%s*#%s*region%f[%W]") then region_depth = region_depth + 1 end
       levels[line_number] = region_depth
       if line:match("^%s*#%s*endregion%f[%W]") then region_depth = math.max(region_depth - 1, 0) end
