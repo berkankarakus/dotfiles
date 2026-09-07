@@ -783,28 +783,32 @@ require("lazy").setup({
       cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
       cmp.event:on("confirm_done", function(event)
         local item = event.entry:get_completion_item()
-        local signatures = {
-          item.detail,
-          item.insertText,
-          item.textEdit and item.textEdit.newText,
-          item.labelDetails and item.labelDetails.detail,
-        }
-        local parameterless = false
-        for _, signature in pairs(signatures) do
-          if type(signature) == "string" and signature:match("%(%s*%)") then
-            parameterless = true
-            break
-          end
-        end
-        if not parameterless then return end
+        if item.kind ~= cmp.lsp.CompletionItemKind.Method
+          and item.kind ~= cmp.lsp.CompletionItemKind.Function then return end
 
         vim.schedule(function()
           vim.schedule(function()
             local row, column = unpack(vim.api.nvim_win_get_cursor(0))
             local line = vim.api.nvim_get_current_line()
-            if line:sub(column, column) == "(" and line:sub(column + 1, column + 1) == ")" then
-              vim.api.nvim_win_set_cursor(0, { row, column + 1 })
-            end
+            if line:sub(column, column) ~= "(" or line:sub(column + 1, column + 1) ~= ")" then return end
+
+            local bufnr = vim.api.nvim_get_current_buf()
+            local client = vim.lsp.get_clients({ bufnr = bufnr, name = "roslyn" })[1]
+            if not client then return end
+            local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+            client:request("textDocument/signatureHelp", params, function(err, result)
+              if err or not result then return end
+              local signature = result.signatures[(result.activeSignature or 0) + 1]
+              if not signature or #(signature.parameters or {}) ~= 0 then return end
+              vim.schedule(function()
+                local current_row, current_column = unpack(vim.api.nvim_win_get_cursor(0))
+                local current_line = vim.api.nvim_get_current_line()
+                if current_row == row and current_column == column
+                  and current_line:sub(column, column) == "(" and current_line:sub(column + 1, column + 1) == ")" then
+                  vim.api.nvim_win_set_cursor(0, { row, column + 1 })
+                end
+              end)
+            end, bufnr)
           end)
         end)
       end)
