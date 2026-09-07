@@ -73,6 +73,10 @@ local function continue_csharp_block_comment()
   return "<CR><C-o>0" .. indentation .. " * "
 end
 
+local function select_word(direction)
+  vim.cmd("normal! v" .. (direction == "left" and "b" or "w"))
+end
+
 vim.keymap.set("i", "<M-f>", function() return move_word_within_line("right") end, { expr = true, desc = "Next word on line" })
 vim.keymap.set("i", "<M-Right>", function() return move_word_within_line("right") end, { expr = true, desc = "Next word on line" })
 vim.keymap.set("i", "<M-b>", function() return move_word_within_line("left") end, { expr = true, desc = "Previous word on line" })
@@ -81,6 +85,8 @@ vim.keymap.set("i", "<M-d>", "<C-o>dw", { desc = "Delete next word" })
 vim.keymap.set("i", "<Home>", smart_home, { expr = true, desc = "Smart start of line" })
 vim.keymap.set("i", "<End>", smart_end, { expr = true, desc = "Smart end of line" })
 vim.keymap.set("i", "<CR>", continue_csharp_block_comment, { expr = true, desc = "Continue C# block comment" })
+vim.keymap.set("i", "<S-Left>", function() select_word("left") end, { desc = "Select previous word" })
+vim.keymap.set("i", "<S-Right>", function() select_word("right") end, { desc = "Select next word" })
 vim.keymap.set("i", "<S-Up>", function()
   vim.cmd("move .-2")
   vim.cmd("normal! ==")
