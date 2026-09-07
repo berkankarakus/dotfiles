@@ -61,17 +61,20 @@ local function continue_csharp_block_comment()
   if vim.bo.filetype ~= "cs" then return "<CR>" end
 
   local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-  local lines = vim.api.nvim_buf_get_lines(0, 0, row, false)
-  lines[#lines] = lines[#lines]:sub(1, column)
-  local text_before_cursor = table.concat(lines, "\n")
-  local last_open, last_close = 0, 0
-  for position in text_before_cursor:gmatch("()/%*") do last_open = position end
-  for position in text_before_cursor:gmatch("()%*/") do last_close = position end
-  if last_open <= last_close then return "<CR>" end
+  for line_number = row, 1, -1 do
+    local line = vim.api.nvim_buf_get_lines(0, line_number - 1, line_number, false)[1]
+    if line_number == row then line = line:sub(1, column) end
 
-  local opening_line = text_before_cursor:sub(1, last_open - 1):match("[^\n]*$") or ""
-  local indentation = opening_line:match("^%s*") or ""
-  return "<CR><C-o>0" .. indentation .. " * "
+    local last_open, last_close = 0, 0
+    for position in line:gmatch("()/%*") do last_open = position end
+    for position in line:gmatch("()%*/") do last_close = position end
+    if last_close > last_open then return "<CR>" end
+    if last_open > 0 then
+      local indentation = line:sub(1, last_open - 1):match("^%s*") or ""
+      return "<CR><C-o>0" .. indentation .. " * "
+    end
+  end
+  return "<CR>"
 end
 
 local function select_word(direction)
@@ -120,10 +123,10 @@ function _G.csharp_foldexpr()
   local tick = vim.api.nvim_buf_get_changedtick(bufnr)
   local cache = csharp_fold_cache[bufnr]
   if not cache or cache.tick ~= tick then
-    local line_count = vim.api.nvim_buf_line_count(bufnr)
+    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    local line_count = #lines
     local levels, region_depth = {}, 0
-    for line_number = 1, line_count do
-      local line = vim.api.nvim_buf_get_lines(bufnr, line_number - 1, line_number, false)[1]
+    for line_number, line in ipairs(lines) do
       if line:match("^%s*#%s*region%f[%W]") then region_depth = region_depth + 1 end
       levels[line_number] = region_depth
       if line:match("^%s*#%s*endregion%f[%W]") then region_depth = math.max(region_depth - 1, 0) end
