@@ -48,13 +48,39 @@ local function smart_home()
   return "<C-o>^"
 end
 
+local function smart_end()
+  local line = vim.api.nvim_get_current_line()
+  local first_nonblank = line:find("%S")
+  if not first_nonblank then return "<C-o>$" end
+  first_nonblank = first_nonblank - 1
+  if vim.api.nvim_win_get_cursor(0)[2] == first_nonblank then return "<C-o>$" end
+  return "<C-o>^"
+end
+
+local function continue_csharp_block_comment()
+  if vim.bo.filetype ~= "cs" then return "<CR>" end
+
+  local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+  local lines = vim.api.nvim_buf_get_lines(0, 0, row, false)
+  lines[#lines] = lines[#lines]:sub(1, column)
+  local text_before_cursor = table.concat(lines, "\n")
+  local last_open, last_close = 0, 0
+  for position in text_before_cursor:gmatch("()/%*") do last_open = position end
+  for position in text_before_cursor:gmatch("()%*/") do last_close = position end
+  if last_open <= last_close then return "<CR>" end
+
+  local indentation = vim.api.nvim_get_current_line():match("^%s*") or ""
+  return "<CR><C-o>0" .. indentation .. " * "
+end
+
 vim.keymap.set("i", "<M-f>", function() return move_word_within_line("right") end, { expr = true, desc = "Next word on line" })
 vim.keymap.set("i", "<M-Right>", function() return move_word_within_line("right") end, { expr = true, desc = "Next word on line" })
 vim.keymap.set("i", "<M-b>", function() return move_word_within_line("left") end, { expr = true, desc = "Previous word on line" })
 vim.keymap.set("i", "<M-Left>", function() return move_word_within_line("left") end, { expr = true, desc = "Previous word on line" })
 vim.keymap.set("i", "<M-d>", "<C-o>dw", { desc = "Delete next word" })
 vim.keymap.set("i", "<Home>", smart_home, { expr = true, desc = "Smart start of line" })
-vim.keymap.set("i", "<End>", "<C-o>$", { desc = "End of line" })
+vim.keymap.set("i", "<End>", smart_end, { expr = true, desc = "Smart end of line" })
+vim.keymap.set("i", "<CR>", continue_csharp_block_comment, { expr = true, desc = "Continue C# block comment" })
 vim.keymap.set("i", "<S-Up>", function()
   vim.cmd("move .-2")
   vim.cmd("normal! ==")
