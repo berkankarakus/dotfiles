@@ -770,6 +770,23 @@ require("lazy").setup({
       local cmp = require("cmp")
       cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
       cmp.event:on("confirm_done", function(event)
+        local item = event.entry:get_completion_item()
+        local signature = item.detail or ""
+        if item.kind ~= cmp.lsp.CompletionItemKind.Method
+          and item.kind ~= cmp.lsp.CompletionItemKind.Function
+          or not signature:match("%(%s*%)") then
+          return
+        end
+
+        vim.schedule(function()
+          local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+          local line = vim.api.nvim_get_current_line()
+          if line:sub(column, column) == "(" and line:sub(column + 1, column + 1) == ")" then
+            vim.api.nvim_win_set_cursor(0, { row, column + 1 })
+          end
+        end)
+      end)
+      cmp.event:on("confirm_done", function(event)
         if event.commit_character then return end
         local item = event.entry:get_completion_item()
         if item.label ~= "new" then return end
