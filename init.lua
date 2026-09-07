@@ -732,7 +732,29 @@ require("lazy").setup({
         disable_filetype = { "TelescopePrompt", "vim" },
       })
       local cmp_autopairs = require("nvim-autopairs.completion.cmp")
-      require("cmp").event:on("confirm_done", cmp_autopairs.on_confirm_done())
+      local cmp = require("cmp")
+      cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
+      local handlers = require("nvim-autopairs.completion.handlers")
+      cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done({
+        filetypes = {
+          cs = {
+            ["("] = {
+              kind = {
+                cmp.lsp.CompletionItemKind.Class,
+                cmp.lsp.CompletionItemKind.Struct,
+                cmp.lsp.CompletionItemKind.Constructor,
+              },
+              handler = function(char, item, bufnr, rules, commit_characters)
+                local column = vim.api.nvim_win_get_cursor(0)[2]
+                local before_cursor = vim.api.nvim_get_current_line():sub(1, column)
+                if before_cursor:match("%f[%w]new%s+[%w_.]+$") then
+                  handlers["*"](char, item, bufnr, rules, commit_characters)
+                end
+              end,
+            },
+          },
+        },
+      }))
     end,
   },
   {
