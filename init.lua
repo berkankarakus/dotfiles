@@ -117,7 +117,6 @@ vim.keymap.set("c", "<CR>", function()
   return vim.api.nvim_replace_termcodes("<CR>", true, false, true)
 end, { expr = true, replace_keycodes = false, desc = "Save all before quit" })
 
-require("neo.folding").setup()
 require("neo.session").setup()
 require("neo.terminal").setup()
 
@@ -400,6 +399,26 @@ require("lazy").setup({
     end,
   },
   {
+    "kevinhwang91/nvim-ufo",
+    dependencies = { "kevinhwang91/promise-async" },
+    opts = {
+      provider_selector = function(_, filetype, buftype)
+        if buftype ~= "" then return "" end
+        if filetype == "cs" then return { "lsp" } end
+        return { "treesitter", "indent" }
+      end,
+    },
+    config = function(_, opts)
+      vim.o.foldcolumn = "1"
+      vim.o.foldlevel = 99
+      vim.o.foldlevelstart = 99
+      vim.o.foldenable = true
+      require("ufo").setup(opts)
+      vim.keymap.set("n", "zR", require("ufo").openAllFolds, { desc = "Open all folds" })
+      vim.keymap.set("n", "zM", require("ufo").closeAllFolds, { desc = "Close all folds" })
+    end,
+  },
+  {
     "nvim-telescope/telescope.nvim",
     dependencies = {
       "nvim-lua/plenary.nvim",
@@ -503,6 +522,7 @@ require("lazy").setup({
     "neovim/nvim-lspconfig",
     config = function()
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
+      capabilities.textDocument.foldingRange = { dynamicRegistration = false, lineFoldingOnly = true }
       vim.lsp.config("roslyn", {
         capabilities = capabilities,
         cmd = { vim.fn.expand("~/.dotnet/tools/roslyn-language-server"), "--stdio" },
