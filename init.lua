@@ -734,27 +734,18 @@ require("lazy").setup({
       local cmp_autopairs = require("nvim-autopairs.completion.cmp")
       local cmp = require("cmp")
       cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
-      local handlers = require("nvim-autopairs.completion.handlers")
-      cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done({
-        filetypes = {
-          cs = {
-            ["("] = {
-              kind = {
-                cmp.lsp.CompletionItemKind.Class,
-                cmp.lsp.CompletionItemKind.Struct,
-                cmp.lsp.CompletionItemKind.Constructor,
-              },
-              handler = function(char, item, bufnr, rules, commit_characters)
-                local column = vim.api.nvim_win_get_cursor(0)[2]
-                local before_cursor = vim.api.nvim_get_current_line():sub(1, column)
-                if before_cursor:match("%f[%w]new%s+[%w_.]+$") then
-                  handlers["*"](char, item, bufnr, rules, commit_characters)
-                end
-              end,
-            },
-          },
-        },
-      }))
+      cmp.event:on("confirm_done", function(event)
+        if event.commit_character then return end
+        local item = event.entry:get_completion_item()
+        if item.label ~= "new" then return end
+
+        local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+        local line = vim.api.nvim_get_current_line()
+        if line:sub(1, column):match("%f[%w]new$") and line:sub(column + 1, column + 1) ~= "(" then
+          vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column, { "()" })
+          vim.api.nvim_win_set_cursor(0, { row, column + 1 })
+        end
+      end)
     end,
   },
   {
