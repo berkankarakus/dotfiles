@@ -54,47 +54,59 @@ fossil() {
     command fossil diff "$@" | less -R
     return ${pipestatus[1]}
   fi
-  if [[ "$1" == "status" || "$1" == "changes" ]]; then
+  if [[ "$1" == "status" || "$1" == "changes" || "$1" == "addremove" ]]; then
     local subcommand=$1
     shift
     command fossil "$subcommand" "$@" | awk '
-      /^ADDED[[:space:]]/    { color="\033[1;36m" }
-      /^EDITED[[:space:]]/   { color="\033[33m" }
-      /^DELETED[[:space:]]/  { color="\033[31m" }
-      /^MISSING[[:space:]]/  { color="\033[31m" }
-      /^RENAMED[[:space:]]/  { color="\033[36m" }
-      /^CONFLICT[[:space:]]/ { color="\033[35m" }
+      function print_info(value_color) {
+        if (match($0, /^[^:]+:/)) {
+          print "\033[38;5;67m" substr($0, 1, RLENGTH) "\033[0m" value_color substr($0, RLENGTH + 1) "\033[0m"
+        } else {
+          print
+        }
+      }
+      /^(repository|local-root|config-db):/ { print_info("\033[38;5;109m"); next }
+      /^(checkout|parent):/ { print_info("\033[38;5;180m"); next }
+      /^tags:/ { print_info("\033[38;5;139m"); next }
+      /^comment:/ { print_info("\033[38;5;108m"); next }
+      /^ADDED[[:space:]]/    { color="\033[38;5;110m" }
+      /^EDITED[[:space:]]/   { color="\033[38;5;180m" }
+      /^DELETED[[:space:]]/  { color="\033[38;5;167m" }
+      /^MISSING[[:space:]]/  { color="\033[38;5;167m" }
+      /^RENAMED[[:space:]]/  { color="\033[38;5;109m" }
+      /^CONFLICT[[:space:]]/ { color="\033[38;5;139m" }
+      /^added [0-9]+ files, deleted [0-9]+ files$/ { color="\033[38;5;250m" }
       { print (color ? color : "") $0 (color ? "\033[0m" : ""); color="" }
     '
     return ${pipestatus[1]}
   fi
   if [[ "$1" == "extras" ]]; then
     shift
-    command fossil extras "$@" | awk '{ print "\033[1;36m" $0 "\033[0m" }'
+    command fossil extras "$@" | awk '{ print "\033[38;5;110m" $0 "\033[0m" }'
     return ${pipestatus[1]}
   fi
   if [[ "$1" == "timeline" ]]; then
     shift
     command fossil timeline "$@" | awk '
-      /^=== / { print "\033[1;36m" $0 "\033[0m"; next }
+      /^=== / { print "\033[38;5;110m" $0 "\033[0m"; next }
       {
         line = $0
         if (match(line, /^[0-9][0-9]:[0-9][0-9]:[0-9][0-9]/)) {
           line = "\033[2m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
         }
         if (match(line, /\[[0-9a-f]+\]/)) {
-          line = substr(line, 1, RSTART - 1) "\033[1;33m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+          line = substr(line, 1, RSTART - 1) "\033[38;5;180m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
         }
         if (match(line, /(feat|fix|refactor|chore|docs|test):/)) {
           kind = substr(line, RSTART, RLENGTH)
-          color = kind ~ /^feat:/ ? "\033[1;32m" : kind ~ /^fix:/ ? "\033[1;33m" : kind ~ /^refactor:/ ? "\033[1;35m" : "\033[1;34m"
+          color = kind ~ /^feat:/ ? "\033[38;5;108m" : kind ~ /^fix:/ ? "\033[38;5;180m" : kind ~ /^refactor:/ ? "\033[38;5;139m" : "\033[38;5;67m"
           line = substr(line, 1, RSTART - 1) color kind "\033[0m" substr(line, RSTART + RLENGTH)
         }
         if (match(line, /\(user: [^)]+\)/)) {
-          line = substr(line, 1, RSTART - 1) "\033[36m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+          line = substr(line, 1, RSTART - 1) "\033[38;5;109m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
         }
         if (match(line, /tags: [^)]+/)) {
-          line = substr(line, 1, RSTART - 1) "\033[2;34m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+          line = substr(line, 1, RSTART - 1) "\033[38;5;61m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
         }
         print line
       }
@@ -105,9 +117,9 @@ fossil() {
     local subcommand=$2
     shift 2
     command fossil branch "$subcommand" "$@" | awk '
-      /\*/ { print "\033[1;32m" $0 "\033[0m"; next }
-      /#/  { print "\033[35m" $0 "\033[0m"; next }
-      { print "\033[36m" $0 "\033[0m" }
+      /\*/ { print "\033[38;5;108m" $0 "\033[0m"; next }
+      /#/  { print "\033[38;5;139m" $0 "\033[0m"; next }
+      { print "\033[38;5;109m" $0 "\033[0m" }
     '
     return ${pipestatus[1]}
   fi
@@ -115,22 +127,33 @@ fossil() {
     local subcommand=$2
     shift 2
     command fossil tag "$subcommand" "$@" | awk '
-      /^sym-/ { print "\033[1;32m" $0 "\033[0m"; next }
-      /^(branch|closed|hidden|private)$/ { print "\033[35m" $0 "\033[0m"; next }
-      { print "\033[36m" $0 "\033[0m" }
+      /^sym-/ { print "\033[38;5;108m" $0 "\033[0m"; next }
+      /^(branch|closed|hidden|private)$/ { print "\033[38;5;139m" $0 "\033[0m"; next }
+      { print "\033[38;5;109m" $0 "\033[0m" }
     '
     return ${pipestatus[1]}
   fi
   if [[ "$1" == "info" ]]; then
     shift
     command fossil info "$@" | awk '
+      function print_info(value_color) {
+        if (match($0, /^[^:]+:/)) {
+          print "\033[38;5;67m" substr($0, 1, RLENGTH) "\033[0m" value_color substr($0, RLENGTH + 1) "\033[0m"
+        } else {
+          print
+        }
+      }
+      /^(repository|local-root|config-db):/ { print_info("\033[38;5;109m"); next }
+      /^(checkout|parent):/ { print_info("\033[38;5;180m"); next }
+      /^tags:/ { print_info("\033[38;5;139m"); next }
+      /^comment:/ { print_info("\033[38;5;108m"); next }
       {
         line = $0
         if (match(line, /^[^:]+:/)) {
-          line = "\033[1;34m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+          line = "\033[38;5;67m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
         }
         if (match(line, /[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]+/)) {
-          line = substr(line, 1, RSTART - 1) "\033[1;33m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+          line = substr(line, 1, RSTART - 1) "\033[38;5;180m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
         }
         print line
       }
@@ -144,7 +167,7 @@ fossil() {
       {
         line = $0
         if (match(line, /^[0-9a-fA-F]+/)) {
-          line = "\033[1;33m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
+          line = "\033[38;5;180m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)
         }
         if (match(line, /[[:space:]][0-9]+:/)) {
           line = substr(line, 1, RSTART - 1) "\033[2m" substr(line, RSTART, RLENGTH) "\033[0m" substr(line, RSTART + RLENGTH)

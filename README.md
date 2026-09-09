@@ -1,6 +1,6 @@
 # Neovim C# Ortamı
 
-Bu ayar; Roslyn tabanlı C# dil sunucusu, otomatik formatlama, hata ayıklama, arama ve Tokyo Night temasını içerir.
+Bu ayar; Roslyn tabanlı C# ve Elm dil sunucuları, otomatik formatlama, hata ayıklama, arama ve Tokyo Night temasını içerir.
 
 ## Başlangıç
 
@@ -13,6 +13,8 @@ nvim .
 `nvim .`, aynı proje klasöründe en son düzenlediğiniz dosyayı açar.
 
 Kaydetme (`:w`) C# dosyalarını Roslyn ile otomatik biçimlendirir. Biçim kuralları, projenin kökündeki `.editorconfig` dosyasından okunur.
+
+Elm projelerinde (`elm.json` bulunan klasörlerde) `elm-language-server` otomatik başlar; kaydetme `elm-format` ile biçimlendirir. Derleme için `elm make`, test için `elm-test` kullanabilirsiniz.
 
 Yeni bir `.cs` dosyası oluşturduğunuzda Neovim, bulunduğu `.csproj` ve klasör yolundan file-scoped namespace satırını otomatik ekler.
 
@@ -150,7 +152,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 | `z isim` | Sık kullanılan bir klasöre geçer; ör. `z api` |
 | `fd isim` | Dosya adına göre hızlı arama |
 | `bat dosya.cs` | Syntax highlighting ile dosya içeriğini gösterir |
-| `fossil status`, `changes`, `extras`, `timeline`, `branch list`, `tag list`, `info`, `annotate` | Durum, geçmiş ve metadata çıktısını renkli gösterir |
+| `fossil status`, `changes`, `addremove`, `extras`, `timeline`, `branch list`, `tag list`, `info`, `annotate` | Durum, geçmiş ve metadata çıktısını renkli gösterir |
 
 ## Zsh / Ghostty
 
@@ -173,6 +175,7 @@ Eklentileri güncellemek gerektiğinde `:Lazy sync` çalıştırın. `init.lua` 
 - `lazy-lock.json`: Eklentilerin sabitlenmiş sürümleri
 - `README.md`: Bu rehber
 - `bootstrap-macos.sh`: Yeni bir Mac'i aynı ortamla kurar
+- `bootstrap-macos-csharp.sh`: Fossil ve Elm araçlarını kurmadan C#/Neovim ortamını kurar
 
 ## Yeni Mac'e Taşıma
 
@@ -183,6 +186,14 @@ cd ~/.config/nvim
 ./bootstrap-macos.sh
 ```
 
-Script Homebrew, .NET SDK, Neovim, Ghostty, font, CSharpier, terminal araçları ve Zsh eklentisini kurar. Var olan yapılandırma dosyalarını `~/.config/neovim-csharp-backup` altında yedekler.
+Script Homebrew, .NET SDK, Roslyn language server, Neovim, Ghostty, font, Fossil, terminal araçları, debugger ve Zsh eklentisini kurar. Neovim'in `lua`, `after` ve `templates` dosyaları dahil tüm yapılandırması taşınır; var olan dosyalar `~/.config/neovim-csharp-backup` altında yedeklenir.
+
+Fossil ve Elm gerekmeyen bir Mac'te bunun yerine şunu çalıştırın:
+
+```sh
+./bootstrap-macos-csharp.sh
+```
+
+Bu varyant Elm, `elm-language-server`, Tree-sitter Elm parserı ve Fossil'i kurmaz; C#, debugger, Ghostty, Zsh araçları ve tüm Neovim ayarları korunur.
 
 macOS Terminal'in varsayılan Menlo fontuyla uyum için Nerd Font ikonları kapalıdır.

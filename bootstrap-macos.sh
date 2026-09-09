@@ -17,7 +17,7 @@ backup_if_present() {
   local path="$1"
   if [[ -e "$path" ]]; then
     mkdir -p "$BACKUP_DIR"
-    cp -p "$path" "$BACKUP_DIR/$(basename "$path")"
+    cp -Rp "$path" "$BACKUP_DIR/$(basename "$path")"
   fi
 }
 
@@ -31,11 +31,14 @@ if [[ -z "$BREW_BIN" && -x /usr/local/bin/brew ]]; then BREW_BIN=/usr/local/bin/
 eval "$("$BREW_BIN" shellenv)"
 
 echo "Installing development tools..."
-brew install neovim ripgrep fzf zoxide fd bat git
+brew install neovim ripgrep fzf zoxide fd bat git fossil elm elm-format node tree-sitter-cli
 brew install --cask ghostty font-jetbrains-mono-nerd-font dotnet-sdk
 
-echo "Installing C# formatter..."
-dotnet tool install -g csharpier || dotnet tool update -g csharpier
+echo "Installing Roslyn language server..."
+dotnet tool install -g roslyn-language-server || dotnet tool update -g roslyn-language-server
+
+echo "Installing Elm language server and test runner..."
+npm install -g elm-test @elm-tooling/elm-language-server
 
 echo "Installing Zsh autosuggestions..."
 mkdir -p "$ZSH_DIR/plugins"
@@ -46,12 +49,21 @@ fi
 echo "Deploying configuration (old files are backed up when replaced)..."
 mkdir -p "$NVIM_DIR" "$GHOSTTY_DIR" "$ZSH_DIR"
 if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
-  backup_if_present "$NVIM_DIR/init.lua"
-  backup_if_present "$NVIM_DIR/lazy-lock.json"
-  backup_if_present "$NVIM_DIR/README.md"
+  for path in init.lua lazy-lock.json README.md bootstrap-macos.sh bootstrap-macos-csharp.sh lua after templates; do
+    backup_if_present "$NVIM_DIR/$path"
+  done
+  install -d -m 755 "$NVIM_DIR/lua/neo" "$NVIM_DIR/after/queries/c_sharp" "$NVIM_DIR/templates"
   install -m 644 "$SOURCE_DIR/init.lua" "$NVIM_DIR/init.lua"
   install -m 644 "$SOURCE_DIR/lazy-lock.json" "$NVIM_DIR/lazy-lock.json"
   install -m 644 "$SOURCE_DIR/README.md" "$NVIM_DIR/README.md"
+  install -m 755 "$SOURCE_DIR/bootstrap-macos.sh" "$NVIM_DIR/bootstrap-macos.sh"
+  install -m 755 "$SOURCE_DIR/bootstrap-macos-csharp.sh" "$NVIM_DIR/bootstrap-macos-csharp.sh"
+  for module in "$SOURCE_DIR"/lua/neo/*.lua; do
+    install -m 644 "$module" "$NVIM_DIR/lua/neo/$(basename "$module")"
+  done
+  install -m 644 "$SOURCE_DIR/after/queries/c_sharp/folds.scm" "$NVIM_DIR/after/queries/c_sharp/folds.scm"
+  install -m 644 "$SOURCE_DIR/templates/ghostty-config" "$NVIM_DIR/templates/ghostty-config"
+  install -m 644 "$SOURCE_DIR/templates/neovim-csharp.zsh" "$NVIM_DIR/templates/neovim-csharp.zsh"
 fi
 
 backup_if_present "$GHOSTTY_DIR/config"
@@ -65,9 +77,10 @@ if ! grep -Fq 'source "$HOME/.config/zsh/neovim-csharp.zsh"' "$HOME/.zshrc" 2>/d
   } >> "$HOME/.zshrc"
 fi
 
-echo "Installing Neovim plugins and C# debugger/language server..."
+echo "Installing Neovim plugins and C# debugger..."
 nvim --headless '+Lazy! sync' '+qa' || true
-nvim --headless '+MasonInstall csharp-language-server netcoredbg' '+qa' || true
+nvim --headless '+MasonInstall netcoredbg' '+qa' || true
+nvim --headless '+TSInstall elm' '+lua vim.wait(120000, function() return vim.fn.filereadable(vim.fn.stdpath("data") .. "/site/parser/elm.so") == 1 end, 100)' '+qa' || true
 
 cat <<'EOF'
 
