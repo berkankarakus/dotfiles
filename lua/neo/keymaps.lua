@@ -110,6 +110,15 @@ end
     return "<C-o>$"
   end
 
+  local function move_by_page(direction)
+    local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+    local line_count = vim.api.nvim_buf_line_count(0)
+    local page_height = math.max(1, vim.fn.winheight(0) - 2)
+    local target_row = math.max(1, math.min(line_count, row + (direction * page_height)))
+    local target_line = vim.api.nvim_buf_get_lines(0, target_row - 1, target_row, false)[1]
+    vim.api.nvim_win_set_cursor(0, { target_row, math.min(column, #target_line) })
+  end
+
   vim.keymap.set("i", "<M-f>", move_right_within_line, { desc = "Next word on line" })
   vim.keymap.set("i", "<M-Right>", move_right_within_line, { desc = "Next word on line" })
   vim.keymap.set("i", "<M-b>", move_left_within_line, { desc = "Previous word" })
@@ -135,6 +144,8 @@ end
   vim.keymap.set("n", "<S-Down>", "<CMD>move .+1<CR>==", { desc = "Move line down" })
   vim.keymap.set("x", "<S-Up>", ":move '<-2<CR>gv=gv", { desc = "Move selection up" })
   vim.keymap.set("x", "<S-Down>", ":move '>+1<CR>gv=gv", { desc = "Move selection down" })
+  vim.keymap.set("n", "<PageUp>", function() move_by_page(-1) end, { desc = "Move cursor one page up" })
+  vim.keymap.set("n", "<PageDown>", function() move_by_page(1) end, { desc = "Move cursor one page down" })
 
   vim.api.nvim_create_autocmd("FileType", {
     pattern = "cs",

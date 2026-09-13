@@ -288,55 +288,6 @@ function M.setup()
             local code_action = function()
               vim.lsp.buf.code_action()
             end
-            local function jump_workspace_diagnostic(direction)
-              local current_buffer = vim.api.nvim_get_current_buf()
-              local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-              local function sorted_diagnostics(bufnr)
-                local diagnostics = vim.diagnostic.get(bufnr)
-                table.sort(diagnostics, function(a, b)
-                  return a.lnum == b.lnum and a.col < b.col or a.lnum < b.lnum
-                end)
-                return diagnostics
-              end
-              local function jump_to(bufnr, diagnostic)
-                vim.api.nvim_set_current_buf(bufnr)
-                local line = vim.api.nvim_get_current_line()
-                vim.api.nvim_win_set_cursor(0, { diagnostic.lnum + 1, math.min(diagnostic.col, #line) })
-                vim.diagnostic.open_float(0, { scope = "cursor" })
-              end
-
-              local diagnostics = sorted_diagnostics(current_buffer)
-              local next_diagnostic
-              for _, diagnostic in ipairs(diagnostics) do
-                local is_after = diagnostic.lnum + 1 > row
-                  or (diagnostic.lnum + 1 == row and diagnostic.col > column)
-                local is_before = diagnostic.lnum + 1 < row
-                  or (diagnostic.lnum + 1 == row and diagnostic.col < column)
-                if (direction > 0 and is_after) or (direction < 0 and is_before) then
-                  next_diagnostic = diagnostic
-                  if direction > 0 then break end
-                end
-              end
-              if next_diagnostic then
-                jump_to(current_buffer, next_diagnostic)
-                return
-              end
-
-              local buffers = vim.api.nvim_list_bufs()
-              local current_index = vim.tbl_contains(buffers, current_buffer) and vim.fn.index(buffers, current_buffer) + 1 or 1
-              for offset = 1, #buffers - 1 do
-                local index = ((current_index - 1 + direction * offset) % #buffers) + 1
-                local bufnr = buffers[index]
-                if vim.fn.buflisted(bufnr) == 1 and vim.bo[bufnr].buftype == "" then
-                  local other_diagnostics = sorted_diagnostics(bufnr)
-                  if #other_diagnostics > 0 then
-                    jump_to(bufnr, direction > 0 and other_diagnostics[1] or other_diagnostics[#other_diagnostics])
-                    return
-                  end
-                end
-              end
-              vim.notify("No diagnostics in open files.", vim.log.levels.INFO)
-            end
             local signature_state = {}
             local function show_next_signature()
               local params = vim.lsp.util.make_position_params(0, client and client.offset_encoding or "utf-16")
@@ -382,9 +333,6 @@ function M.setup()
               vim.fn.setreg("+", table.concat(vim.tbl_map(function(diagnostic) return diagnostic.message end, diagnostics), "\n"))
               vim.notify("Diagnostic copied.", vim.log.levels.INFO)
             end, "Copy diagnostic")
-            map("<M-k>", function() jump_workspace_diagnostic(-1) end, "Previous diagnostic")
-            map("<M-j>", function() jump_workspace_diagnostic(1) end, "Next diagnostic")
-
             if client and client.server_capabilities.documentHighlightProvider then
               local group = vim.api.nvim_create_augroup("LspDocumentHighlight" .. event.buf, { clear = true })
               vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {

@@ -77,7 +77,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `Space c d` | C# XML docstring ekle |
 | `Space e` | Hata ayrıntısı |
 | `Space x` | Hata listesini panelde aç/kapat |
-| `[d` / `]d` veya `Option-k` / `Option-j` | Önceki / sonraki hata |
+| `[d` / `]d` | Önceki / sonraki hata |
 
 Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add using...** seçin.
 
@@ -87,7 +87,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 | --- | --- |
 | `Ctrl-n` | İmleçteki kelimeyi seç; her tekrarda sonraki eşleşmeye imleç ekle |
 | `g Ctrl-n` | Kelimenin tüm eşleşmelerini seç |
-| `Option-j` / `Option-k` | LSP bağlı olmayan dosyalarda aşağıya / yukarıya dikey imleç ekler |
+| `Option-j` / `Option-k` (normal modda) | Aşağıya / yukarıya dikey imleç ekler |
 | `Esc` | Çoklu imleç modundan çık |
 
 ## Arama
