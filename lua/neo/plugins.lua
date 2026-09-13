@@ -64,9 +64,11 @@ function M.setup()
     },
     {
       "mg979/vim-visual-multi",
-      config = function()
-        vim.keymap.set("i", "<M-j>", "<Esc><Plug>(VM-Add-Cursor-Down)i", { remap = true, desc = "Add cursor down" })
-        vim.keymap.set("i", "<M-k>", "<Esc><Plug>(VM-Add-Cursor-Up)i", { remap = true, desc = "Add cursor up" })
+      init = function()
+        vim.g.VM_maps = {
+          ["Add Cursor Down"] = "<M-j>",
+          ["Add Cursor Up"] = "<M-k>",
+        }
       end,
     },
     {
