@@ -226,8 +226,8 @@ function M.setup()
         end
 
         vim.keymap.set("n", "<leader>ff", function()
-          builtin.oldfiles({ cwd = vim.fn.getcwd(), only_cwd = true })
-        end, { desc = "Find recent project files" })
+          require("telescope").extensions.frecency.frecency({ workspace = "CWD" })
+        end, { desc = "Find project files by frecency" })
         vim.keymap.set("n", "<leader>fg", builtin.live_grep, { desc = "Search project text" })
         vim.keymap.set("n", "<leader>fG", fuzzy_grep, { desc = "Fuzzy search project text" })
         vim.keymap.set("n", "<leader>fb", builtin.buffers, { desc = "Find buffers" })
