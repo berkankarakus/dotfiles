@@ -188,6 +188,8 @@ cd ~/.config/nvim
 
 Script Homebrew, .NET SDK, Roslyn language server, Neovim, Ghostty, font, Fossil, terminal araçları, debugger ve Zsh eklentisini kurar. Neovim'in `lua`, `after` ve `templates` dosyaları dahil tüm yapılandırması taşınır; var olan dosyalar `~/.config/neovim-csharp-backup` altında yedeklenir.
 
+Roslyn language server'ın stable paketi bulunmadığında bootstrap, NuGet'teki en güncel prerelease sürümünü kurar; sonraki çalıştırmalarda aracı mevcut en güncel sürüme yükseltir.
+
 Fossil ve Elm gerekmeyen bir Mac'te bunun yerine şunu çalıştırın:
 
 ```sh

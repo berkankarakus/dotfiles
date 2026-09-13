@@ -35,7 +35,8 @@ brew install neovim ripgrep fzf zoxide fd bat git fossil elm elm-format node tre
 brew install --cask ghostty font-jetbrains-mono-nerd-font dotnet-sdk
 
 echo "Installing Roslyn language server..."
-dotnet tool install -g roslyn-language-server || dotnet tool update -g roslyn-language-server
+dotnet tool install -g roslyn-language-server --prerelease || \
+  dotnet tool update -g roslyn-language-server --prerelease
 
 echo "Installing Elm language server and test runner..."
 npm install -g elm-test @elm-tooling/elm-language-server
