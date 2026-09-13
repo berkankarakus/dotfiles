@@ -76,6 +76,11 @@ if ! grep -Fq 'source "$HOME/.config/zsh/neovim-csharp.zsh"' "$HOME/.zshrc" 2>/d
 fi
 
 echo "Installing Neovim plugins and C# debugger..."
+LAZY_DIR="$HOME/.local/share/nvim/lazy/lazy.nvim"
+if [[ ! -d "$LAZY_DIR/.git" ]]; then
+  mkdir -p "$(dirname "$LAZY_DIR")"
+  git clone --filter=blob:none --branch=stable https://github.com/folke/lazy.nvim.git "$LAZY_DIR"
+fi
 nvim --headless '+Lazy! sync' '+qa' || true
 nvim --headless '+MasonInstall netcoredbg' '+qa' || true
 
