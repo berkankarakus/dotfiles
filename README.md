@@ -75,6 +75,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `Space r n` | Sembolü yeniden adlandır |
 | `Space c a` | Kod aksiyonu |
 | `Space c d` | C# XML docstring ekle |
+| `Space c f` | Dosyayı; Visual modda yalnızca seçili kodu biçimlendir |
 | `Space e` | Hata ayrıntısı |
 | `Space x` | Hata listesini panelde aç/kapat |
 | `[d` / `]d` | Önceki / sonraki hata |
