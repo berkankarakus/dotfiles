@@ -31,7 +31,7 @@ if [[ -z "$BREW_BIN" && -x /usr/local/bin/brew ]]; then BREW_BIN=/usr/local/bin/
 eval "$("$BREW_BIN" shellenv)"
 
 echo "Installing development tools..."
-brew install neovim ripgrep fzf zoxide fd bat git fossil elm elm-format node tree-sitter-cli
+brew install neovim ripgrep fzf zoxide fd bat git fossil elm elm-format node tree-sitter-cli terminal-notifier
 brew install --cask ghostty font-jetbrains-mono-nerd-font dotnet-sdk
 
 echo "Installing Roslyn language server..."

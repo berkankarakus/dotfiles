@@ -472,11 +472,14 @@ function M.setup()
         { "rcarriga/nvim-dap-ui", dependencies = { "nvim-neotest/nvim-nio" }, opts = {} },
         { "Cliffback/netcoredbg-macOS-arm64.nvim" },
         { "jay-babu/mason-nvim-dap.nvim", opts = { ensure_installed = { "netcoredbg" }, automatic_installation = true } },
+        { "Weissle/persistent-breakpoints.nvim" },
       },
       config = function()
         local dap = require("dap")
         dap.set_log_level("INFO")
         local dapui = require("dapui")
+        require("persistent-breakpoints").setup({ load_breakpoints_event = { "BufReadPost" } })
+        local persistent_breakpoints = require("persistent-breakpoints.api")
         local netcoredbg = vim.fn.stdpath("data") .. "/lazy/netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg"
         local function dotnet_project_file()
           local buffer_name = vim.api.nvim_buf_get_name(0)
@@ -487,10 +490,17 @@ function M.setup()
             limit = 1,
           })[1]
         end
+        local function project_sdk(project_file)
+          if not project_file or vim.fn.filereadable(project_file) == 0 then return false end
+          local project_text = table.concat(vim.fn.readfile(project_file), "\n")
+          return project_text:match('<Project[^>]-Sdk%s*=%s*["\']([^"\']+)["\']')
+        end
         local function project_is_executable(project_file)
           if not project_file or vim.fn.filereadable(project_file) == 0 then return false end
           local project_text = table.concat(vim.fn.readfile(project_file), "\n")
-          return project_text:match("<OutputType>%s*[Ww]?Exe%s*</OutputType>") ~= nil
+          local has_executable_output = project_text:match("<OutputType>%s*[Ww]?Exe%s*</OutputType>") ~= nil
+          local sdk = project_sdk(project_file)
+          return has_executable_output or sdk == "Microsoft.NET.Sdk.Web" or sdk == "Microsoft.NET.Sdk.Worker"
         end
         local function debug_project_file()
           local nearest_project = dotnet_project_file()
@@ -553,10 +563,22 @@ function M.setup()
           for _, profile in pairs(settings.profiles or {}) do
             if profile.commandName == "Project" then
               local args = profile.commandLineArgs and require("dap.utils").splitstr(profile.commandLineArgs) or {}
-              return { cwd = project_dir, args = args, env = profile.environmentVariables or {} }
+              local env = vim.deepcopy(profile.environmentVariables or {})
+              if profile.applicationUrl and not env.ASPNETCORE_URLS then
+                env.ASPNETCORE_URLS = profile.applicationUrl
+              end
+
+              local browser_url
+              if project_sdk(project_file) == "Microsoft.NET.Sdk.Web" and profile.launchBrowser and profile.applicationUrl then
+                local base_url = vim.split(profile.applicationUrl, ";", { plain = true })[1]
+                local launch_path = profile.launchUrl or ""
+                browser_url = base_url:gsub("/$", "")
+                if launch_path ~= "" then browser_url = browser_url .. "/" .. launch_path:gsub("^/", "") end
+              end
+              return { cwd = project_dir, args = args, env = env, browser_url = browser_url }
             end
           end
-          return { cwd = project_dir, args = {}, env = {} }
+          return { cwd = project_dir, args = {}, env = {}, browser_url = nil }
         end
         dap.adapters.coreclr = { type = "executable", command = netcoredbg, args = { "--interpreter=vscode" } }
         dap.configurations.cs = {
@@ -569,16 +591,46 @@ function M.setup()
             stopAtEntry = false,
           },
         }
-        dap.listeners.after.event_initialized["dapui"] = dapui.open
+        dap.listeners.after.event_initialized["dapui"] = function()
+          local browser_url = dotnet_launch_profile().browser_url
+          dapui.open()
+          if browser_url then
+            vim.defer_fn(function() vim.ui.open(browser_url) end, 1500)
+          end
+        end
+        local terminal_bundle_ids = {
+          Apple_Terminal = "com.apple.Terminal",
+          Ghostty = "com.mitchellh.ghostty",
+          ghostty = "com.mitchellh.ghostty",
+          iTerm = "com.googlecode.iterm2",
+          iTerm2 = "com.googlecode.iterm2",
+          WezTerm = "com.github.wez.wezterm",
+        }
+        local terminal_bundle_id = terminal_bundle_ids[vim.env.TERM_PROGRAM]
+        local terminal_notifier = vim.fn.exepath("terminal-notifier")
+        dap.listeners.after.event_stopped["debug-notification"] = function(_, body)
+          if body.reason ~= "breakpoint" then return end
+
+          local message = "Breakpoint reached."
+          vim.notify(message, vim.log.levels.INFO, { title = "Neovim Debugger" })
+
+          if terminal_notifier ~= "" then
+            local command = { terminal_notifier, "-title", "Neovim Debugger", "-message", message }
+            if terminal_bundle_id then
+              vim.list_extend(command, { "-activate", terminal_bundle_id })
+            end
+            vim.fn.jobstart(command, { detach = true })
+          end
+        end
         dap.listeners.before.event_terminated["dapui"] = dapui.close
         dap.listeners.before.event_exited["dapui"] = dapui.close
         vim.keymap.set("n", "<F5>", dap.continue, { desc = "Debug: Continue" })
         vim.keymap.set("n", "<F10>", dap.step_over, { desc = "Debug: Step over" })
         vim.keymap.set("n", "<F11>", dap.step_into, { desc = "Debug: Step into" })
         vim.keymap.set("n", "<F12>", dap.step_out, { desc = "Debug: Step out" })
-        vim.keymap.set("n", "<leader>b", dap.toggle_breakpoint, { desc = "Debug: Toggle breakpoint" })
-        vim.keymap.set("n", "<leader>bc", dap.clear_breakpoints, { desc = "Debug: Clear all breakpoints" })
-        vim.keymap.set("n", "<leader>B", function() dap.set_breakpoint(vim.fn.input("Breakpoint condition: ")) end, { desc = "Debug: Conditional breakpoint" })
+        vim.keymap.set("n", "<leader>b", persistent_breakpoints.toggle_breakpoint, { desc = "Debug: Toggle breakpoint" })
+        vim.keymap.set("n", "<leader>bc", persistent_breakpoints.clear_all_breakpoints, { desc = "Debug: Clear all breakpoints" })
+        vim.keymap.set("n", "<leader>B", persistent_breakpoints.set_conditional_breakpoint, { desc = "Debug: Conditional breakpoint" })
         vim.keymap.set("n", "<leader>dr", dap.repl.open, { desc = "Debug: Open REPL" })
         vim.keymap.set("n", "<leader>du", dapui.toggle, { desc = "Debug: Toggle UI" })
       end,
