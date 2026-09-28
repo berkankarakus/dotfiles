@@ -8,6 +8,7 @@ function M.setup()
 
   vim.opt.number = true
   vim.opt.relativenumber = true
+  vim.opt.wrap = false
   vim.opt.mouse = "a"
   vim.opt.clipboard = "unnamedplus"
   vim.opt.ignorecase = true
