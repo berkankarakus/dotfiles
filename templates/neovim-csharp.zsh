@@ -179,3 +179,10 @@ fossil() {
   fi
   command fossil "$@"
 }
+
+# Git dalını yalnızca bir Git çalışma ağacındayken prompt'ta göster.
+autoload -Uz vcs_info
+zstyle ':vcs_info:git:*' formats ' %F{110}[%b]%f'
+precmd_functions+=(vcs_info)
+setopt PROMPT_SUBST
+PROMPT='%F{67}%1~%f${vcs_info_msg_0_} %# '
