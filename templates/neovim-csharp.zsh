@@ -182,7 +182,38 @@ fossil() {
 
 # Git dalını yalnızca bir Git çalışma ağacındayken prompt'ta göster.
 autoload -Uz vcs_info
-zstyle ':vcs_info:git:*' formats ' %F{110}[%b]%f'
-precmd_functions+=(vcs_info)
+zstyle ':vcs_info:git:*' check-for-changes true
+zstyle ':vcs_info:git:*' stagedstr '+'
+zstyle ':vcs_info:git:*' unstagedstr '*'
+zstyle ':vcs_info:git:*' formats ' %F{110}[%b%c%u]%f'
+
+prompt_git_sync() {
+  PROMPT_GIT_SYNC=
+  command git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return
+
+  local behind ahead
+  read behind ahead <<< "$(command git rev-list --left-right --count '@{upstream}...HEAD' 2>/dev/null)"
+  [[ "$behind" == <-> && "$ahead" == <-> ]] || return
+
+  local -a sync_status
+  (( ahead > 0 )) && sync_status+=("↑$ahead")
+  (( behind > 0 )) && sync_status+=("↓$behind")
+  (( $#sync_status > 0 )) && PROMPT_GIT_SYNC=" %F{180}${(j: :)sync_status}%f"
+}
+
+prompt_context() {
+  local exit_status=$?
+  if (( exit_status == 0 )); then
+    PROMPT_FAILURE=
+  else
+    PROMPT_FAILURE="%F{167}✗ $exit_status%f "
+  fi
+  vcs_info
+  prompt_git_sync
+}
+
+precmd_functions=(${precmd_functions:#vcs_info})
+precmd_functions=(${precmd_functions:#prompt_context})
+precmd_functions+=(prompt_context)
 setopt PROMPT_SUBST
-PROMPT='%F{67}%1~%f${vcs_info_msg_0_} %# '
+PROMPT='${PROMPT_FAILURE}%F{67}%1~%f${vcs_info_msg_0_}${PROMPT_GIT_SYNC} %# '
