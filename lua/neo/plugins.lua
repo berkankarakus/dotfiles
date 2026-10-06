@@ -350,7 +350,7 @@ function M.setup()
         map_textobject_move("]c", "[c", "]C", "[C", "@conditional.outer", "conditional")
         map_sql_query("]r", "[r")
         map_sql_clause("]k", "[k")
-        map_textobject_start("]S", "[S", "@statement.outer", "SQL statement")
+        map_textobject_start("]s", "[s", "@statement.outer", "SQL statement")
         map_textobject_start("]K", "[K", "@switch.case", "C# switch case")
       end,
     },

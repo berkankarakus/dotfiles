@@ -102,7 +102,8 @@ C# ve T-SQL dosyalarında sözdizimine göre seçim yapmak için aşağıdaki te
 | `]C` / `[C` | Sonraki / önceki conditional sonu |
 | `]r` / `[r` | Sonraki T-SQL query / iç query'den parent query veya statement'a çık |
 | `]k` / `[k` | Sonraki / önceki T-SQL clause (`SELECT`/`UPDATE`/`DELETE`, `SET`, `FROM`, `JOIN`, `WHERE`) |
-| `]S` / `[S` | Sonraki / önceki T-SQL statement |
+| `]s` / `[s` | Sonraki / önceki T-SQL statement |
+| `]S` / `[S` | Sonraki / önceki yazım hatası (spellcheck açıkken) |
 | `]K` / `[K` | Sonraki / önceki C# `case` veya `default` bölümü |
 
 T-SQL'de `vaf` / `vif` stored procedure, function veya trigger'ı; `vab` / `vib` ise `BEGIN` / `END` block'unu seçer. İç seçimler `BEGIN` ve `END` anahtar sözcüklerini kapsamaz.
