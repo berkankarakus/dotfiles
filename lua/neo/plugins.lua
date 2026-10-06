@@ -812,8 +812,7 @@ function M.setup()
           end
           return nearest_project
         end
-        local function dotnet_program()
-          local project_file = debug_project_file()
+        local function dotnet_program(project_file)
           if project_file then
             local project_dir = vim.fs.dirname(project_file)
             local project_name = vim.fn.fnamemodify(project_file, ":t:r")
@@ -827,8 +826,7 @@ function M.setup()
           end
           return vim.fn.input("Path to DLL: ", vim.fn.getcwd() .. "/bin/Debug/", "file")
         end
-        local function dotnet_launch_profile()
-          local project_file = debug_project_file()
+        local function dotnet_launch_profile(project_file)
           if not project_file then return { cwd = vim.fn.getcwd(), args = {}, env = {} } end
 
           local project_dir = vim.fs.dirname(project_file)
@@ -863,19 +861,29 @@ function M.setup()
           end
           return { cwd = project_dir, args = {}, env = {}, browser_url = nil }
         end
+        local launch_context = require("neo.dotnet_debug").launch_context_cache(function()
+          local project_file = debug_project_file()
+          return {
+            program = dotnet_program(project_file),
+            profile = dotnet_launch_profile(project_file),
+          }
+        end)
+        local function current_launch_context()
+          return launch_context.get()
+        end
         dap.adapters.coreclr = { type = "executable", command = netcoredbg, args = { "--interpreter=vscode" } }
         dap.configurations.cs = {
           {
             type = "coreclr", name = "Launch .NET project", request = "launch",
-            program = dotnet_program,
-            args = function() return dotnet_launch_profile().args end,
-            cwd = function() return dotnet_launch_profile().cwd end,
-            env = function() return dotnet_launch_profile().env end,
+            program = function() return current_launch_context().program end,
+            args = function() return current_launch_context().profile.args end,
+            cwd = function() return current_launch_context().profile.cwd end,
+            env = function() return current_launch_context().profile.env end,
             stopAtEntry = false,
           },
         }
         dap.listeners.after.event_initialized["dapui"] = function()
-          local browser_url = dotnet_launch_profile().browser_url
+          local browser_url = current_launch_context().profile.browser_url
           dapui.open()
           if browser_url then
             vim.defer_fn(function() vim.ui.open(browser_url) end, 1500)
@@ -905,9 +913,16 @@ function M.setup()
             vim.fn.jobstart(command, { detach = true })
           end
         end
-        dap.listeners.before.event_terminated["dapui"] = dapui.close
-        dap.listeners.before.event_exited["dapui"] = dapui.close
-        vim.keymap.set("n", "<F5>", dap.continue, { desc = "Debug: Continue" })
+        local function close_debug_ui()
+          launch_context.reset()
+          dapui.close()
+        end
+        dap.listeners.before.event_terminated["dapui"] = close_debug_ui
+        dap.listeners.before.event_exited["dapui"] = close_debug_ui
+        vim.keymap.set("n", "<F5>", function()
+          if not dap.session() then launch_context.reset() end
+          dap.continue()
+        end, { desc = "Debug: Continue" })
         vim.keymap.set("n", "<F10>", dap.step_over, { desc = "Debug: Step over" })
         vim.keymap.set("n", "<F11>", dap.step_into, { desc = "Debug: Step into" })
         vim.keymap.set("n", "<F12>", dap.step_out, { desc = "Debug: Step out" })

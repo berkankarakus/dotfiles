@@ -25,6 +25,7 @@ else
 fi
 rm -rf "$session_state"
 (( session_status == 0 ))
+nvim --clean -u NONE -i NONE --headless -l tests/dotnet_debug_spec.lua
 
 run_nvim_test tests/lazy_startup_spec.lua
 run_nvim_test tests/lazy_csharp_debug_spec.lua
