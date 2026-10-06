@@ -240,30 +240,62 @@ function M.setup()
             local row, column = unpack(vim.api.nvim_win_get_cursor(0))
             row = row - 1
             local node = parser:parse()[1]:root():named_descendant_for_range(row, column, row, column)
-            local clause_types
+            local clause_types, scope_node, query_specification
             while node do
               if node:type() == "query_specification" then
-                clause_types = { select = true, from = true, where = true }
+                query_specification = node
+                scope_node = node
+                clause_types = { select = true, from = true, where = true, group_by = true, having = true }
                 break
+              elseif node:type() == "statement" then
+                for child in node:iter_children() do
+                  if child:type() == "query_specification" then
+                    query_specification = child
+                    scope_node = child
+                    clause_types = { select = true, from = true, where = true, group_by = true, having = true }
+                    break
+                  end
+                end
+                if query_specification then break end
+                node = node:parent()
               elseif node:type() == "update" then
+                scope_node = node
                 clause_types = { keyword_update = true, keyword_set = true, from = true, where = true }
                 break
               elseif node:type() == "delete" then
+                scope_node = node
                 clause_types = { keyword_delete = true, from = true, where = true }
                 break
+              else
+                node = node:parent()
               end
-              node = node:parent()
             end
-            if not node then return end
+            if not scope_node then return end
 
             local clauses = {}
-            for child in node:iter_children() do
+            for child in scope_node:iter_children() do
               if clause_types[child:type()] then clauses[#clauses + 1] = child end
               if child:type() == "from" then
                 for from_child in child:iter_children() do
                   if from_child:type() == "join" then clauses[#clauses + 1] = from_child end
                 end
               end
+            end
+            if query_specification then
+              local statement = query_specification:parent()
+              if statement and statement:type() == "statement" then
+                for child in statement:iter_children() do
+                  local child_type = child:type()
+                  if child_type == "order_by" or child_type == "offset_fetch" then
+                    clauses[#clauses + 1] = child
+                  end
+                end
+              end
+              table.sort(clauses, function(left, right)
+                local left_row, left_column = left:range()
+                local right_row, right_column = right:range()
+                return left_row < right_row or (left_row == right_row and left_column < right_column)
+              end)
             end
             if #clauses == 0 then return end
 

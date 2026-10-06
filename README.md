@@ -101,7 +101,7 @@ C# ve T-SQL dosyalarında sözdizimine göre seçim yapmak için aşağıdaki te
 | `]c` / `[c` | Sonraki / önceki conditional başlangıcı |
 | `]C` / `[C` | Sonraki / önceki conditional sonu |
 | `]r` / `[r` | Sonraki T-SQL query / iç query'den parent query veya statement'a çık |
-| `]k` / `[k` | Sonraki / önceki T-SQL clause (`SELECT`/`UPDATE`/`DELETE`, `SET`, `FROM`, `JOIN`, `WHERE`) |
+| `]k` / `[k` | Sonraki / önceki T-SQL clause (`SELECT`, `FROM`, `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `OFFSET/FETCH`; ayrıca `UPDATE`/`DELETE` ve `SET`) |
 | `]s` / `[s` | Sonraki / önceki T-SQL statement |
 | `]S` / `[S` | Sonraki / önceki yazım hatası (spellcheck açıkken) |
 | `]K` / `[K` | Sonraki / önceki C# `case` veya `default` bölümü |

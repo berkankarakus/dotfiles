@@ -30,4 +30,5 @@ nvim --clean -u NONE -i NONE --headless -l tests/dotnet_debug_spec.lua
 run_nvim_test tests/lazy_startup_spec.lua
 run_nvim_test tests/lazy_csharp_debug_spec.lua
 run_nvim_test tests/lazy_completion_spec.lua
+run_nvim_test tests/sql_clause_navigation_spec.lua
 bash tests/bootstrap_spec.sh
