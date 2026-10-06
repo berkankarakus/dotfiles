@@ -84,7 +84,7 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 
 ## Tree-sitter Text Objects
 
-C# dosyalarında sözdizimine göre seçim yapmak için aşağıdaki text object'ler Visual (`v`) ve operator-pending modunda çalışır; örneğin `vab` bir block'u seçer, `daf` ise bir metodu siler.
+C# ve T-SQL dosyalarında sözdizimine göre seçim yapmak için aşağıdaki text object'ler Visual (`v`) ve operator-pending modunda çalışır; örneğin `vab` bir block'u seçer, `daf` ise bir metodu siler.
 
 | Kısayol | İşlev |
 | --- | --- |
@@ -94,6 +94,18 @@ C# dosyalarında sözdizimine göre seçim yapmak için aşağıdaki text object
 | `vaC` / `viC` | `if` veya `switch` conditional'ının tamamını / içini ( `{}` hariç) seç |
 | `vac` / `vic` | Class, struct, record, interface veya enum'un tamamını / içini seç |
 | `vaa` / `via` | Parametre ya da argument'ın tamamını / içini seç |
+| `vaq` | T-SQL query'sinin tamamını seç |
+| `vaS` | T-SQL statement'ının tamamını seç |
+| `]f` / `[f` | Sonraki / önceki method, function, procedure veya trigger başlangıcı |
+| `]F` / `[F` | Sonraki / önceki method, function, procedure veya trigger sonu |
+| `]c` / `[c` | Sonraki / önceki conditional başlangıcı |
+| `]C` / `[C` | Sonraki / önceki conditional sonu |
+| `]r` / `[r` | Sonraki T-SQL query / iç query'den parent query veya statement'a çık |
+| `]k` / `[k` | Sonraki / önceki T-SQL clause (`SELECT`/`UPDATE`/`DELETE`, `SET`, `FROM`, `JOIN`, `WHERE`) |
+| `]S` / `[S` | Sonraki / önceki T-SQL statement |
+| `]K` / `[K` | Sonraki / önceki C# `case` veya `default` bölümü |
+
+T-SQL'de `vaf` / `vif` stored procedure, function veya trigger'ı; `vab` / `vib` ise `BEGIN` / `END` block'unu seçer. İç seçimler `BEGIN` ve `END` anahtar sözcüklerini kapsamaz.
 
 ## Çoklu İmleç
 

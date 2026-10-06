@@ -24,14 +24,20 @@ function M.setup()
   })
 
   local last_file_state = vim.fn.stdpath("state") .. "/last-file-by-directory.json"
+  local last_files
   local function project_key()
     return vim.uv.fs_realpath(vim.fn.getcwd()) or vim.fn.getcwd()
   end
   local function read_last_files()
+    if last_files then return last_files end
     local read_ok, lines = pcall(vim.fn.readfile, last_file_state)
-    if not read_ok then return {} end
+    if not read_ok then
+      last_files = {}
+      return last_files
+    end
     local decode_ok, decoded = pcall(vim.json.decode, table.concat(lines, "\n"))
-    return decode_ok and type(decoded) == "table" and decoded or {}
+    last_files = decode_ok and type(decoded) == "table" and decoded or {}
+    return last_files
   end
   local function remember_last_file(event)
     if vim.bo[event.buf].buftype ~= "" then return end
@@ -41,8 +47,11 @@ function M.setup()
     local resolved_file = vim.uv.fs_realpath(file) or file
     if resolved_file:sub(1, #root + 1) ~= root .. "/" then return end
     local last_files = read_last_files()
+    if last_files[root] == resolved_file then return end
+    local previous_file = last_files[root]
     last_files[root] = resolved_file
-    pcall(vim.fn.writefile, { vim.json.encode(last_files) }, last_file_state)
+    local write_ok = pcall(vim.fn.writefile, { vim.json.encode(last_files) }, last_file_state)
+    if not write_ok then last_files[root] = previous_file end
   end
   vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, { callback = remember_last_file })
 

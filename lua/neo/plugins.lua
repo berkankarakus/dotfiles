@@ -128,8 +128,24 @@ function M.setup()
       build = ":TSUpdate",
       config = function()
         local treesitter = require("nvim-treesitter")
+        local mssql_parser = {
+          install_info = {
+            url = "https://github.com/meloncholic/tree-sitter-mssql",
+            revision = "64682111232f63434605a238ef8e4c3112b699d0",
+            queries = "queries",
+          },
+        }
+        local parser_group = vim.api.nvim_create_augroup("NeoMssqlParser", { clear = true })
+        vim.api.nvim_create_autocmd("User", {
+          group = parser_group,
+          pattern = "TSUpdate",
+          callback = function()
+            require("nvim-treesitter.parsers").mssql = mssql_parser
+          end,
+        })
         treesitter.setup({ install_dir = vim.fn.stdpath("data") .. "/site" })
-        treesitter.install({ "c_sharp" })
+        vim.treesitter.language.register("mssql", "sql")
+        treesitter.install({ "c_sharp", "mssql" })
         vim.opt.rtp:append(vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/runtime")
       end,
     },
@@ -144,13 +160,175 @@ function M.setup()
             lookahead = true,
             include_surrounding_whitespace = false,
           },
+          move = { set_jumps = true },
         })
 
         local select = require("nvim-treesitter-textobjects.select")
+        local move = require("nvim-treesitter-textobjects.move")
+        local shared = require("nvim-treesitter-textobjects.shared")
         local function map_textobject(keys, query, desc)
           vim.keymap.set({ "x", "o" }, keys, function()
             select.select_textobject(query, "textobjects")
           end, { desc = desc })
+        end
+        local function goto_range(range, at_end)
+          if not range or not range[1] then return end
+          vim.cmd("normal! m'")
+          if vim.api.nvim_get_mode().mode == "no" then vim.cmd("normal! v") end
+
+          local row, column
+          if at_end then
+            row, column = range[4], range[5]
+            if column == 0 then
+              row = row - 1
+              column = #vim.api.nvim_buf_get_lines(0, row, row + 1, true)[1]
+            else
+              column = column - 1
+            end
+          else
+            row, column = range[1], range[2]
+          end
+          vim.api.nvim_win_set_cursor(0, { row + 1, column })
+        end
+        local function move_with_wrap(query, forward, at_end)
+          local cursor_before = vim.api.nvim_win_get_cursor(0)
+          if forward and at_end then
+            move.goto_next_end(query, "textobjects")
+          elseif forward then
+            move.goto_next_start(query, "textobjects")
+          elseif at_end then
+            move.goto_previous_end(query, "textobjects")
+          else
+            move.goto_previous_start(query, "textobjects")
+          end
+          if not vim.deep_equal(cursor_before, vim.api.nvim_win_get_cursor(0)) then return end
+
+          local range_index = at_end and 6 or 3
+          local range = shared.find_best_range(0, query, "textobjects", function()
+            return true
+          end, function(candidate)
+            return forward and -candidate[range_index] or candidate[range_index]
+          end)
+          goto_range(range, at_end)
+        end
+        local function map_textobject_move(next_start, previous_start, next_end, previous_end, query, desc)
+          vim.keymap.set({ "n", "x", "o" }, next_start, function()
+            move_with_wrap(query, true, false)
+          end, { desc = "Next " .. desc })
+          vim.keymap.set({ "n", "x", "o" }, previous_start, function()
+            move_with_wrap(query, false, false)
+          end, { desc = "Previous " .. desc })
+          vim.keymap.set({ "n", "x", "o" }, next_end, function()
+            move_with_wrap(query, true, true)
+          end, { desc = "Next " .. desc .. " end" })
+          vim.keymap.set({ "n", "x", "o" }, previous_end, function()
+            move_with_wrap(query, false, true)
+          end, { desc = "Previous " .. desc .. " end" })
+        end
+        local function map_textobject_start(next_start, previous_start, query, desc)
+          vim.keymap.set({ "n", "x", "o" }, next_start, function()
+            move_with_wrap(query, true, false)
+          end, { desc = "Next " .. desc })
+          vim.keymap.set({ "n", "x", "o" }, previous_start, function()
+            move_with_wrap(query, false, false)
+          end, { desc = "Previous " .. desc })
+        end
+        local function map_sql_clause(next_start, previous_start)
+          local function move_clause(forward)
+            local ok, parser = pcall(vim.treesitter.get_parser, 0)
+            if not ok then return end
+            local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+            row = row - 1
+            local node = parser:parse()[1]:root():named_descendant_for_range(row, column, row, column)
+            local clause_types
+            while node do
+              if node:type() == "query_specification" then
+                clause_types = { select = true, from = true, where = true }
+                break
+              elseif node:type() == "update" then
+                clause_types = { keyword_update = true, keyword_set = true, from = true, where = true }
+                break
+              elseif node:type() == "delete" then
+                clause_types = { keyword_delete = true, from = true, where = true }
+                break
+              end
+              node = node:parent()
+            end
+            if not node then return end
+
+            local clauses = {}
+            for child in node:iter_children() do
+              if clause_types[child:type()] then clauses[#clauses + 1] = child end
+              if child:type() == "from" then
+                for from_child in child:iter_children() do
+                  if from_child:type() == "join" then clauses[#clauses + 1] = from_child end
+                end
+              end
+            end
+            if #clauses == 0 then return end
+
+            local target
+            if forward then
+              for _, clause in ipairs(clauses) do
+                local clause_row, clause_column = clause:range()
+                if clause_row > row or (clause_row == row and clause_column > column) then
+                  target = clause
+                  break
+                end
+              end
+              target = target or clauses[1]
+            else
+              for index = #clauses, 1, -1 do
+                local clause_row, clause_column = clauses[index]:range()
+                if clause_row < row or (clause_row == row and clause_column < column) then
+                  target = clauses[index]
+                  break
+                end
+              end
+              target = target or clauses[#clauses]
+            end
+
+            vim.cmd("normal! m'")
+            if vim.api.nvim_get_mode().mode == "no" then vim.cmd("normal! v") end
+            local target_row, target_column = target:range()
+            vim.api.nvim_win_set_cursor(0, { target_row + 1, target_column })
+          end
+          vim.keymap.set({ "n", "x", "o" }, next_start, function()
+            move_clause(true)
+          end, { desc = "Next SQL clause" })
+          vim.keymap.set({ "n", "x", "o" }, previous_start, function()
+            move_clause(false)
+          end, { desc = "Previous SQL clause" })
+        end
+        local function map_sql_query(next_start, previous_start)
+          local function go_to_parent_scope()
+            local ok, parser = pcall(vim.treesitter.get_parser, 0)
+            if not ok then return false end
+            local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+            local node = parser:parse()[1]:root():named_descendant_for_range(row - 1, column, row - 1, column)
+            while node and node:type() ~= "query_specification" do
+              node = node:parent()
+            end
+            if not node then return false end
+
+            node = node:parent()
+            while node do
+              local node_type = node:type()
+              if node_type == "query_specification" or node_type == "update" or node_type == "delete" then
+                local target_row, target_column = node:range()
+                goto_range({ target_row, target_column, 0, target_row, target_column, 0 }, false)
+                return true
+              end
+              node = node:parent()
+            end
+            return false
+          end
+          vim.keymap.set({ "n", "x", "o" }, next_start, function()
+            move_with_wrap("@query.outer", true, false)
+          end, { desc = "Next SQL query" })
+          vim.keymap.set({ "n", "x", "o" }, previous_start, function()
+            if not go_to_parent_scope() then move_with_wrap("@query.outer", false, false) end
+          end, { desc = "Parent SQL query or statement" })
         end
 
         map_textobject("ab", "@block.outer", "Select around block")
@@ -165,6 +343,15 @@ function M.setup()
         map_textobject("ic", "@class.inner", "Select inside class")
         map_textobject("aa", "@parameter.outer", "Select around parameter")
         map_textobject("ia", "@parameter.inner", "Select inside parameter")
+        map_textobject("aq", "@query.outer", "Select around SQL query")
+        map_textobject("aS", "@statement.outer", "Select around SQL statement")
+
+        map_textobject_move("]f", "[f", "]F", "[F", "@function.outer", "function")
+        map_textobject_move("]c", "[c", "]C", "[C", "@conditional.outer", "conditional")
+        map_sql_query("]r", "[r")
+        map_sql_clause("]k", "[k")
+        map_textobject_start("]S", "[S", "@statement.outer", "SQL statement")
+        map_textobject_start("]K", "[K", "@switch.case", "C# switch case")
       end,
     },
     {
@@ -192,6 +379,14 @@ function M.setup()
       dependencies = {
         "nvim-lua/plenary.nvim",
         { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+      },
+      keys = {
+        { "<leader>fg", desc = "Search project text" },
+        { "<leader>fG", desc = "Fuzzy search project text" },
+        { "<leader>fb", desc = "Find buffers" },
+        { "<leader>fs", desc = "Search document symbols" },
+        { "<leader>fS", desc = "Search workspace symbols" },
+        { "<leader>fh", desc = "Search help" },
       },
       config = function()
         local telescope = require("telescope")
@@ -274,6 +469,10 @@ function M.setup()
     },
     {
       "nvim-telescope/telescope-frecency.nvim",
+      dependencies = { "nvim-telescope/telescope.nvim" },
+      keys = {
+        { "<leader>ff", desc = "Find project files by frecency" },
+      },
       config = function()
         require("telescope").load_extension("frecency")
       end,
@@ -424,6 +623,7 @@ function M.setup()
     {
       "hrsh7th/nvim-cmp",
       dependencies = { "hrsh7th/cmp-nvim-lsp", "hrsh7th/cmp-buffer", "hrsh7th/cmp-path", "L3MON4D3/LuaSnip", "saadparwaiz1/cmp_luasnip" },
+      event = "InsertEnter",
       config = function()
         local cmp = require("cmp")
         local ls = require("luasnip")
@@ -497,7 +697,7 @@ function M.setup()
     },
     {
       "windwp/nvim-autopairs",
-      lazy = false,
+      event = "InsertEnter",
       dependencies = { "hrsh7th/nvim-cmp" },
       config = function()
         require("nvim-autopairs").setup({
@@ -539,6 +739,18 @@ function M.setup()
     },
     {
       "mfussenegger/nvim-dap",
+      event = "BufReadPost *.cs",
+      keys = {
+        { "<F5>", desc = "Debug: Continue" },
+        { "<F10>", desc = "Debug: Step over" },
+        { "<F11>", desc = "Debug: Step into" },
+        { "<F12>", desc = "Debug: Step out" },
+        { "<leader>b", desc = "Debug: Toggle breakpoint" },
+        { "<leader>bc", desc = "Debug: Clear all breakpoints" },
+        { "<leader>B", desc = "Debug: Conditional breakpoint" },
+        { "<leader>dr", desc = "Debug: Open REPL" },
+        { "<leader>du", desc = "Debug: Toggle UI" },
+      },
       dependencies = {
         { "rcarriga/nvim-dap-ui", dependencies = { "nvim-neotest/nvim-nio" }, opts = {} },
         { "Cliffback/netcoredbg-macOS-arm64.nvim" },

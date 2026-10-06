@@ -57,3 +57,6 @@
     "{"
     _* @conditional.contents
     "}"))
+
+; Move linearly between case/default branches in a switch statement.
+(switch_section) @switch.case
