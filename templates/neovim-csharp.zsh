@@ -48,6 +48,161 @@ fzf_history_widget() {
 zle -N fzf_history_widget
 bindkey '^R' fzf_history_widget
 
+# `dotnet run` uses Release by default here. Web SDK projects open the launch
+# profile's Swagger URL once Kestrel is ready; workers and other project types
+# are passed through unchanged.
+dotnet_open_browser_when_ready() {
+  local url=$1
+  (
+    local attempt
+    for attempt in {1..90}; do
+      if curl -k -sS --max-time 1 -o /dev/null "$url" >/dev/null 2>&1; then
+        open "$url"
+        return
+      fi
+      sleep 1
+    done
+  ) &!
+}
+
+dotnet() {
+  local command_name=$1
+  shift || return
+
+  if [[ "$command_name" != "run" ]]; then
+    command dotnet "$command_name" "$@"
+    return
+  fi
+
+  local project_path= launch_profile= argument has_configuration=false no_launch_profile=false
+  local -a arguments projects
+  arguments=("$@")
+  local index=1
+  while (( index <= $#arguments )); do
+    argument=${arguments[index]}
+    case "$argument" in
+      --project|-p)
+        (( index++ ))
+        project_path=${arguments[index]}
+        ;;
+      --project=*) project_path=${argument#--project=} ;;
+      --launch-profile|-lp)
+        (( index++ ))
+        launch_profile=${arguments[index]}
+        ;;
+      --launch-profile=*) launch_profile=${argument#--launch-profile=} ;;
+      --configuration|-c)
+        has_configuration=true
+        (( index++ ))
+        ;;
+      --configuration=*|-c?*) has_configuration=true ;;
+      --no-launch-profile) no_launch_profile=true ;;
+    esac
+    (( index++ ))
+  done
+
+  if [[ -z "$project_path" ]]; then
+    projects=("$PWD"/*.csproj(N))
+    (( $#projects == 1 )) && project_path=$projects[1]
+  elif [[ -d "$project_path" ]]; then
+    projects=("$project_path"/*.csproj(N))
+    (( $#projects == 1 )) && project_path=$projects[1]
+  fi
+
+  if [[ -n "$project_path" && -f "$project_path" && "$no_launch_profile" == false ]] \
+    && grep -q 'Microsoft.NET.Sdk.Web' "$project_path"; then
+    local launch_settings="${project_path:h}/Properties/launchSettings.json"
+    if [[ -f "$launch_settings" ]] && grep -q '"launchBrowser"[[:space:]]*:[[:space:]]*true' "$launch_settings"; then
+      local application_url launch_url browser_url launch_values
+      launch_values=$(awk -v requested_profile="$launch_profile" '
+        function braces(line, copy, opens, closes) {
+          copy = line
+          opens = gsub(/{/, "", copy)
+          closes = gsub(/}/, "", copy)
+          return opens - closes
+        }
+        function string_value(line, key, value) {
+          value = line
+          sub("^[^\\\"]*\\\"" key "\\\"[[:space:]]*:[[:space:]]*\\\"", "", value)
+          sub("\\\".*$", "", value)
+          return value
+        }
+        {
+          line = $0
+          if (!in_profiles) {
+            if (line ~ /"profiles"[[:space:]]*:[[:space:]]*{/) {
+              in_profiles = 1
+              depth = 1
+            }
+            next
+          }
+
+          if (!in_profile && depth == 1 && line ~ /^[[:space:]]*"[^"]+"[[:space:]]*:[[:space:]]*{/) {
+            profile_name = line
+            sub(/^[[:space:]]*"/, "", profile_name)
+            sub(/".*$/, "", profile_name)
+            in_profile = 1
+            profile_depth = depth + 1
+            command_name = application_url = launch_url = ""
+            launch_browser = 0
+          } else if (in_profile) {
+            if (line ~ /"commandName"[[:space:]]*:/) command_name = string_value(line, "commandName")
+            if (line ~ /"applicationUrl"[[:space:]]*:/) application_url = string_value(line, "applicationUrl")
+            if (line ~ /"launchUrl"[[:space:]]*:/) launch_url = string_value(line, "launchUrl")
+            if (line ~ /"launchBrowser"[[:space:]]*:[[:space:]]*true/) launch_browser = 1
+          }
+
+          depth += braces(line)
+          if (in_profile && depth < profile_depth) {
+            if ((requested_profile == "" || profile_name == requested_profile) && command_name == "Project" && launch_browser && application_url != "") {
+              print application_url "\t" launch_url
+              exit
+            }
+            in_profile = 0
+          }
+        }
+      ' "$launch_settings")
+      IFS=$'\t' read -r application_url launch_url <<< "$launch_values"
+      if [[ -n "$application_url" ]]; then
+        browser_url="${application_url%%;*}"
+        browser_url="${browser_url%/}/${launch_url:-swagger}"
+        dotnet_open_browser_when_ready "$browser_url"
+      fi
+    fi
+  fi
+
+  if [[ "$has_configuration" == false ]]; then
+    command dotnet run --configuration Release "$@"
+  else
+    command dotnet run "$@"
+  fi
+}
+
+# Hide whitespace-only changes from `git diff`, but make them visible as a
+# concise notice so they cannot go unnoticed. This applies in every repository.
+git() {
+  if [[ "$1" != "diff" ]]; then
+    command git "$@"
+    return
+  fi
+
+  shift
+  command git diff --ignore-all-space "$@"
+  local diff_status=$?
+  (( diff_status > 1 )) && return "$diff_status"
+
+  command git diff --ignore-all-space --quiet "$@"
+  local meaningful_status=$?
+  if (( meaningful_status == 0 )); then
+    command git diff --quiet "$@"
+    if (( $? == 1 )); then
+      print -P '\n%F{yellow}Not: yalnızca whitespace farkları var.%f'
+    fi
+  fi
+
+  return "$diff_status"
+}
+
 fossil() {
   if [[ "$1" == "diff" ]]; then
     shift

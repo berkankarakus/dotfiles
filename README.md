@@ -144,6 +144,10 @@ C# dosyalarında sözdizimine göre seçim yapmak için aşağıdaki text object
 
 Önce `dotnet build` çalıştırın. Ardından `F5`, açık dosya bir class library içindeyse çözümdeki çalıştırılabilir (`OutputType=Exe`, Web veya Worker SDK) projeyi bulup onun Debug `.dll` çıktısını başlatır. Projede `Properties/launchSettings.json` varsa `commandLineArgs`, `workingDirectory` ve environment değerleri de otomatik uygulanır. Web projelerinde `applicationUrl` uygulanır; `launchBrowser` açıksa Swagger adresi açılır. Breakpoint'ler proje kapatılıp açıldığında korunur. Breakpoint'e ulaşıldığında macOS bildirimi gelir; bildirime tıklamak Neovim'in çalıştığı terminali öne getirir. Bulamazsa yalnızca o zaman DLL yolunu sorar. Apple Silicon macOS'ta yerel ARM netcoredbg ikilisi kullanılır.
 
+Terminaldeki `dotnet run`, aksi belirtilmedikçe Release yapılandırmasını kullanır. `Microsoft.NET.Sdk.Web` projelerinde `launchSettings.json` içinde `launchBrowser: true` ve `applicationUrl` tanımlıysa uygulama hazır olduğunda Swagger adresi tarayıcıda açılır. `--configuration Debug` veya `--no-launch-profile` gibi açık seçenekler korunur; Worker ve class library projeleri tarayıcı açmaz.
+
+Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızca whitespace ise bunun yerine kısa bir uyarı yazar; ham görünümü gerektiğinde `command git diff` ile alabilirsiniz.
+
 | Kısayol | İşlev |
 | --- | --- |
 | `Space b` | Bulunduğun satırda breakpoint aç/kapat |
