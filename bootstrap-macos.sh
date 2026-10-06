@@ -62,7 +62,9 @@ if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
   for module in "$SOURCE_DIR"/lua/neo/*.lua; do
     install -m 644 "$module" "$NVIM_DIR/lua/neo/$(basename "$module")"
   done
-  install -m 644 "$SOURCE_DIR/after/queries/c_sharp/folds.scm" "$NVIM_DIR/after/queries/c_sharp/folds.scm"
+  for query in "$SOURCE_DIR"/after/queries/c_sharp/*.scm; do
+    install -m 644 "$query" "$NVIM_DIR/after/queries/c_sharp/$(basename "$query")"
+  done
   install -m 644 "$SOURCE_DIR/templates/ghostty-config" "$NVIM_DIR/templates/ghostty-config"
   install -m 644 "$SOURCE_DIR/templates/neovim-csharp.zsh" "$NVIM_DIR/templates/neovim-csharp.zsh"
 fi

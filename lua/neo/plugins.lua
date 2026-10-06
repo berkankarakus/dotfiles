@@ -127,8 +127,44 @@ function M.setup()
       lazy = false,
       build = ":TSUpdate",
       config = function()
-        require("nvim-treesitter").setup({ install_dir = vim.fn.stdpath("data") .. "/site" })
+        local treesitter = require("nvim-treesitter")
+        treesitter.setup({ install_dir = vim.fn.stdpath("data") .. "/site" })
+        treesitter.install({ "c_sharp" })
         vim.opt.rtp:append(vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/runtime")
+      end,
+    },
+    {
+      "nvim-treesitter/nvim-treesitter-textobjects",
+      branch = "main",
+      dependencies = { "nvim-treesitter/nvim-treesitter" },
+      lazy = false,
+      config = function()
+        require("nvim-treesitter-textobjects").setup({
+          select = {
+            lookahead = true,
+            include_surrounding_whitespace = false,
+          },
+        })
+
+        local select = require("nvim-treesitter-textobjects.select")
+        local function map_textobject(keys, query, desc)
+          vim.keymap.set({ "x", "o" }, keys, function()
+            select.select_textobject(query, "textobjects")
+          end, { desc = desc })
+        end
+
+        map_textobject("ab", "@block.outer", "Select around block")
+        map_textobject("ib", "@block.contents", "Select block contents")
+        map_textobject("af", "@function.outer", "Select around function")
+        map_textobject("if", "@function.inner", "Select inside function")
+        map_textobject("al", "@loop.outer", "Select around loop")
+        map_textobject("il", "@loop.contents", "Select loop contents")
+        map_textobject("aC", "@conditional.outer", "Select around conditional")
+        map_textobject("iC", "@conditional.contents", "Select conditional contents")
+        map_textobject("ac", "@class.outer", "Select around class")
+        map_textobject("ic", "@class.inner", "Select inside class")
+        map_textobject("aa", "@parameter.outer", "Select around parameter")
+        map_textobject("ia", "@parameter.inner", "Select inside parameter")
       end,
     },
     {

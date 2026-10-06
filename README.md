@@ -82,6 +82,19 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 
 Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add using...** seçin.
 
+## Tree-sitter Text Objects
+
+C# dosyalarında sözdizimine göre seçim yapmak için aşağıdaki text object'ler Visual (`v`) ve operator-pending modunda çalışır; örneğin `vab` bir block'u seçer, `daf` ise bir metodu siler.
+
+| Kısayol | İşlev |
+| --- | --- |
+| `vab` / `vib` | Block'un tamamını / içini ( `{}` hariç) seç |
+| `vaf` / `vif` | Metot veya function'ın tamamını / içini ( `{}` hariç) seç |
+| `val` / `vil` | `for`, `foreach`, `while` veya `do` loop'un tamamını / içini ( `{}` hariç) seç |
+| `vaC` / `viC` | `if` veya `switch` conditional'ının tamamını / içini ( `{}` hariç) seç |
+| `vac` / `vic` | Class, struct, record, interface veya enum'un tamamını / içini seç |
+| `vaa` / `via` | Parametre ya da argument'ın tamamını / içini seç |
+
 ## Çoklu İmleç
 
 | Kısayol | İşlev |
