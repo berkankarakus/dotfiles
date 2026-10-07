@@ -70,6 +70,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `gi` | Implementation'a git |
 | `gr` | Referansları göster |
 | Değişken/metot üzerinde kısa süre bekle | Açık dosyadaki kullanımlarını vurgula |
+| SQL'de bir identifier üzerinde kısa süre bekle | Aynı identifier'ın diğer geçişlerini vurgula (harf duyarsız) |
 | `K` | Dokümantasyonu aç |
 | `Space s` | Metod parametrelerini göster |
 | `Space r n` | Sembolü yeniden adlandır |
@@ -101,21 +102,12 @@ C# ve T-SQL dosyalarında sözdizimine göre seçim yapmak için aşağıdaki te
 | `]c` / `[c` | Sonraki / önceki conditional başlangıcı |
 | `]C` / `[C` | Sonraki / önceki conditional sonu |
 | `]r` / `[r` | Sonraki T-SQL query / iç query'den parent query veya statement'a çık |
-| `]k` / `[k` | Sonraki / önceki T-SQL clause (`SELECT`, `FROM`, `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `OFFSET/FETCH`; ayrıca `UPDATE`/`DELETE` ve `SET`) |
+| `]k` / `[k` | T-SQL'de sonraki / önceki clause (`SELECT`, `FROM`, `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `OFFSET/FETCH`; ayrıca `UPDATE`/`DELETE` ve `SET`); C#'ta sonraki / önceki class, method, field veya statement (block'larda durmadan içeri girer) |
 | `]s` / `[s` | Sonraki / önceki T-SQL statement |
 | `]S` / `[S` | Sonraki / önceki yazım hatası (spellcheck açıkken) |
 | `]K` / `[K` | Sonraki / önceki C# `case` veya `default` bölümü |
 
 T-SQL'de `vaf` / `vif` stored procedure, function veya trigger'ı; `vab` / `vib` ise `BEGIN` / `END` block'unu seçer. İç seçimler `BEGIN` ve `END` anahtar sözcüklerini kapsamaz.
-
-## Çoklu İmleç
-
-| Kısayol | İşlev |
-| --- | --- |
-| `Ctrl-n` | İmleçteki kelimeyi seç; her tekrarda sonraki eşleşmeye imleç ekle |
-| `g Ctrl-n` | Kelimenin tüm eşleşmelerini seç |
-| `Option-j` / `Option-k` (normal modda) | Aşağıya / yukarıya dikey imleç ekler |
-| `Esc` | Çoklu imleç modundan çık |
 
 ## Arama
 
@@ -199,6 +191,8 @@ Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızc
 Normal modda `Space` tuşuna kısa süre basılı bekleyin: Which-key kullanılabilir devam tuşlarını gösterir.
 
 Eklentileri güncellemek gerektiğinde `:Lazy sync` çalıştırın. `init.lua` içindeki eklenti ya da ayar değişikliklerinin uygulanması için `:restart` kullanın; Lazy bu dosyanın tekrar source edilmesini desteklemez.
+
+Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesini, önemli kısayolları ve C#/SQL dosya türü ayarlarını doğrulamak için Neovim config klasöründe `bash tests/run.sh` çalıştırın. Test, kayıtlı tüm Lazy eklentilerini headless ortamda yükler; bir eklentinin API değişikliği yapılandırma hatasına yol açarsa başarısız olur.
 
 ## Yapılandırma
 

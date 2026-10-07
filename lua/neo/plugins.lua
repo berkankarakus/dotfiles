@@ -63,15 +63,6 @@ function M.setup()
       },
     },
     {
-      "mg979/vim-visual-multi",
-      init = function()
-        vim.g.VM_maps = {
-          ["Add Cursor Down"] = "<M-j>",
-          ["Add Cursor Up"] = "<M-k>",
-        }
-      end,
-    },
-    {
       "stevearc/oil.nvim",
       dependencies = { "nvim-tree/nvim-web-devicons" },
       opts = {
@@ -233,8 +224,57 @@ function M.setup()
             move_with_wrap(query, false, false)
           end, { desc = "Previous " .. desc })
         end
+        local function move_csharp_statement(forward)
+          local ok, parser = pcall(vim.treesitter.get_parser, 0, "c_sharp")
+          if not ok then return end
+          local query = vim.treesitter.query.get("c_sharp", "textobjects")
+          if not query then return end
+
+          local statements = {}
+          for capture_id, node in query:iter_captures(parser:parse()[1]:root(), 0, 0, -1) do
+            local capture = query.captures[capture_id]
+            if (capture == "statement.outer" or capture == "declaration.outer") and node:type() ~= "block" then
+              local start_row, start_column = node:start()
+              statements[#statements + 1] = { node = node, row = start_row, column = start_column }
+            end
+          end
+          if #statements == 0 then return end
+          table.sort(statements, function(left, right)
+            return left.row < right.row or (left.row == right.row and left.column < right.column)
+          end)
+
+          local cursor_row, cursor_column = unpack(vim.api.nvim_win_get_cursor(0))
+          cursor_row = cursor_row - 1
+          local target
+          if forward then
+            for _, statement in ipairs(statements) do
+              if statement.row > cursor_row or (statement.row == cursor_row and statement.column > cursor_column) then
+                target = statement
+                break
+              end
+            end
+            target = target or statements[1]
+          else
+            for index = #statements, 1, -1 do
+              local statement = statements[index]
+              if statement.row < cursor_row or (statement.row == cursor_row and statement.column < cursor_column) then
+                target = statement
+                break
+              end
+            end
+            target = target or statements[#statements]
+          end
+
+          vim.cmd("normal! m'")
+          if vim.api.nvim_get_mode().mode == "no" then vim.cmd("normal! v") end
+          vim.api.nvim_win_set_cursor(0, { target.row + 1, target.column })
+        end
         local function map_sql_clause(next_start, previous_start)
           local function move_clause(forward)
+            if vim.bo.filetype == "cs" or vim.bo.filetype == "c_sharp" then
+              move_csharp_statement(forward)
+              return
+            end
             local ok, parser = pcall(vim.treesitter.get_parser, 0)
             if not ok then return end
             local row, column = unpack(vim.api.nvim_win_get_cursor(0))
@@ -384,6 +424,20 @@ function M.setup()
         map_sql_clause("]k", "[k")
         map_textobject_start("]s", "[s", "@statement.outer", "SQL statement")
         map_textobject_start("]K", "[K", "@switch.case", "C# switch case")
+      end,
+    },
+    {
+      "RRethy/vim-illuminate",
+      event = "VeryLazy",
+      config = function()
+        require("illuminate").configure({
+          delay = 200,
+          filetypes_allowlist = { "sql" },
+          filetypes_denylist = {},
+          filetype_overrides = {
+            sql = { case_insensitive_regex = true },
+          },
+        })
       end,
     },
     {

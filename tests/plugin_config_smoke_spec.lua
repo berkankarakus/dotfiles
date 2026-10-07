@@ -1,0 +1,44 @@
+local plugins = require("lazy.core.config").plugins
+local names = vim.tbl_keys(plugins)
+table.sort(names)
+
+local errors = {}
+local original_notify = vim.notify
+vim.notify = function(message, level, options)
+  if level == vim.log.levels.ERROR then
+    errors[#errors + 1] = tostring(message)
+  end
+  return original_notify(message, level, options)
+end
+
+local ok, load_error = pcall(function()
+  require("lazy").load({ plugins = names })
+end)
+vim.notify = original_notify
+
+assert(ok, "loading all plugin configs failed: " .. tostring(load_error))
+assert(#errors == 0, "plugin config reported errors:\n" .. table.concat(errors, "\n"))
+
+local unloaded = {}
+for _, name in ipairs(names) do
+  if not plugins[name]._.loaded then unloaded[#unloaded + 1] = name end
+end
+assert(#unloaded == 0, "plugins did not load: " .. table.concat(unloaded, ", "))
+
+for _, filetype in ipairs({ "cs", "sql" }) do
+  vim.bo.filetype = filetype
+  vim.api.nvim_exec_autocmds("FileType", { buffer = 0, modeline = false })
+end
+
+for _, item in ipairs({
+  { "ab", "x" }, { "if", "o" }, { "]k", "n" }, { "[k", "n" },
+  { " ff", "n" }, { " fg", "n" }, { " tt", "n" }, { " tw", "n" },
+  { " rr", "n" }, { "<C-\\>", "t" }, { "<F5>", "n" }, { "zR", "n" },
+}) do
+  local mapping = vim.fn.maparg(item[1], item[2], false, true)
+  assert(mapping and mapping.lhs and mapping.lhs ~= "", "missing configured mapping " .. item[1])
+end
+
+assert(#errors == 0, "plugin event config reported errors:\n" .. table.concat(errors, "\n"))
+print(string.format("plugin_config_smoke_spec: %d plugin configs loaded", #names))
+vim.cmd("qa!")

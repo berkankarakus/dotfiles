@@ -60,3 +60,11 @@
 
 ; Move linearly between case/default branches in a switch statement.
 (switch_section) @switch.case
+
+; Expose C# statements for navigation; block nodes are skipped by the motion.
+(statement) @statement.outer
+
+; Include top-level/member declarations in the C# statement motion.
+(class_declaration) @declaration.outer
+(method_declaration) @declaration.outer
+(field_declaration) @declaration.outer
