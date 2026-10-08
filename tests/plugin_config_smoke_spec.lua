@@ -1,6 +1,7 @@
 local plugins = require("lazy.core.config").plugins
 local names = vim.tbl_keys(plugins)
 table.sort(names)
+assert(plugins["virt-column.nvim"].opts.virtcolumn == "120", "virtual guide should be at column 120")
 
 local errors = {}
 local original_notify = vim.notify

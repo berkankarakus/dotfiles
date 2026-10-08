@@ -25,7 +25,7 @@ function M.setup()
   vim.opt.tabstop = 4
   vim.opt.list = true
   vim.opt.listchars = { space = "·", multispace = "·", tab = "→ " }
-  vim.opt.colorcolumn = "80"
+  vim.opt.colorcolumn = "120"
   vim.opt.whichwrap:append("[")
   vim.opt.whichwrap:append("]")
   vim.opt.whichwrap:append("<")

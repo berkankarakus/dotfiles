@@ -6,6 +6,7 @@ assert_equal(false, vim.o.wrap, "long lines should not wrap")
 assert_equal(true, vim.o.number, "absolute line numbers should be enabled")
 assert_equal(true, vim.o.relativenumber, "relative line numbers should be enabled")
 assert_equal(4, vim.o.shiftwidth, "indent width should be four")
+assert_equal("120", vim.o.colorcolumn, "vertical guide should be at column 120")
 assert_equal("forth", vim.filetype.match({ filename = "program.fs" }), ".fs should be detected as Forth")
 
 local function callback(mode, key)
