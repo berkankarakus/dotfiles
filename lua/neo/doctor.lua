@@ -18,13 +18,29 @@ local function read_lines(path)
   return ok and lines or nil
 end
 
--- Runs a command and returns its trimmed output, or nil when it is missing or fails.
-local function run(command)
+-- The report needs ~50 short processes (tool versions, one `git rev-parse` per plugin). Run one after
+-- the other they add up to seconds, so `collect` first starts all of them at once (`prefetch`) and the
+-- checks then just read the results: the report takes about as long as the slowest process.
+local jobs = {}
+
+local function job_key(command) return table.concat(command, "\0") end
+
+local function start(command)
+  local key = job_key(command)
+  if jobs[key] ~= nil then return end
   local ok, process = pcall(vim.system, command, { text = true })
-  if not ok then return nil end
-  local result = process:wait(8000)
-  if result.code ~= 0 then return nil end
-  return vim.trim((result.stdout or "") .. (result.stderr or ""))
+  jobs[key] = ok and { process = process } or { failed = true }
+end
+
+-- Runs a command (or reuses the one prefetch started) and returns its trimmed output, or nil when it is
+-- missing or fails.
+local function run(command)
+  start(command)
+  local job = jobs[job_key(command)]
+  if job.failed then return nil end
+  if not job.result then job.result = job.process:wait(8000) end
+  if job.result.code ~= 0 then return nil end
+  return vim.trim((job.result.stdout or "") .. (job.result.stderr or ""))
 end
 
 local function first_line(text) return text and text:match("[^\n]+") or nil end
@@ -83,19 +99,24 @@ function M.lock_checks(lock, heads, verbose)
   return results
 end
 
-local function plugin_checks(verbose)
-  local section = "Plugins"
+-- Decoded lazy-lock.json, or nil plus the reason a check line should give.
+local function read_lock()
   local lines = read_lines(config_path("lazy-lock.json"))
-  if not lines then return { check(section, "warn", "Plugins match lazy-lock.json", "lazy-lock.json not found") } end
+  if not lines then return nil, "lazy-lock.json not found" end
   local decode_ok, lock = pcall(vim.json.decode, table.concat(lines, "\n"))
-  if not decode_ok then return { check(section, "warn", "Plugins match lazy-lock.json", "lazy-lock.json is not valid JSON") } end
+  if not decode_ok then return nil, "lazy-lock.json is not valid JSON" end
+  return lock
+end
 
-  local root = require("lazy.core.config").options.root
+local function head_command(name)
+  return { "git", "-C", require("lazy.core.config").options.root .. "/" .. name, "rev-parse", "HEAD" }
+end
+
+local function plugin_checks(verbose)
+  local lock, problem = read_lock()
+  if not lock then return { check("Plugins", "warn", "Plugins match lazy-lock.json", problem) } end
   local heads = {}
-  for name in pairs(lock) do
-    local result = vim.system({ "git", "-C", root .. "/" .. name, "rev-parse", "HEAD" }, { text = true }):wait(5000)
-    if result.code == 0 then heads[name] = vim.trim(result.stdout) end
-  end
+  for name in pairs(lock) do heads[name] = run(head_command(name)) end
   return M.lock_checks(lock, heads, verbose)
 end
 
@@ -288,9 +309,31 @@ local function parser_checks()
   return results
 end
 
--- Collects every check. The slow ones (dotnet, one git call per plugin, ghostty) run synchronously on
--- purpose: this is an on-demand report, not something on the startup path.
+-- Starts every process the checks will ask for, so they run concurrently.
+local function prefetch()
+  start({ "sw_vers", "-productVersion" })
+  local ghostty = ghostty_binary()
+  if ghostty then
+    start({ ghostty, "--version" })
+    start({ ghostty, "+show-config" })
+    start({ ghostty, "+show-config", "--default" })
+  end
+  if vim.fn.executable("dotnet") == 1 then start({ "dotnet", "tool", "list", "-g" }) end
+  for _, tool in ipairs(TOOLS) do
+    local path = vim.fn.exepath(tool[1])
+    if path ~= "" and tool[3] then start(vim.list_extend({ path }, tool[3])) end
+  end
+  local lock = read_lock()
+  if lock then
+    for name in pairs(lock) do start(head_command(name)) end
+  end
+end
+
+-- Collects every check. It is an on-demand report, not something on the startup path, so it waits for
+-- the (concurrently started) processes instead of going asynchronous.
 function M.collect(verbose)
+  jobs = {}
+  prefetch()
   local results = {}
   vim.list_extend(results, environment_checks())
   vim.list_extend(results, deployed_file_checks())

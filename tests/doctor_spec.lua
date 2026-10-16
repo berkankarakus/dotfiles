@@ -130,5 +130,34 @@ assert(detailed:find("nvim-treesitter", 1, true) and detailed:find("oil.nvim", 1
 assert(not detailed:find("Plugins match lazy-lock.json", 1, true), "the bang form replaces the one-line summary")
 vim.api.nvim_feedkeys("q", "x", false)
 
+-- ------------------------------------------------------------- concurrency
+-- ~50 short processes run one after the other took seconds; every one of them must be started before the
+-- first result is waited for, so the report takes about as long as the slowest process.
+local events = {}
+local original_system = vim.system
+vim.system = function(command)
+  events[#events + 1] = "start"
+  return {
+    wait = function()
+      events[#events + 1] = "wait"
+      return { code = 0, stdout = "tool 1.0\n", stderr = "" }
+    end,
+  }
+end
+doctor.collect()
+vim.system = original_system
+
+local started_before_first_wait = 0
+for _, event in ipairs(events) do
+  if event == "wait" then break end
+  started_before_first_wait = started_before_first_wait + 1
+end
+local total_started = 0
+for _, event in ipairs(events) do
+  if event == "start" then total_started = total_started + 1 end
+end
+assert(total_started >= 30, "the report should run many processes (one git call per plugin and tool versions), got " .. total_started)
+assert_equal(total_started, started_before_first_wait, "every process must be started before the first one is waited for")
+
 print("doctor_spec: ok")
 vim.cmd("qa!")

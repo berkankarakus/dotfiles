@@ -325,6 +325,7 @@ fossil() {
 
 # Git dalını yalnızca bir Git çalışma ağacındayken prompt'ta göster.
 autoload -Uz vcs_info
+zstyle ':vcs_info:*' enable git
 zstyle ':vcs_info:git:*' check-for-changes true
 zstyle ':vcs_info:git:*' stagedstr '+'
 zstyle ':vcs_info:git:*' unstagedstr '*'
