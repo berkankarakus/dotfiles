@@ -49,8 +49,6 @@ function M.setup()
           { "<leader>c", group = "Code" },
           { "<leader>r", group = "Refactor / Run" },
           { "<leader>t", group = "Terminal / Test" },
-          { "<leader>w", group = "Write" },
-          { "<leader>R", desc = "Sync plugins" },
         },
       },
     },
@@ -195,8 +193,16 @@ function M.setup()
         local select = require("nvim-treesitter-textobjects.select")
         local move = require("nvim-treesitter-textobjects.move")
         local shared = require("nvim-treesitter-textobjects.shared")
+        -- The mappings below are global, so buffers whose language has no parser or no
+        -- textobjects query must be a quiet no-op instead of an error inside the plugin.
+        local function has_textobjects()
+          local ok, parser = pcall(vim.treesitter.get_parser, 0)
+          if not ok or not parser then return false end
+          return vim.treesitter.query.get(parser:lang(), "textobjects") ~= nil
+        end
         local function map_textobject(keys, query, desc)
           vim.keymap.set({ "x", "o" }, keys, function()
+            if not has_textobjects() then return end
             select.select_textobject(query, "textobjects")
           end, { desc = desc })
         end
@@ -220,6 +226,7 @@ function M.setup()
           vim.api.nvim_win_set_cursor(0, { row + 1, column })
         end
         local function move_with_wrap(query, forward, at_end)
+          if not has_textobjects() then return end
           local cursor_before = vim.api.nvim_win_get_cursor(0)
           if forward and at_end then
             move.goto_next_end(query, "textobjects")
@@ -263,8 +270,9 @@ function M.setup()
           end, { desc = "Previous " .. desc })
         end
         local function move_csharp_statement(forward)
+          -- get_parser returns nil (not an error) when the language has no parser.
           local ok, parser = pcall(vim.treesitter.get_parser, 0, "c_sharp")
-          if not ok then return end
+          if not ok or not parser then return end
           local query = vim.treesitter.query.get("c_sharp", "textobjects")
           if not query then return end
 
@@ -314,7 +322,7 @@ function M.setup()
               return
             end
             local ok, parser = pcall(vim.treesitter.get_parser, 0)
-            if not ok then return end
+            if not ok or not parser then return end
             local row, column = unpack(vim.api.nvim_win_get_cursor(0))
             row = row - 1
             local node = parser:parse()[1]:root():named_descendant_for_range(row, column, row, column)
@@ -413,7 +421,7 @@ function M.setup()
         local function map_sql_query(next_start, previous_start)
           local function go_to_parent_scope()
             local ok, parser = pcall(vim.treesitter.get_parser, 0)
-            if not ok then return false end
+            if not ok or not parser then return false end
             local row, column = unpack(vim.api.nvim_win_get_cursor(0))
             local node = parser:parse()[1]:root():named_descendant_for_range(row - 1, column, row - 1, column)
             while node and node:type() ~= "query_specification" do
@@ -1054,7 +1062,6 @@ function M.setup()
 
   vim.cmd.colorscheme("tokyonight")
   vim.api.nvim_set_hl(0, "VirtColumn", { fg = "#3b4261" })
-
 end
 
 return M
