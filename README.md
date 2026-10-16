@@ -121,16 +121,6 @@ T-SQL'de `vaf` / `vif` stored procedure, function veya trigger'ı; `vab` / `vib`
 | `Space f S` | Proje genelindeki sınıf/metotları ara |
 | `Space f h` | Neovim yardımında ara |
 
-## Git Değişiklikleri
-
-| Kısayol | İşlev |
-| --- | --- |
-| `]h` / `[h` | Sonraki / önceki değişen blok |
-| `Space g p` | Değişen bloğun önceki hâlini göster |
-| `Space g r` | Değişen bloğu geri al |
-| `Space g s` | Değişen bloğu stage'e ekle |
-| `Space g b` | Satırın Git geçmişini göster |
-
 ## Surround
 
 | Kısayol | İşlev |
