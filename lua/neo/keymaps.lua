@@ -66,8 +66,8 @@ function M.setup()
     local delete_length = (next_capital and next_capital <= word_end) and next_capital - 1 or word_end
     if delete_length == 0 then return end
 
-  vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column + delete_length, {})
-end
+    vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column + delete_length, {})
+  end
 
   local function move_to_next_capital()
     local row, column = unpack(vim.api.nvim_win_get_cursor(0))
@@ -163,14 +163,18 @@ end
   vim.keymap.set("c", "<CR>", function()
     if vim.fn.getcmdtype() == ":" and vim.fn.getcmdline() == "q" then
       vim.schedule(function()
-        local saved = pcall(vim.cmd, "wall")
-        if saved then vim.cmd("q") end
+        local saved, err = pcall(vim.cmd, "wall")
+        if saved then
+          vim.cmd("q")
+        else
+          -- Without this the quit silently does nothing, e.g. on an unnamed modified buffer.
+          vim.notify("Not quitting: " .. tostring(err):gsub("^.-(E%d+)", "%1"), vim.log.levels.ERROR)
+        end
       end)
       return vim.api.nvim_replace_termcodes("<C-c>", true, false, true)
     end
     return vim.api.nvim_replace_termcodes("<CR>", true, false, true)
   end, { expr = true, replace_keycodes = false, desc = "Save all before quit" })
-
 end
 
 return M

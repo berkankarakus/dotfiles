@@ -48,4 +48,22 @@ assert(vim.bo.formatoptions:find("r", 1, true), "C# should continue block commen
 assert(not vim.bo.formatoptions:find("o", 1, true), "C# should not continue comments on new lines")
 assert(not vim.bo.comments:find(",://", 1, true), "C# line comments should not auto-continue")
 
+-- `:q` must report why it did not quit instead of silently doing nothing.
+vim.cmd("enew")
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { "unsaved scratch text" })
+local notifications = {}
+local original_notify = vim.notify
+vim.notify = function(message, level) notifications[#notifications + 1] = { message = message, level = level } end
+local original_getcmdtype, original_getcmdline = vim.fn.getcmdtype, vim.fn.getcmdline
+vim.fn.getcmdtype = function() return ":" end
+vim.fn.getcmdline = function() return "q" end
+callback("c", "<CR>")()
+vim.wait(200, function() return #notifications > 0 end)
+vim.fn.getcmdtype, vim.fn.getcmdline = original_getcmdtype, original_getcmdline
+vim.notify = original_notify
+assert_equal(1, #notifications, "a failed save-all should produce one notification")
+assert_equal(vim.log.levels.ERROR, notifications[1].level, "the notification should be an error")
+assert(notifications[1].message:find("E141", 1, true), "the notification should name the save error: " .. notifications[1].message)
+assert_equal("unsaved scratch text", vim.api.nvim_buf_get_lines(0, 0, 1, false)[1], "the buffer should still be open")
+
 vim.cmd("qa!")

@@ -18,7 +18,6 @@ function M.setup()
       vim.api.nvim_create_autocmd({ "BufLeave", "WinLeave" }, { buffer = event.buf, callback = use_default_cursor })
     end,
   })
-
 end
 
 return M

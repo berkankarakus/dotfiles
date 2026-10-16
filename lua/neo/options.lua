@@ -41,7 +41,6 @@ function M.setup()
       gforth = "forth",
     },
   })
-
 end
 
 return M
