@@ -17,7 +17,6 @@ return {
     dependencies = {
       { "rcarriga/nvim-dap-ui", dependencies = { "nvim-neotest/nvim-nio" }, opts = {} },
       { "Cliffback/netcoredbg-macOS-arm64.nvim" },
-      { "jay-babu/mason-nvim-dap.nvim", opts = { ensure_installed = { "netcoredbg" }, automatic_installation = true } },
       { "Weissle/persistent-breakpoints.nvim" },
     },
     config = function()

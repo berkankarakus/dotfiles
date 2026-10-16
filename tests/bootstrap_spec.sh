@@ -87,6 +87,15 @@ zsh_line=$(grep -n 'install -m 644 "$SOURCE_DIR/templates/neovim-csharp.zsh" "$Z
 backup_line=$(grep -n 'backup_if_present "$ZSH_DIR/neovim-csharp.zsh"' bootstrap-macos.sh | cut -d: -f1)
 [[ -n "$zsh_line" && -n "$backup_line" && "$backup_line" -lt "$zsh_line" ]] || fail "the zsh file should be backed up before it is overwritten"
 
+# Mason downloaded an x64-only netcoredbg that is never used (the debugger adapter ships its own arm64
+# binary) and printed tar output that looked like an error.
+if grep -Fq 'Mason' bootstrap-macos.sh; then
+  fail "the bootstrap should not install anything through Mason"
+fi
+if grep -Fq 'mason' lazy-lock.json; then
+  fail "lazy-lock.json should not list Mason plugins"
+fi
+
 # Options are parsed before anything is installed.
 help_output=$(./bootstrap-macos.sh --help)
 grep -Fq -- '--no-elm' <<<"$help_output" || fail "--help should document --no-elm"

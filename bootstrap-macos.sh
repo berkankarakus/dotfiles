@@ -146,7 +146,6 @@ fi
 # (`Lazy sync` would update to the newest commits and drift from this machine).
 nvim --headless '+Lazy! install' '+qa' || echo "warning: Lazy install reported a problem" >&2
 nvim --headless '+Lazy! restore' '+qa' || echo "warning: Lazy restore reported a problem" >&2
-nvim --headless '+MasonInstall netcoredbg' '+qa' || echo "warning: MasonInstall netcoredbg reported a problem" >&2
 
 PARSERS='"c_sharp", "mssql", "json"'
 if [[ "$WITH_ELM" == true ]]; then PARSERS="$PARSERS, \"elm\""; fi

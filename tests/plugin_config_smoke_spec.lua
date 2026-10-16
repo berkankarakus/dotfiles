@@ -40,6 +40,13 @@ for _, item in ipairs({
   assert(mapping and mapping.lhs and mapping.lhs ~= "", "missing configured mapping " .. item[1])
 end
 
+-- Mason only ever installed an x64 netcoredbg that Apple Silicon cannot run: the debugger adapter uses
+-- the arm64 binary shipped by netcoredbg-macOS-arm64.nvim, so Mason must stay out of the config.
+assert(plugins["mason.nvim"] == nil and plugins["mason-nvim-dap.nvim"] == nil, "Mason is not used and must not come back")
+local coreclr = require("dap").adapters.coreclr
+assert(coreclr.command:find("netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg", 1, true),
+  "the coreclr adapter should use the arm64 binary: " .. tostring(coreclr.command))
+
 -- Formatting is explicit (<leader>cf, ds); saving must never format implicitly.
 local has_group, save_hooks = pcall(vim.api.nvim_get_autocmds, { event = "BufWritePre", group = "Conform" })
 assert(not has_group or #save_hooks == 0, "conform must not register a format-on-save autocmd")

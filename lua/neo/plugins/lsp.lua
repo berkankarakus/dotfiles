@@ -1,10 +1,6 @@
 -- Language servers (Roslyn, Elm), LSP keymaps and formatting.
 return {
   {
-    "williamboman/mason.nvim",
-    opts = {},
-  },
-  {
     "seblyng/roslyn.nvim",
     dependencies = { "neovim/nvim-lspconfig" },
     opts = {},
