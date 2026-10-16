@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 # Run from a copy/clone of this nvim configuration on a new macOS machine.
+#
+#   ./bootstrap-macos.sh            full setup (C# + Elm)
+#   ./bootstrap-macos.sh --no-elm   C#-focused setup without Elm tooling
 set -euo pipefail
+
+# Pinned so every machine gets the same language server; bump deliberately.
+ROSLYN_VERSION="5.12.0-1.26426.8"
+WITH_ELM=true
+
+for argument in "$@"; do
+  case "$argument" in
+    --no-elm) WITH_ELM=false ;;
+    -h|--help)
+      sed -n '3,5p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $argument (try --help)" >&2
+      exit 2
+      ;;
+  esac
+done
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "This bootstrap is for macOS only." >&2
@@ -31,15 +52,23 @@ if [[ -z "$BREW_BIN" && -x /usr/local/bin/brew ]]; then BREW_BIN=/usr/local/bin/
 eval "$("$BREW_BIN" shellenv)"
 
 echo "Installing development tools..."
-brew install neovim ripgrep fzf zoxide fd bat git fossil elm elm-format node tree-sitter-cli terminal-notifier
+brew install neovim ripgrep fzf zoxide fd bat git terminal-notifier tree-sitter-cli
+if [[ "$WITH_ELM" == true ]]; then
+  brew install fossil elm elm-format node
+fi
 brew install --cask ghostty font-jetbrains-mono-nerd-font dotnet-sdk
 
-echo "Installing Roslyn language server..."
-dotnet tool install -g roslyn-language-server --prerelease || \
-  dotnet tool update -g roslyn-language-server --prerelease
+echo "Installing Roslyn language server $ROSLYN_VERSION..."
+installed_roslyn="$(dotnet tool list -g | awk '$1 == "roslyn-language-server" { print $2 }')"
+if [[ "$installed_roslyn" != "$ROSLYN_VERSION" ]]; then
+  if [[ -n "$installed_roslyn" ]]; then dotnet tool uninstall -g roslyn-language-server; fi
+  dotnet tool install -g roslyn-language-server --version "$ROSLYN_VERSION"
+fi
 
-echo "Installing Elm language server and test runner..."
-npm install -g elm-test @elm-tooling/elm-language-server
+if [[ "$WITH_ELM" == true ]]; then
+  echo "Installing Elm language server and test runner..."
+  npm install -g elm-test @elm-tooling/elm-language-server
+fi
 
 echo "Installing Zsh autosuggestions..."
 mkdir -p "$ZSH_DIR/plugins"
@@ -89,9 +118,48 @@ if [[ ! -d "$LAZY_DIR/.git" ]]; then
   mkdir -p "$(dirname "$LAZY_DIR")"
   git clone --filter=blob:none --branch=stable https://github.com/folke/lazy.nvim.git "$LAZY_DIR"
 fi
-nvim --headless '+Lazy! sync' '+qa' || true
-nvim --headless '+MasonInstall netcoredbg' '+qa' || true
-nvim --headless '+TSInstall elm' '+lua vim.wait(120000, function() return vim.fn.filereadable(vim.fn.stdpath("data") .. "/site/parser/elm.so") == 1 end, 100)' '+qa' || true
+# install clones what is missing, restore then pins every plugin to lazy-lock.json
+# (`Lazy sync` would update to the newest commits and drift from this machine).
+nvim --headless '+Lazy! install' '+qa' || echo "warning: Lazy install reported a problem" >&2
+nvim --headless '+Lazy! restore' '+qa' || echo "warning: Lazy restore reported a problem" >&2
+nvim --headless '+MasonInstall netcoredbg' '+qa' || echo "warning: MasonInstall netcoredbg reported a problem" >&2
+
+PARSERS='"c_sharp", "mssql"'
+if [[ "$WITH_ELM" == true ]]; then PARSERS="$PARSERS, \"elm\""; fi
+nvim --headless "+lua local ok, err = pcall(function() require('nvim-treesitter').install({ $PARSERS }):wait(300000) end) if not ok then print(err) end" '+qa' \
+  || echo "warning: Tree-sitter parser install reported a problem" >&2
+
+echo
+echo "Verifying installation..."
+FAILED=0
+check() {
+  local label="$1"; shift
+  if "$@" >/dev/null 2>&1; then
+    printf '  ok       %s\n' "$label"
+  else
+    printf '  MISSING  %s\n' "$label"
+    FAILED=1
+  fi
+}
+roslyn_is_pinned() {
+  [[ "$(dotnet tool list -g | awk '$1 == "roslyn-language-server" { print $2 }')" == "$ROSLYN_VERSION" ]]
+}
+check "roslyn-language-server $ROSLYN_VERSION" roslyn_is_pinned
+check "netcoredbg debugger" test -x "$HOME/.local/share/nvim/lazy/netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg"
+check "Ghostty" test -d /Applications/Ghostty.app
+for parser in c_sharp mssql; do
+  check "Tree-sitter parser: $parser" test -f "$HOME/.local/share/nvim/site/parser/$parser.so"
+done
+if [[ "$WITH_ELM" == true ]]; then
+  check "Tree-sitter parser: elm" test -f "$HOME/.local/share/nvim/site/parser/elm.so"
+  check "elm-language-server" command -v elm-language-server
+fi
+
+if [[ "$FAILED" -ne 0 ]]; then
+  echo
+  echo "Some components are missing; re-run this script or install them by hand." >&2
+  exit 1
+fi
 
 cat <<'EOF'
 

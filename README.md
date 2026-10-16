@@ -200,7 +200,7 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 - `lazy-lock.json`: Eklentilerin sabitlenmiş sürümleri
 - `README.md`: Bu rehber
 - `bootstrap-macos.sh`: Yeni bir Mac'i aynı ortamla kurar
-- `bootstrap-macos-csharp.sh`: Fossil ve Elm araçlarını kurmadan C#/Neovim ortamını kurar
+- `bootstrap-macos-csharp.sh`: `bootstrap-macos.sh --no-elm` için kısa sarmalayıcı (Fossil ve Elm araçları kurulmaz)
 
 ## Yeni Mac'e Taşıma
 
@@ -213,13 +213,17 @@ cd ~/.config/nvim
 
 Script Homebrew, .NET SDK, Roslyn language server, Neovim, Ghostty, font, Fossil, terminal araçları, debugger ve Zsh eklentisini kurar. Neovim'in `lua`, `after` ve `templates` dosyaları dahil tüm yapılandırması taşınır; var olan dosyalar `~/.config/neovim-csharp-backup` altında yedeklenir.
 
-Roslyn language server'ın stable paketi bulunmadığında bootstrap, NuGet'teki en güncel prerelease sürümünü kurar; sonraki çalıştırmalarda aracı mevcut en güncel sürüme yükseltir.
+Bootstrap eklentileri `lazy-lock.json` içindeki commit'lere sabitler (`Lazy! install`, ardından `Lazy! restore`); böylece iki Mac aynı eklenti sürümlerini kullanır. Roslyn language server de `bootstrap-macos.sh` içindeki `ROSLYN_VERSION` sürümüne sabitlenir; sürüm yükseltmek için bu değeri bilerek değiştirin. Kurulum sonunda Roslyn, debugger, Ghostty ve Tree-sitter parser'larının varlığı denetlenir; eksik bir bileşen varsa script bunu yazar ve hata koduyla çıkar.
+
+Eklentileri bu makinede güncelledikten sonra `lazy-lock.json` dosyasını commit etmeyi unutmayın; yeni Mac'e taşınan sürümler bu dosyadan gelir.
 
 Fossil ve Elm gerekmeyen bir Mac'te bunun yerine şunu çalıştırın:
 
 ```sh
-./bootstrap-macos-csharp.sh
+./bootstrap-macos.sh --no-elm
 ```
+
+`./bootstrap-macos-csharp.sh` aynı işi yapan kısa bir sarmalayıcıdır.
 
 Bu varyant Elm, `elm-language-server`, Tree-sitter Elm parserı ve Fossil'i kurmaz; C#, debugger, Ghostty, Zsh araçları ve tüm Neovim ayarları korunur.
 
