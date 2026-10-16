@@ -156,7 +156,7 @@ Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızc
 
 ## Terminal
 
-`Space t t` altta yerleşik terminali açar veya kapatır. `Space t w` `dotnet test --watch` başlatır; `Space r r` test paketini bir kez çalıştırır. Terminaldeyken `Ctrl-\\` terminali anında gizler ve son editör pencerenize döner.
+`Space t t` altta yerleşik terminali açar veya kapatır. `Space t w` `dotnet test --watch` başlatır; `Space r r` test paketini bir kez çalıştırır; `Space r t` imlecin bulunduğu test metodunu (metodun dışında ama sınıfın içindeyse sınıfı) yalnızca kendisini çalıştıracak şekilde `dotnet test --filter` ile başlatır. Metot adı Tree-sitter ile bulunur, bu yüzden xUnit, NUnit ve MSTest ile aynı çalışır; `Adds` çalıştırılırken `Adds2` ya da başka bir sınıftaki `Adds` çalışmaz, `Theory` satırlarının hepsi çalışır. Terminaldeyken `Ctrl-\\` terminali anında gizler ve son editör pencerenize döner.
 
 `Space r b` (veya `:DotnetBuild`) açık dosyanın üstündeki çözümü (`.sln`/`.slnx`, yoksa `.csproj`) editörü bloklamadan derler. Hatalar ve uyarılar quickfix listesine düşer; hata varsa liste açılır, `:cnext` / `:cprev` ile açık olmayan dosyalardaki hatalara da gidebilirsiniz. Hataları düzeltince quickfix penceresindeyken tekrar `Space r b` basmanız yeterli; son derlenen hedef kullanılır.
 
@@ -197,6 +197,7 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 - `lua/neo/dotnet_debug.lua`: Debugger için .NET proje keşfi ve `launchSettings.json` okuma
 - `lua/neo/call_parens.lua`: C# tamamlamadan sonra `()` ekleme ve imleç konumu
 - `lua/neo/dotnet_build.lua`: `dotnet build` hatalarını quickfix'e alır (`Space r b`)
+- `lua/neo/dotnet_test.lua`: İmlecin altındaki testi veya sınıfı çalıştırır (`Space r t`)
 - `lua/neo/doctor.lua`: `:NeoDoctor` sağlık raporu
 - `lazy-lock.json`: Eklentilerin sabitlenmiş sürümleri
 - `README.md`: Bu rehber

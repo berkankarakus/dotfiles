@@ -32,6 +32,8 @@ function M.setup()
     local job_id = vim.b[terminal_buf].terminal_job_id
     if job_id then vim.fn.chansend(job_id, command .. "\n") end
   end
+  -- Other modules (e.g. neo.dotnet_test) send commands to the same terminal.
+  M.run = run_in_terminal
   vim.keymap.set("n", "<leader>tt", toggle_terminal, { desc = "Toggle terminal" })
   vim.keymap.set("t", "<C-\\>", function()
     vim.cmd("stopinsert")
