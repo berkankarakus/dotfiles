@@ -39,17 +39,72 @@ assert(mixed[1].detail:find("gamma", 1, true), "the missing plugin is named: " .
 assert_equal("warn", mixed[2].status, "drifted plugins warn")
 assert(mixed[2].detail:find("beta (installed 9999999, lock 2222222)", 1, true), "the drift names both commits: " .. mixed[2].detail)
 
+-- ---------------------------------------------------- plugins, verbose list
+local verbose = doctor.lock_checks(lock, { alpha = "1111111aaaa", beta = "9999999zzzz" }, true)
+assert_equal(3, #verbose, "verbose mode lists every plugin")
+assert_equal("ok", verbose[1].status, "alpha is at its locked commit")
+assert_equal("1111111", verbose[1].detail, "the installed commit is shown")
+assert_equal("warn", verbose[2].status, "beta drifted")
+assert_equal("fail", verbose[3].status, "gamma is missing")
+
+-- ------------------------------------------------------------ deployed files
+local diff = doctor.first_difference({ "a", "b", "c" }, { "a", "x", "c" })
+assert_equal(2, diff.line, "the first differing line")
+assert_equal("b", diff.left, "left side")
+assert_equal("x", diff.right, "right side")
+assert_equal(nil, doctor.first_difference({ "a" }, { "a" }), "equal files have no difference")
+assert_equal(3, doctor.first_difference({ "a", "b" }, { "a", "b", "c" }).line, "a longer file differs at its first extra line")
+
+assert_equal("ok", doctor.file_check("zsh config", { "a" }, { "a" }, "templates/x").status, "identical files are ok")
+local drifted = doctor.file_check("zsh config", { "bindkey '^G' autosuggest-clear" }, { "bindkey '^G' autosuggest-accept" }, "templates/neovim-csharp.zsh")
+assert_equal("warn", drifted.status, "a deployed file that differs from its template warns")
+assert(drifted.detail:find("line 1", 1, true) and drifted.detail:find("autosuggest-accept", 1, true) and drifted.detail:find("autosuggest-clear", 1, true),
+  "the warning shows the line and both versions: " .. drifted.detail)
+assert_equal("fail", doctor.file_check("zsh config", { "a" }, nil, "templates/x").status, "a file that was never deployed fails")
+assert_equal("warn", doctor.file_check("zsh config", nil, { "a" }, "templates/x").status, "a missing template warns")
+
+-- ------------------------------------------------------------------- Ghostty
+local template = {
+  "# comment",
+  "theme = TokyoNight Moon",
+  "macos-option-as-alt = true",
+  "window-decoration = auto",
+  "keybind = option+backspace=text:\\x17",
+  "keybind = command+arrow_left=csi:H",
+}
+local effective = table.concat({
+  "theme = TokyoNight Moon",
+  "macos-option-as-alt = true",
+  "keybind = alt+backspace=text:\\\\x17",
+  "keybind = super+arrow_left=csi:H",
+}, "\n")
+local defaults = "window-decoration = auto\nmacos-option-as-alt = \ntheme = \n"
+assert_equal(0, #doctor.ghostty_mismatches(template, effective, defaults),
+  "option/command, escaped backslashes and a setting that is still at its default all count as applied")
+
+local not_applied = doctor.ghostty_mismatches(template, effective:gsub("macos%-option%-as%-alt = true\n", ""), defaults)
+assert_equal(1, #not_applied, "a setting Ghostty does not apply is reported (this is how a missing Option-as-Alt shows up)")
+assert_equal("macos-option-as-alt = true", not_applied[1], "it names the setting")
+
+local overridden = doctor.ghostty_mismatches({ "window-decoration = auto" }, "window-decoration = none", defaults)
+assert_equal(1, #overridden, "a default value does not count when the key is overridden to something else")
+assert_equal(1, #doctor.ghostty_mismatches({ "keybind = option+delete=esc:d" }, effective, defaults), "a missing keybind is reported")
+
 -- ------------------------------------------------------------------- render
 local lines = doctor.render({
-  { status = "ok", label = "Neovim", detail = "0.12.5" },
-  { status = "warn", label = "Roslyn language server", detail = "installed 2, pinned 1" },
-  { status = "fail", label = "jq", detail = "not found" },
+  { section = "Environment", status = "ok", label = "Neovim", detail = "0.12.5" },
+  { section = "Tools", status = "warn", label = "Roslyn language server", detail = "installed 2, pinned 1" },
+  { section = "Tools", status = "fail", label = "jq", detail = "not found" },
+  { section = "Tools", status = "info", label = "elm", detail = "not installed" },
 })
 assert_equal("NeoDoctor", lines[1], "title")
-assert(lines[3]:find("^%[ok  %] Neovim"), "ok line: " .. lines[3])
-assert(lines[4]:find("^%[WARN%] Roslyn language server"), "warn line: " .. lines[4])
-assert(lines[5]:find("^%[FAIL%] jq"), "fail line: " .. lines[5])
-assert(lines[#lines]:find("1 ok, 1 warnings, 1 failures", 1, true), "summary line: " .. lines[#lines])
+assert_equal("Environment", lines[3], "a section header precedes its items")
+assert(lines[4]:find("^%[ok  %] Neovim"), "ok line: " .. lines[4])
+assert_equal("Tools", lines[6], "the next section gets its own header")
+assert(lines[7]:find("^%[WARN%] Roslyn language server"), "warn line: " .. lines[7])
+assert(lines[8]:find("^%[FAIL%] jq"), "fail line: " .. lines[8])
+assert(lines[9]:find("^%[info%] elm"), "info line: " .. lines[9])
+assert(lines[#lines]:find("1 ok, 1 warnings, 1 failures, 1 not installed (info)", 1, true), "summary line: " .. lines[#lines])
 
 -- ------------------------------------------------------- the real command
 assert_equal(2, vim.fn.exists(":NeoDoctor"), ":NeoDoctor should exist")
@@ -57,11 +112,23 @@ vim.cmd("NeoDoctor")
 assert_equal("neo-doctor", vim.bo.filetype, "the report opens in its own buffer")
 assert_equal(false, vim.bo.modifiable, "the report is read-only")
 local report = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
-for _, expected in ipairs({ "Neovim", "Roslyn language server", "Plugins", "dotnet", "Tree-sitter parser: c_sharp", "netcoredbg debugger", "ok," }) do
+for _, expected in ipairs({
+  "Environment", "Deployed files", "Ghostty", "Tools", "Plugins", "Parsers and debugger",
+  "Neovim", "macOS", "zsh config", "Ghostty config", "~/.zshrc sources the zsh config", "zsh-autosuggestions",
+  "Second Ghostty config", "Ghostty applied settings", "Roslyn language server", "dotnet", "Plugins match lazy-lock.json",
+  "Tree-sitter parser: c_sharp", "netcoredbg debugger", "ok,",
+}) do
   assert(report:find(expected, 1, true), "the report should mention " .. expected .. ":\n" .. report)
 end
 vim.api.nvim_feedkeys("q", "x", false)
 assert(vim.bo.filetype ~= "neo-doctor", "q should close the report")
+
+-- :NeoDoctor! lists every plugin from the lock file.
+vim.cmd("NeoDoctor!")
+local detailed = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+assert(detailed:find("nvim-treesitter", 1, true) and detailed:find("oil.nvim", 1, true), "the bang form lists every plugin:\n" .. detailed)
+assert(not detailed:find("Plugins match lazy-lock.json", 1, true), "the bang form replaces the one-line summary")
+vim.api.nvim_feedkeys("q", "x", false)
 
 print("doctor_spec: ok")
 vim.cmd("qa!")

@@ -206,7 +206,16 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 
 ## Makine Denetimi (`:NeoDoctor`)
 
-`:NeoDoctor`, bu makinenin config'in beklediği ortamla uyuşup uyuşmadığını gösteren bir rapor açar (`q` kapatır): Neovim ve Ghostty sürümü, Roslyn'in sabitlenen sürümle kurulu sürümü, eklentilerin `lazy-lock.json` ile aynı commit'te olup olmadığı, gerekli araçlar (`dotnet`, `git`, `rg`, `fd`, `tree-sitter`, isteğe bağlı `jq`, `terminal-notifier`), Tree-sitter parser'ları ve debugger. Her satır `ok`, `WARN` veya `FAIL` olarak işaretlenir. İki Mac farklı davrandığında ikisinde de çalıştırıp çıktıları karşılaştırın.
+`:NeoDoctor`, bu config'in dayandığı her şeyi tek raporda listeler ve bu makinenin beklenenle uyuşup uyuşmadığını gösterir (`q` kapatır). Her satır `ok`, `WARN`, `FAIL` veya (Elm gibi isteğe bağlı kurulmayan şeyler için) `info` olarak işaretlenir. Bölümler:
+
+- **Environment:** Neovim sürümü ve konumu, işlemci mimarisi, macOS sürümü, kabuk, Ghostty sürümü.
+- **Deployed files:** Bootstrap'ın repodaki şablonlardan dağıttığı dosyalar (`~/.config/zsh/neovim-csharp.zsh`, `~/.config/ghostty/config`) şablonla aynı mı; farklıysa ilk farklı satırı iki sürümüyle gösterir. Ayrıca `~/.zshrc` zsh dosyasını `source` ediyor mu ve `zsh-autosuggestions` kurulu mu.
+- **Ghostty:** `ghostty +show-config` çıktısına göre şablondaki her ayarın ve tuş bağının gerçekten uygulandığı (varsayılan değerler dahil) ve `~/Library/Application Support/com.mitchellh.ghostty/config` gibi, ana config'i geçersiz kılabilecek ikinci bir config olup olmadığı.
+- **Tools:** Roslyn'in sabitlenen sürümle kurulu sürümü ve `dotnet`, `git`, `rg`, `fd`, `tree-sitter`, `jq`, `fzf`, `zoxide`, `bat`, `terminal-notifier` ile Elm araçlarının (`node`, `elm`, `elm-format`, `elm-language-server`, `elm-test`, `fossil`) konumu ve sürümü.
+- **Plugins:** Eklentilerin `lazy-lock.json` ile aynı commit'te olup olmadığı. `:NeoDoctor!` her eklentiyi commit'iyle tek tek listeler.
+- **Parsers and debugger:** Tree-sitter parser'ları ve debugger.
+
+Dosya sapması, bir makinede sessizce farklı davranışa yol açar: örneğin `Ctrl-g` ayarı yalnızca dağıtılan dosyada değiştirilirse repodaki şablon eski kalır ve başka bir Mac eskisi gibi çalışır. İki Mac farklı davrandığında ikisinde de çalıştırıp çıktıları karşılaştırın.
 
 ## Yeni Mac'e Taşıma
 
