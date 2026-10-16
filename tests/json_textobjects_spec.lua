@@ -1,7 +1,7 @@
 -- JSON reuses the existing keys. Text objects: ab/ib for objects and arrays, aa/ia for pairs and
 -- array elements (aa takes the following comma, or the preceding one for the last element).
--- Motions: ]k/[k hop between pairs and elements, ]r jumps to the next object or array and [r
--- climbs to the enclosing one (previous one, wrapping, when already at the root).
+-- Motions: ]k/[k hop between pairs and elements; ]r and [r walk the objects and arrays forward and
+-- backward in document order (not to the parent: that would only ever reach the root).
 local function assert_equal(expected, actual, message)
   assert(expected == actual, string.format("%s (expected %s, got %s)", message, vim.inspect(expected), vim.inspect(actual)))
 end
@@ -80,14 +80,22 @@ walk(2, 2, "]k", { "3:2", "4:4", "5:4", "7:2", "8:4", "2:2" })
 walk(8, 4, "[k", { "7:2", "5:4", "4:4", "3:2", "2:2", "8:4" })
 -- Objects and arrays by start: tags array, nested object, wrap to the root object.
 walk(2, 2, "]r", { "3:10", "7:12", "1:0" })
--- [r climbs outward: x -> nested object -> root. The root has no parent, so [r then goes to the
--- previous block and wraps to the last one (the nested object), mirroring ]r wrapping to the root.
-walk(8, 4, "[r", { "7:12", "1:0", "7:12", "1:0" })
--- From the very start of the document [r reaches the end, the way ]r reaches the start from the end.
+-- [r is the exact mirror: previous block start, wrapping from the start to the end.
+walk(8, 4, "[r", { "7:12", "3:10", "1:0", "7:12", "3:10" })
 walk(1, 0, "[r", { "7:12" })
 walk(7, 12, "]r", { "1:0" })
--- From inside the tags array the parent is the array itself.
-walk(4, 4, "[r", { "3:10" })
+
+-- An array of objects, the shape that exposed parent-first [r jumping between the root and the last item.
+vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+  "[",              -- 1
+  '  {"a": 1},',    -- 2
+  '  {"a": 2},',    -- 3
+  '  {"a": 3},',    -- 4
+  '  {"a": 4}',     -- 5
+  "]",
+})
+walk(1, 0, "]r", { "2:2", "3:2", "4:2", "5:2", "1:0", "2:2" })
+walk(5, 2, "[r", { "4:2", "3:2", "2:2", "1:0", "5:2", "4:2" })
 
 print("json_textobjects_spec: ok")
 vim.cmd("qa!")

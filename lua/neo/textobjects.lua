@@ -150,30 +150,10 @@ function M.setup()
     end)
   end
   -- JSON counterparts: a pair or array element plays the role of a clause (]k), an object or
-  -- array the role of a query (]r). Like the SQL query motion, [r climbs to the enclosing object
-  -- or array and, when there is none (the root), goes to the previous one, wrapping to the last.
+  -- array the role of a query. ]r and [r are exact mirrors, in document order and wrapping at the
+  -- ends (the SQL [r climbs to the parent query instead, which in JSON would only ever reach the root).
   local function is_json()
     return vim.treesitter.language.get_lang(vim.bo.filetype) == "json"
-  end
-  local function go_to_json_parent()
-    local ok, parser = pcall(vim.treesitter.get_parser, 0, "json")
-    if not ok or not parser then return false end
-    local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-    row = row - 1
-    local node = parser:parse()[1]:root():named_descendant_for_range(row, column, row, column)
-    while node do
-      if node:type() == "object" or node:type() == "array" then
-        local start_row, start_column = node:start()
-        if start_row < row or (start_row == row and start_column < column) then
-          vim.cmd("normal! m'")
-          if vim.api.nvim_get_mode().mode == "no" then vim.cmd("normal! v") end
-          vim.api.nvim_win_set_cursor(0, { start_row + 1, start_column })
-          return true
-        end
-      end
-      node = node:parent()
-    end
-    return false
   end
   local function map_sql_clause(next_start, previous_start)
     local function move_clause(forward)
@@ -314,11 +294,11 @@ function M.setup()
     end, { desc = "Next SQL query or JSON block" })
     vim.keymap.set({ "n", "x", "o" }, previous_start, function()
       if is_json() then
-        if not go_to_json_parent() then move_through_captures("json", { "block.outer" }, false) end
+        move_through_captures("json", { "block.outer" }, false)
         return
       end
       if not go_to_parent_scope() then move_with_wrap("@query.outer", false, false) end
-    end, { desc = "Parent SQL query, statement or JSON block" })
+    end, { desc = "Parent SQL query or statement, previous JSON block" })
   end
 
   map_textobject("ab", "@block.outer", "Select around block")
