@@ -190,7 +190,7 @@ Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızc
 
 Normal modda `Space` tuşuna kısa süre basılı bekleyin: Which-key kullanılabilir devam tuşlarını gösterir.
 
-`Space Space`, arama vurgusunu ve komut satırında kalan hata mesajını temizler. `Ctrl-l` pencere gezintisine ayrıldığı için olağan yeniden çizim tuşu kullanılamaz.
+`Space Space`, arama vurgusunu ve komut satırında kalan mesajı hemen temizler. Hata vermeyen bir `:` komutundan 3 saniye sonra komut satırı kendiliğinden temizlenir; hata mesajları ekranda kalır. `Ctrl-l` pencere gezintisine ayrıldığı için olağan yeniden çizim tuşu kullanılamaz.
 
 Eklentileri güncellemek gerektiğinde `:Lazy sync` çalıştırın. `init.lua` içindeki eklenti ya da ayar değişikliklerinin uygulanması için `:restart` kullanın; Lazy bu dosyanın tekrar source edilmesini desteklemez.
 
