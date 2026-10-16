@@ -12,15 +12,15 @@ nvim .
 
 `nvim .`, aynı proje klasöründe en son düzenlediğiniz dosyayı açar.
 
-Kaydetme (`:w`) C# dosyalarını Roslyn ile otomatik biçimlendirir. Biçim kuralları, projenin kökündeki `.editorconfig` dosyasından okunur.
+Kaydetme dosyayı biçimlendirmez. Biçimlendirmek için `Space c f` kullanın (Visual modda yalnızca seçili kısım); C# dosyalarında Roslyn kullanılır ve biçim kuralları projenin kökündeki `.editorconfig` dosyasından okunur.
 
-Elm projelerinde (`elm.json` bulunan klasörlerde) `elm-language-server` otomatik başlar; kaydetme `elm-format` ile biçimlendirir. Derleme için `elm make`, test için `elm-test` kullanabilirsiniz.
+Elm projelerinde (`elm.json` bulunan klasörlerde) `elm-language-server` otomatik başlar; `Space c f` `elm-format` ile biçimlendirir. Derleme için `elm make`, test için `elm-test` kullanabilirsiniz.
 
 Yeni bir `.cs` dosyası oluşturduğunuzda Neovim, bulunduğu `.csproj` ve klasör yolundan file-scoped namespace satırını otomatik ekler.
 
 ## C# Biçimlendirme
 
-CSharpier otomatik formatlamada kullanılmaz; Roslyn `.editorconfig` kurallarını uygular. Örneğin proje köküne aşağıdakine benzer bir dosya koyabilirsiniz:
+CSharpier kullanılmaz; `Space c f` ile Roslyn `.editorconfig` kurallarını uygular. Örneğin proje köküne aşağıdakine benzer bir dosya koyabilirsiniz:
 
 ```ini
 [*.cs]

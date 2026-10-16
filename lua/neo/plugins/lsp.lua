@@ -147,8 +147,8 @@ return {
     "stevearc/conform.nvim",
     opts = {
       -- C# formatting is delegated to Roslyn so project .editorconfig rules apply.
+      -- There is deliberately no format_on_save: formatting happens on <leader>cf and after `ds`.
       formatters_by_ft = { elm = { "elm_format" } },
-      format_on_save = { timeout_ms = 1500, lsp_format = "fallback" },
     },
     keys = {
       {

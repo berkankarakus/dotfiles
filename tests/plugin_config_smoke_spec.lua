@@ -40,6 +40,13 @@ for _, item in ipairs({
   assert(mapping and mapping.lhs and mapping.lhs ~= "", "missing configured mapping " .. item[1])
 end
 
+-- Formatting is explicit (<leader>cf, ds); saving must never format implicitly.
+local has_group, save_hooks = pcall(vim.api.nvim_get_autocmds, { event = "BufWritePre", group = "Conform" })
+assert(not has_group or #save_hooks == 0, "conform must not register a format-on-save autocmd")
+local conform_options = plugins["conform.nvim"].opts
+assert(conform_options.format_on_save == nil and conform_options.format_after_save == nil,
+  "conform options must not enable format on save")
+
 assert(#errors == 0, "plugin event config reported errors:\n" .. table.concat(errors, "\n"))
 print(string.format("plugin_config_smoke_spec: %d plugin configs loaded", #names))
 vim.cmd("qa!")
