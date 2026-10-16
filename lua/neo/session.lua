@@ -46,12 +46,12 @@ function M.setup()
     local root = project_key()
     local resolved_file = vim.uv.fs_realpath(file) or file
     if resolved_file:sub(1, #root + 1) ~= root .. "/" then return end
-    local last_files = read_last_files()
-    if last_files[root] == resolved_file then return end
-    local previous_file = last_files[root]
-    last_files[root] = resolved_file
-    local write_ok = pcall(vim.fn.writefile, { vim.json.encode(last_files) }, last_file_state)
-    if not write_ok then last_files[root] = previous_file end
+    local files = read_last_files()
+    if files[root] == resolved_file then return end
+    local previous_file = files[root]
+    files[root] = resolved_file
+    local write_ok = pcall(vim.fn.writefile, { vim.json.encode(files) }, last_file_state)
+    if not write_ok then files[root] = previous_file end
   end
   vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, { callback = remember_last_file })
 

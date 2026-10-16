@@ -33,6 +33,7 @@ run_nvim_test tests/lazy_completion_spec.lua
 run_nvim_test tests/plugin_config_smoke_spec.lua
 run_nvim_test tests/options_keymaps_spec.lua
 run_nvim_test tests/csharp_docstring_spec.lua
+run_nvim_test tests/csharp_new_file_spec.lua
 run_nvim_test tests/ui_spec.lua
 run_nvim_test tests/terminal_spec.lua
 run_nvim_test tests/sql_clause_navigation_spec.lua

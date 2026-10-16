@@ -25,52 +25,49 @@ local function namespace_root_from_project(project_file)
   return vim.fn.fnamemodify(project_file, ":t:r")
 end
 
-vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
-  pattern = "*.cs",
-  callback = function(event)
-    local filename = vim.api.nvim_buf_get_name(event.buf)
-    -- BufReadPost is included so `touch NewClass.cs` works too; only empty
-    -- files receive a namespace, summary, and type skeleton.
-    if event.event == "BufReadPost" and vim.fn.getfsize(filename) ~= 0 then return end
-    if vim.api.nvim_buf_get_lines(event.buf, 0, -1, false)[1] ~= "" then return end
+local function create_file_skeleton(event)
+  local filename = vim.api.nvim_buf_get_name(event.buf)
+  -- BufReadPost is included so `touch NewClass.cs` works too; only empty
+  -- files receive a namespace, summary, and type skeleton.
+  if event.event == "BufReadPost" and vim.fn.getfsize(filename) ~= 0 then return end
+  if vim.api.nvim_buf_get_lines(event.buf, 0, -1, false)[1] ~= "" then return end
 
-    local file_dir = vim.fs.dirname(filename)
-    local project_file = vim.fs.find(function(name) return name:sub(-7) == ".csproj" end, {
-      path = file_dir,
-      upward = true,
-      limit = 1,
-    })[1]
-    if not project_file then return end
+  local file_dir = vim.fs.dirname(filename)
+  local project_file = vim.fs.find(function(name) return name:sub(-7) == ".csproj" end, {
+    path = file_dir,
+    upward = true,
+    limit = 1,
+  })[1]
+  if not project_file then return end
 
-    local project_dir = vim.fs.dirname(project_file)
-    local relative_dir = vim.fs.relpath(project_dir, file_dir)
-    local namespace = namespace_root_from_project(project_file)
-    if relative_dir and relative_dir ~= "." then
-      namespace = namespace .. "." .. relative_dir:gsub("[/\\]", "."):gsub("[^%w_.]", "_")
-    end
-    local class_name = vim.fn.fnamemodify(filename, ":t:r"):gsub("[^%w_]", "_")
-    if class_name:match("^%d") then class_name = "_" .. class_name end
-    local declaration = class_name:match("^I[A-Z]")
-        and "public interface " .. class_name
-      or "public class " .. class_name .. "()"
-    vim.api.nvim_buf_set_lines(event.buf, 0, -1, false, {
-      "namespace " .. namespace .. ";",
-      "",
-      "/// <summary>",
-      "/// ",
-      "/// </summary>",
-      declaration,
-      "{",
-      "    ",
-      "}",
-    })
-    vim.api.nvim_win_set_cursor(0, { 4, 4 })
-    vim.cmd("startinsert")
-    vim.schedule(function()
-      vim.api.nvim_feedkeys(vim.keycode("<Right>"), "n", false)
-    end)
-  end,
-})
+  local project_dir = vim.fs.dirname(project_file)
+  local relative_dir = vim.fs.relpath(project_dir, file_dir)
+  local namespace = namespace_root_from_project(project_file)
+  if relative_dir and relative_dir ~= "." then
+    namespace = namespace .. "." .. relative_dir:gsub("[/\\]", "."):gsub("[^%w_.]", "_")
+  end
+  local class_name = vim.fn.fnamemodify(filename, ":t:r"):gsub("[^%w_]", "_")
+  if class_name:match("^%d") then class_name = "_" .. class_name end
+  local declaration = class_name:match("^I[A-Z]")
+      and "public interface " .. class_name
+    or "public class " .. class_name .. "()"
+  vim.api.nvim_buf_set_lines(event.buf, 0, -1, false, {
+    "namespace " .. namespace .. ";",
+    "",
+    "/// <summary>",
+    "/// ",
+    "/// </summary>",
+    declaration,
+    "{",
+    "    ",
+    "}",
+  })
+  vim.api.nvim_win_set_cursor(0, { 4, 4 })
+  vim.cmd("startinsert")
+  vim.schedule(function()
+    vim.api.nvim_feedkeys(vim.keycode("<Right>"), "n", false)
+  end)
+end
 
 -- Splits a parameter list on top-level commas only, so generics (`Dictionary<string, int>`),
 -- tuples, attributes and string defaults (`"a,b"`) stay in one piece.
@@ -274,7 +271,12 @@ local function jump_csharp_docstring_field()
 end
 
 function M.setup()
-  -- The autocommands above are registered when this module loads.
+  -- Cleared group: re-running setup (or re-sourcing) must not stack duplicate callbacks.
+  vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
+    group = vim.api.nvim_create_augroup("CSharpFileSkeleton", { clear = true }),
+    pattern = "*.cs",
+    callback = create_file_skeleton,
+  })
 end
 
 M.insert_docstring = insert_csharp_docstring
