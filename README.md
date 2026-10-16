@@ -158,6 +158,8 @@ Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızc
 
 `Space t t` altta yerleşik terminali açar veya kapatır. `Space t w` `dotnet test --watch` başlatır; `Space r r` test paketini bir kez çalıştırır. Terminaldeyken `Ctrl-\\` terminali anında gizler ve son editör pencerenize döner.
 
+`Space r b` (veya `:DotnetBuild`) açık dosyanın üstündeki çözümü (`.sln`/`.slnx`, yoksa `.csproj`) editörü bloklamadan derler. Hatalar ve uyarılar quickfix listesine düşer; hata varsa liste açılır, `:cnext` / `:cprev` ile açık olmayan dosyalardaki hatalara da gidebilirsiniz. Hataları düzeltince quickfix penceresindeyken tekrar `Space r b` basmanız yeterli; son derlenen hedef kullanılır.
+
 ## Terminal Araçları
 
 | Komut | İşlev |
