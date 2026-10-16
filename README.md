@@ -85,16 +85,16 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 
 ## Tree-sitter Text Objects
 
-C# ve T-SQL dosyalarında sözdizimine göre seçim yapmak için aşağıdaki text object'ler Visual (`v`) ve operator-pending modunda çalışır; örneğin `vab` bir block'u seçer, `daf` ise bir metodu siler.
+C#, T-SQL ve JSON dosyalarında sözdizimine göre seçim yapmak için aşağıdaki text object'ler Visual (`v`) ve operator-pending modunda çalışır; örneğin `vab` bir block'u seçer, `daf` ise bir metodu siler.
 
 | Kısayol | İşlev |
 | --- | --- |
-| `vab` / `vib` | Block'un tamamını / içini ( `{}` hariç) seç |
+| `vab` / `vib` | Block'un tamamını / içini ( `{}` hariç) seç; JSON'da nesne veya dizi ( `{}` / `[]` hariç) |
 | `vaf` / `vif` | Metot veya function'ın tamamını / içini ( `{}` hariç) seç |
 | `val` / `vil` | `for`, `foreach`, `while` veya `do` loop'un tamamını / içini ( `{}` hariç) seç |
 | `vaC` / `viC` | `if` veya `switch` conditional'ının tamamını / içini ( `{}` hariç) seç |
 | `vac` / `vic` | Class, struct, record, interface veya enum'un tamamını / içini seç |
-| `vaa` / `via` | Parametre ya da argument'ın tamamını / içini seç |
+| `vaa` / `via` | Parametre ya da argument'ın tamamını / içini seç; JSON'da anahtar-değer çifti veya dizi öğesi (`vaa` virgülü de alır, sondaki öğede öncekini) |
 | `vaq` | T-SQL query'sinin tamamını seç |
 | `vaS` | T-SQL statement'ının tamamını seç |
 | `]f` / `[f` | Sonraki / önceki method, function, procedure veya trigger başlangıcı |

@@ -9,7 +9,13 @@ fail() {
 for script in bootstrap-macos.sh bootstrap-macos-csharp.sh; do
   bash -n "$script"
 done
-grep -Fq 'after/queries/mssql' bootstrap-macos.sh || fail "main script should deploy the mssql queries"
+grep -Fq '/after/queries/*/' bootstrap-macos.sh || fail "main script should deploy the queries of every language"
+[[ -z "$(find after/queries -mindepth 3 -name '*.scm')" ]] || fail "queries nested deeper than after/queries/<language>/ would not be deployed"
+for language in c_sharp mssql json; do
+  [[ -f "after/queries/$language/textobjects.scm" ]] || fail "missing textobjects query for $language"
+done
+grep -Fq '"c_sharp", "mssql", "json"' bootstrap-macos.sh || fail "the json parser should be installed"
+grep -Fq 'for parser in c_sharp mssql json' bootstrap-macos.sh || fail "the json parser should be verified"
 
 # Every Lua module must be deployed, including the plugin spec modules in lua/neo/plugins/.
 grep -Fq '/lua/neo/plugins/*.lua' bootstrap-macos.sh || fail "plugin spec modules should be deployed"

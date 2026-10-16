@@ -82,7 +82,7 @@ if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
   for path in init.lua lazy-lock.json README.md bootstrap-macos.sh bootstrap-macos-csharp.sh lua after templates; do
     backup_if_present "$NVIM_DIR/$path"
   done
-  install -d -m 755 "$NVIM_DIR/lua/neo" "$NVIM_DIR/lua/neo/plugins" "$NVIM_DIR/after/queries/c_sharp" "$NVIM_DIR/after/queries/mssql" "$NVIM_DIR/templates"
+  install -d -m 755 "$NVIM_DIR/lua/neo" "$NVIM_DIR/lua/neo/plugins" "$NVIM_DIR/templates"
   install -m 644 "$SOURCE_DIR/init.lua" "$NVIM_DIR/init.lua"
   install -m 644 "$SOURCE_DIR/lazy-lock.json" "$NVIM_DIR/lazy-lock.json"
   install -m 644 "$SOURCE_DIR/README.md" "$NVIM_DIR/README.md"
@@ -91,11 +91,13 @@ if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
   for module in "$SOURCE_DIR"/lua/neo/*.lua "$SOURCE_DIR"/lua/neo/plugins/*.lua; do
     install -m 644 "$module" "$NVIM_DIR/lua/neo/${module#"$SOURCE_DIR"/lua/neo/}"
   done
-  for query in "$SOURCE_DIR"/after/queries/c_sharp/*.scm; do
-    install -m 644 "$query" "$NVIM_DIR/after/queries/c_sharp/$(basename "$query")"
-  done
-  for query in "$SOURCE_DIR"/after/queries/mssql/*.scm; do
-    install -m 644 "$query" "$NVIM_DIR/after/queries/mssql/$(basename "$query")"
+  # One directory per language (c_sharp, mssql, json, ...); new languages need no script change.
+  for query_dir in "$SOURCE_DIR"/after/queries/*/; do
+    language="$(basename "$query_dir")"
+    install -d -m 755 "$NVIM_DIR/after/queries/$language"
+    for query in "$query_dir"*.scm; do
+      install -m 644 "$query" "$NVIM_DIR/after/queries/$language/$(basename "$query")"
+    done
   done
   install -m 644 "$SOURCE_DIR/templates/ghostty-config" "$NVIM_DIR/templates/ghostty-config"
   install -m 644 "$SOURCE_DIR/templates/neovim-csharp.zsh" "$NVIM_DIR/templates/neovim-csharp.zsh"
@@ -124,7 +126,7 @@ nvim --headless '+Lazy! install' '+qa' || echo "warning: Lazy install reported a
 nvim --headless '+Lazy! restore' '+qa' || echo "warning: Lazy restore reported a problem" >&2
 nvim --headless '+MasonInstall netcoredbg' '+qa' || echo "warning: MasonInstall netcoredbg reported a problem" >&2
 
-PARSERS='"c_sharp", "mssql"'
+PARSERS='"c_sharp", "mssql", "json"'
 if [[ "$WITH_ELM" == true ]]; then PARSERS="$PARSERS, \"elm\""; fi
 nvim --headless "+lua local ok, err = pcall(function() require('nvim-treesitter').install({ $PARSERS }):wait(300000) end) if not ok then print(err) end" '+qa' \
   || echo "warning: Tree-sitter parser install reported a problem" >&2
@@ -147,7 +149,7 @@ roslyn_is_pinned() {
 check "roslyn-language-server $ROSLYN_VERSION" roslyn_is_pinned
 check "netcoredbg debugger" test -x "$HOME/.local/share/nvim/lazy/netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg"
 check "Ghostty" test -d /Applications/Ghostty.app
-for parser in c_sharp mssql; do
+for parser in c_sharp mssql json; do
   check "Tree-sitter parser: $parser" test -f "$HOME/.local/share/nvim/site/parser/$parser.so"
 done
 if [[ "$WITH_ELM" == true ]]; then

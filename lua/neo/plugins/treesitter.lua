@@ -23,7 +23,7 @@ return {
       })
       treesitter.setup({ install_dir = vim.fn.stdpath("data") .. "/site" })
       vim.treesitter.language.register("mssql", "sql")
-      treesitter.install({ "c_sharp", "mssql" })
+      treesitter.install({ "c_sharp", "mssql", "json" })
       vim.opt.rtp:append(vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/runtime")
     end,
   },

@@ -40,6 +40,7 @@ run_nvim_test tests/terminal_spec.lua
 run_nvim_test tests/sql_clause_navigation_spec.lua
 run_nvim_test tests/csharp_statement_navigation_spec.lua
 run_nvim_test tests/unparsed_navigation_spec.lua
+run_nvim_test tests/json_textobjects_spec.lua
 run_nvim_test tests/surround_format_spec.lua
 run_nvim_test tests/call_parens_spec.lua
 run_nvim_test tests/leader_prefix_spec.lua
