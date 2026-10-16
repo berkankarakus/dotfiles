@@ -61,6 +61,44 @@ function M.setup()
         mappings = { delete = "ds" },
         respect_selection_type = true,
       },
+      config = function(_, opts)
+        require("mini.surround").setup(opts)
+
+        -- Format only the lines touched by `ds`. Dot-repeat and `dsn`/`dsl`
+        -- resolve MiniSurround.delete at call time, so wrapping it covers them.
+        local delete = MiniSurround.delete
+        MiniSurround.delete = function(...)
+          local buf = vim.api.nvim_get_current_buf()
+          local first, last
+          local tracking = true
+          vim.api.nvim_buf_attach(buf, false, {
+            on_lines = function(_, _, _, firstline, lastline, new_lastline)
+              if not tracking then return true end
+              if first == nil then
+                first, last = firstline, math.max(firstline, new_lastline - 1)
+              else
+                if last >= lastline then last = last + (new_lastline - lastline) end
+                first = math.min(first, firstline)
+                last = math.max(last, new_lastline - 1)
+              end
+            end,
+          })
+          local result = delete(...)
+          tracking = false
+          if first then
+            last = math.min(last, vim.api.nvim_buf_line_count(buf) - 1)
+            local text = vim.api.nvim_buf_get_lines(buf, last, last + 1, false)[1] or ""
+            pcall(require("conform").format, {
+              bufnr = buf,
+              range = { start = { first + 1, 0 }, ["end"] = { last + 1, #text } },
+              lsp_format = "fallback",
+              timeout_ms = 1500,
+              quiet = true,
+            })
+          end
+          return result
+        end
+      end,
     },
     {
       "stevearc/oil.nvim",
