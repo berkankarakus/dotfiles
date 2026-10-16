@@ -4,12 +4,12 @@ local function assert_equal(expected, actual, message)
   assert(expected == actual, string.format("%s (expected %s, got %s)", message, vim.inspect(expected), vim.inspect(actual)))
 end
 
-local METHOD, CLASS = 2, 7
+local METHOD, CLASS, KEYWORD = 2, 7, 14
 
-local function event(kind, commit_character)
+local function event(kind, commit_character, label)
   return {
     commit_character = commit_character,
-    entry = { get_completion_item = function() return { kind = kind } end },
+    entry = { get_completion_item = function() return { kind = kind, label = label } end },
   }
 end
 
@@ -101,5 +101,53 @@ assert_equal("Foo", text, "a type outside a new expression should not get parent
 
 text = run(1, "foo", nil)
 assert_equal("foo", text, "non-call completion kinds should be ignored")
+
+-- Keywords always keep the cursor inside and never ask the server.
+local function run_keyword(line, label, column)
+  pending = nil
+  setup(line, column)
+  call_parens.handle(event(KEYWORD, nil, label))
+  return (vim.api.nvim_get_current_line():gsub(";$", "")), vim.api.nvim_win_get_cursor(0)[2]
+end
+
+for _, keyword in ipairs({ "typeof", "nameof", "sizeof", "new" }) do
+  text, col = run_keyword("var x = " .. keyword, keyword)
+  assert_equal("var x = " .. keyword .. "()", text, keyword .. " should get parentheses")
+  assert_equal(#("var x = " .. keyword) + 1, col, keyword .. " should keep the cursor inside")
+  assert_equal(nil, pending, keyword .. " should not query signature help")
+end
+
+text = run_keyword("var x = default", "default")
+assert_equal("var x = default", text, "default is valid without parentheses")
+
+text = run_keyword("var x = checked", "checked")
+assert_equal("var x = checked", text, "checked may open a block instead of a call")
+
+text = run_keyword("var x = typeof(", "typeof", #"var x = typeof")
+assert_equal("var x = typeof(", text, "an existing ( after a keyword should be left alone")
+
+text = run_keyword("var x = renew", "new")
+assert_equal("var x = renew", text, "a keyword that is only a word suffix should be ignored")
+
+text = run_keyword("var x = typeof", "other")
+assert_equal("var x = typeof", text, "keywords outside the list should be ignored")
+
+-- Outside C# only `new` is handled.
+local function run_new(line, label)
+  setup(line)
+  call_parens.handle_new(event(KEYWORD, nil, label))
+  return (vim.api.nvim_get_current_line():gsub(";$", "")), vim.api.nvim_win_get_cursor(0)[2]
+end
+
+text, col = run_new("x = new", "new")
+assert_equal("x = new()", text, "new should get parentheses in any filetype")
+assert_equal(#"x = new" + 1, col, "new should keep the cursor inside")
+
+text = run_new("x = typeof", "typeof")
+assert_equal("x = typeof", text, "typeof must not get parentheses outside C#")
+
+setup("x = new")
+call_parens.handle_new(event(METHOD, nil, "new"))
+assert_equal("x = new;", vim.api.nvim_get_current_line(), "handle_new should ignore non-keyword items")
 
 print("call_parens_spec: ok")

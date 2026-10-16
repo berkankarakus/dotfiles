@@ -26,6 +26,8 @@ co = coroutine.create(function()
       { "l.Selec", "Select" }, { "l.Wher", "Where" }, { "f.Ge", "Gen" }, { "f.Zer", "Zero" },
       { "f.On", "One" }, { "Console.WriteLi", "WriteLine" },
       { "var a = new Fo", "Foo", true }, { "var b = new Ba", "Bar", true },
+      { "var t = typeo", "typeof", true }, { "var n = namo", "nameof", true }, { "var z = sizeo", "sizeof", true },
+      { "var d = defa", "default", true }, { "var k = ne", "new", true },
     }
     for _, case in ipairs(cases) do
       keys("<Esc>")

@@ -833,19 +833,8 @@ function M.setup()
         -- C# call parentheses are handled by neo.call_parens, which places the cursor by arity.
         cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done({ filetypes = { cs = false } }))
         cmp.event:on("confirm_done", function(event)
-          if vim.bo.filetype == "cs" then require("neo.call_parens").handle(event) end
-        end)
-        cmp.event:on("confirm_done", function(event)
-          if event.commit_character then return end
-          local item = event.entry:get_completion_item()
-          if item.label ~= "new" then return end
-
-          local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-          local line = vim.api.nvim_get_current_line()
-          if line:sub(1, column):match("%f[%w]new$") and line:sub(column + 1, column + 1) ~= "(" then
-            vim.api.nvim_buf_set_text(0, row - 1, column, row - 1, column, { "()" })
-            vim.api.nvim_win_set_cursor(0, { row, column + 1 })
-          end
+          local call_parens = require("neo.call_parens")
+          if vim.bo.filetype == "cs" then call_parens.handle(event) else call_parens.handle_new(event) end
         end)
       end,
     },
