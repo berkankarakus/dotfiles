@@ -48,6 +48,15 @@ assert(vim.bo.formatoptions:find("r", 1, true), "C# should continue block commen
 assert(not vim.bo.formatoptions:find("o", 1, true), "C# should not continue comments on new lines")
 assert(not vim.bo.comments:find(",://", 1, true), "C# line comments should not auto-continue")
 
+-- <C-l> is taken by window navigation, so <leader><leader> has to clear lingering messages too.
+local clear_mapping = vim.fn.maparg(" " .. " ", "n", false, true)
+assert(clear_mapping.rhs and clear_mapping.rhs:find("nohlsearch", 1, true), "<leader><leader> should clear search highlight")
+assert(clear_mapping.rhs:find("echo", 1, true), "<leader><leader> should clear the command-line message")
+vim.api.nvim_echo({ { "E37: stale error", "ErrorMsg" } }, false, {})
+vim.v.errmsg = ""
+vim.api.nvim_feedkeys(vim.keycode("<Space><Space>"), "x", false)
+assert_equal("", vim.v.errmsg, "pressing <leader><leader> should not raise an error")
+
 -- `:q` must report why it did not quit instead of silently doing nothing.
 vim.cmd("enew")
 vim.api.nvim_buf_set_lines(0, 0, -1, false, { "unsaved scratch text" })

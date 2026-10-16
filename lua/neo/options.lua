@@ -3,7 +3,11 @@ local M = {}
 function M.setup()
   -- C#-oriented Neovim configuration. Leader stays in the Vim tradition: Space.
   vim.g.mapleader = " "
-  vim.keymap.set("n", "<leader><leader>", "<cmd>nohlsearch<CR>", { silent = true, desc = "Clear search highlight" })
+  -- <C-l> (the usual redraw key) is window navigation here, so this also clears a lingering message.
+  vim.keymap.set("n", "<leader><leader>", "<cmd>nohlsearch<Bar>echo ''<CR>", {
+    silent = true,
+    desc = "Clear search highlight and message",
+  })
   vim.g.maplocalleader = " "
 
   vim.opt.number = true
