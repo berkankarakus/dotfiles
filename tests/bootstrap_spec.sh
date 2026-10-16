@@ -38,6 +38,50 @@ done
 grep -Fq -- 'bootstrap-macos.sh" --no-elm' bootstrap-macos-csharp.sh || fail "wrapper should delegate with --no-elm"
 [[ $(wc -l < bootstrap-macos-csharp.sh) -le 10 ]] || fail "wrapper should stay a thin delegate"
 
+# A cask that is already there (Ghostty from the .dmg, a hand-copied font) must not abort the script:
+# `brew install --cask` errors on it and `set -e` would skip Roslyn, the plugin restore and the parsers.
+if grep -Eq '^brew install --cask ' bootstrap-macos.sh; then
+  fail "casks must go through install_cask, not a bare brew install --cask"
+fi
+for cask in ghostty font-jetbrains-mono-nerd-font dotnet-sdk; do
+  grep -Eq "^install_cask $cask " bootstrap-macos.sh || fail "$cask should be installed through install_cask"
+done
+grep -Fq 'check "JetBrainsMono Nerd Font" font_installed' bootstrap-macos.sh || fail "the font should be verified"
+
+# Run the real install_cask against a fake brew.
+bin="$work/bin"
+mkdir -p "$bin"
+cat >"$bin/brew" <<'FAKE'
+#!/usr/bin/env bash
+echo "brew $*" >>"$BREW_LOG"
+if [[ "$1" == list && "$2" == --cask ]]; then
+  [[ " $BREW_INSTALLED " == *" $3 "* ]]
+  exit
+fi
+exit 0
+FAKE
+chmod +x "$bin/brew"
+awk '/^install_cask\(\) \{/{f=1} f{print} f&&/^\}$/{exit}' bootstrap-macos.sh >"$work/install_cask.sh"
+[[ -s "$work/install_cask.sh" ]] || fail "install_cask should be defined in the script"
+
+run_install_cask() { # $1 = space separated casks Homebrew already manages, then the cask and its presence test
+  local managed="$1"; shift
+  : >"$work/brew.log"
+  PATH="$bin:$PATH" BREW_LOG="$work/brew.log" BREW_INSTALLED="$managed" \
+    bash -c "set -euo pipefail; source '$work/install_cask.sh'; install_cask \"\$@\"" _ "$@"
+}
+
+out=$(run_install_cask "ghostty" ghostty false)
+! grep -q 'install --cask' "$work/brew.log" || fail "a Homebrew-managed cask should not be installed again"
+[[ "$out" == *"already installed with Homebrew"* ]] || fail "managed cask: unexpected output: $out"
+
+out=$(run_install_cask "" ghostty true)
+! grep -q 'install --cask' "$work/brew.log" || fail "a cask whose app already exists should be left alone"
+[[ "$out" == *"outside Homebrew"* ]] || fail "unmanaged cask: unexpected output: $out"
+
+run_install_cask "" ghostty false >/dev/null
+grep -qx 'brew install --cask ghostty' "$work/brew.log" || fail "a missing cask should be installed"
+
 # Options are parsed before anything is installed.
 help_output=$(./bootstrap-macos.sh --help)
 grep -Fq -- '--no-elm' <<<"$help_output" || fail "--help should document --no-elm"

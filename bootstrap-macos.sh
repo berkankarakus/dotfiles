@@ -56,7 +56,27 @@ brew install neovim ripgrep fzf zoxide fd bat git jq terminal-notifier tree-sitt
 if [[ "$WITH_ELM" == true ]]; then
   brew install fossil elm elm-format node
 fi
-brew install --cask ghostty font-jetbrains-mono-nerd-font dotnet-sdk
+
+# `brew install --cask` refuses to overwrite an app or font that Homebrew did not install (Ghostty from
+# the .dmg, a font copied by hand). With `set -e` that single error stopped the whole bootstrap before
+# Roslyn, the plugin restore and the parsers. So a cask is only installed when what it provides is missing.
+install_cask() {
+  local cask="$1"; shift
+  if brew list --cask "$cask" >/dev/null 2>&1; then
+    echo "  $cask: already installed with Homebrew"
+  elif "$@" >/dev/null 2>&1; then
+    echo "  $cask: already present outside Homebrew, leaving it alone"
+  else
+    brew install --cask "$cask"
+  fi
+}
+font_installed() {
+  compgen -G "$HOME/Library/Fonts/JetBrainsMono*NerdFont*" >/dev/null || compgen -G "/Library/Fonts/JetBrainsMono*NerdFont*" >/dev/null
+}
+dotnet_installed() { command -v dotnet >/dev/null 2>&1 || [[ -x /usr/local/share/dotnet/dotnet ]]; }
+install_cask ghostty test -d /Applications/Ghostty.app
+install_cask font-jetbrains-mono-nerd-font font_installed
+install_cask dotnet-sdk dotnet_installed
 
 echo "Installing Roslyn language server $ROSLYN_VERSION..."
 installed_roslyn="$(dotnet tool list -g | awk '$1 == "roslyn-language-server" { print $2 }')"
@@ -149,6 +169,7 @@ roslyn_is_pinned() {
 check "roslyn-language-server $ROSLYN_VERSION" roslyn_is_pinned
 check "netcoredbg debugger" test -x "$HOME/.local/share/nvim/lazy/netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg"
 check "Ghostty" test -d /Applications/Ghostty.app
+check "JetBrainsMono Nerd Font" font_installed
 check "jq (JSON formatting)" command -v jq
 for parser in c_sharp mssql json; do
   check "Tree-sitter parser: $parser" test -f "$HOME/.local/share/nvim/site/parser/$parser.so"
