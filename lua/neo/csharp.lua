@@ -72,6 +72,94 @@ vim.api.nvim_create_autocmd({ "BufNewFile", "BufReadPost" }, {
   end,
 })
 
+-- Splits a parameter list on top-level commas only, so generics (`Dictionary<string, int>`),
+-- tuples, attributes and string defaults (`"a,b"`) stay in one piece.
+local function split_parameters(text)
+  local parameters, depth, quote, start = {}, 0, nil, 1
+  for index = 1, #text do
+    local character = text:sub(index, index)
+    if quote then
+      if character == quote and text:sub(index - 1, index - 1) ~= "\\" then quote = nil end
+    elseif character == '"' or character == "'" then
+      quote = character
+    elseif character:match("[<%(%[{]") then
+      depth = depth + 1
+    elseif character:match("[>%)%]}]") then
+      depth = math.max(0, depth - 1)
+    elseif character == "," and depth == 0 then
+      parameters[#parameters + 1] = text:sub(start, index - 1)
+      start = index + 1
+    end
+  end
+  parameters[#parameters + 1] = text:sub(start)
+  return parameters
+end
+
+-- The parameter name is the last identifier before a top-level `=` default value.
+local function parameter_name(parameter)
+  local depth, quote = 0, nil
+  for index = 1, #parameter do
+    local character = parameter:sub(index, index)
+    if quote then
+      if character == quote then quote = nil end
+    elseif character == '"' or character == "'" then
+      quote = character
+    elseif character:match("[<%(%[{]") then
+      depth = depth + 1
+    elseif character:match("[>%)%]}]") then
+      depth = math.max(0, depth - 1)
+    elseif character == "=" and depth == 0 then
+      parameter = parameter:sub(1, index - 1)
+      break
+    end
+  end
+  return parameter:match("([%a_][%w_]*)%s*$")
+end
+
+local MODIFIERS = {
+  public = true, private = true, protected = true, internal = true, static = true, async = true,
+  override = true, virtual = true, abstract = true, sealed = true, extern = true, unsafe = true,
+  new = true, partial = true, readonly = true,
+}
+
+-- Returns the text inside the parameter list's parentheses and the text before them
+-- (modifiers, return type, name). A tuple return type such as
+-- `public (int, string) Pair(...)` has parentheses too, so a group counts only when it
+-- follows an identifier that is not a modifier keyword (the method or type name).
+local function find_parameter_list(signature)
+  local position = 1
+  while true do
+    local open = signature:find("(", position, true)
+    if not open then return nil end
+    local group = signature:sub(open):match("^%b()")
+    if not group then return nil end
+    local head = signature:sub(1, open - 1):gsub("%s+$", "")
+    -- `=` before the parentheses means an initializer or expression body, not a method.
+    if head:find("=", 1, true) then return nil end
+    local name = head:match("([%a_][%w_]*)$") or head:match("([%a_][%w_]*)%s*<.*>$")
+    if name and not MODIFIERS[name] then return group:sub(2, -2), head end
+    position = open + #group
+  end
+end
+
+-- Return type = what is left of the head after dropping the method name (with generic
+-- parameters) and leading modifiers. Constructors have none.
+local function return_type_from_head(head)
+  local before = head:gsub("[%a_][%w_]*%s*<.*>$", ""):gsub("[%a_][%w_]*$", "")
+  while true do
+    before = before:gsub("^%s+", "")
+    local word = before:match("^([%a_][%w_]*)")
+    if word and MODIFIERS[word] then before = before:sub(#word + 1) else break end
+  end
+  before = before:gsub("%s+$", "")
+  if before == "" or before == "void" then return nil end
+  return before
+end
+
+M._split_parameters = split_parameters
+M._parameter_name = parameter_name
+M._find_parameter_list = find_parameter_list
+
 local function insert_csharp_docstring()
   if vim.bo.filetype ~= "cs" then
     vim.notify("Docstring shortcut is only available in C# files.", vim.log.levels.WARN)
@@ -106,26 +194,21 @@ local function insert_csharp_docstring()
   local lines = { indent .. "/// <summary>", indent .. "/// ", indent .. "/// </summary>" }
   local signature = declaration
   for next_line = line_number + 1, math.min(line_number + 6, vim.api.nvim_buf_line_count(bufnr)) do
-    if signature:find("%(") and signature:find("%)") then break end
+    -- Only keep reading while a parameter list is open; a class, property or field
+    -- line has no "(" and must not borrow the next method's parameters.
+    if not signature:find("(", 1, true) or find_parameter_list(signature) then break end
     signature = signature .. " " .. vim.api.nvim_buf_get_lines(bufnr, next_line - 1, next_line, false)[1]
   end
 
-  local parameters = signature:match("%b()")
+  local parameters, head = find_parameter_list(signature)
   if parameters then
-    for parameter in parameters:sub(2, -2):gmatch("[^,]+") do
-      local name = parameter:gsub("=.*", ""):match("([%a_][%w_]*)%s*$")
+    for _, parameter in ipairs(split_parameters(parameters)) do
+      local name = parameter_name(parameter)
       if name then table.insert(lines, indent .. '/// <param name="' .. name .. '"></param>') end
     end
   end
 
-  local before_method = signature:match("^(.-)%s+[%a_][%w_]*%s*%(")
-  local return_type = before_method and before_method:match("([%w_%.<>%[%]?]+)%s*$")
-  local current_class
-  for search_line = line_number, 1, -1 do
-    current_class = vim.api.nvim_buf_get_lines(bufnr, search_line - 1, search_line, false)[1]:match("class%s+([%w_]+)")
-    if current_class then break end
-  end
-  if return_type and return_type ~= "void" and return_type ~= current_class then
+  if head and return_type_from_head(head) then
     table.insert(lines, indent .. "/// <returns></returns>")
   end
 
