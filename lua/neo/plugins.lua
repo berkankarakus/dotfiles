@@ -830,7 +830,11 @@ function M.setup()
         })
         local cmp_autopairs = require("nvim-autopairs.completion.cmp")
         local cmp = require("cmp")
-        cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
+        -- C# call parentheses are handled by neo.call_parens, which places the cursor by arity.
+        cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done({ filetypes = { cs = false } }))
+        cmp.event:on("confirm_done", function(event)
+          if vim.bo.filetype == "cs" then require("neo.call_parens").handle(event) end
+        end)
         cmp.event:on("confirm_done", function(event)
           if event.commit_character then return end
           local item = event.entry:get_completion_item()
