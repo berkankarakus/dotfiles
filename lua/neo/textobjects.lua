@@ -91,23 +91,30 @@ function M.setup()
       move_with_wrap(query, false, false)
     end, { desc = "Previous " .. desc })
   end
-  local function move_csharp_statement(forward)
+  -- Jumps to the next/previous node (by start position) captured as one of `captures` in the
+  -- language's textobjects query, wrapping around at the ends. `accept` may drop nodes.
+  local function move_through_captures(language, captures, forward, accept)
     -- get_parser returns nil (not an error) when the language has no parser.
-    local ok, parser = pcall(vim.treesitter.get_parser, 0, "c_sharp")
+    local ok, parser = pcall(vim.treesitter.get_parser, 0, language)
     if not ok or not parser then return end
-    local query = vim.treesitter.query.get("c_sharp", "textobjects")
+    local query = vim.treesitter.query.get(language, "textobjects")
     if not query then return end
 
-    local statements = {}
+    local wanted = {}
+    for _, name in ipairs(captures) do wanted[name] = true end
+    local targets, seen = {}, {}
     for capture_id, node in query:iter_captures(parser:parse()[1]:root(), 0, 0, -1) do
-      local capture = query.captures[capture_id]
-      if (capture == "statement.outer" or capture == "declaration.outer") and node:type() ~= "block" then
+      if wanted[query.captures[capture_id]] and (not accept or accept(node)) then
         local start_row, start_column = node:start()
-        statements[#statements + 1] = { node = node, row = start_row, column = start_column }
+        local key = start_row .. ":" .. start_column
+        if not seen[key] then
+          seen[key] = true
+          targets[#targets + 1] = { row = start_row, column = start_column }
+        end
       end
     end
-    if #statements == 0 then return end
-    table.sort(statements, function(left, right)
+    if #targets == 0 then return end
+    table.sort(targets, function(left, right)
       return left.row < right.row or (left.row == right.row and left.column < right.column)
     end)
 
@@ -115,32 +122,65 @@ function M.setup()
     cursor_row = cursor_row - 1
     local target
     if forward then
-      for _, statement in ipairs(statements) do
-        if statement.row > cursor_row or (statement.row == cursor_row and statement.column > cursor_column) then
-          target = statement
+      for _, candidate in ipairs(targets) do
+        if candidate.row > cursor_row or (candidate.row == cursor_row and candidate.column > cursor_column) then
+          target = candidate
           break
         end
       end
-      target = target or statements[1]
+      target = target or targets[1]
     else
-      for index = #statements, 1, -1 do
-        local statement = statements[index]
-        if statement.row < cursor_row or (statement.row == cursor_row and statement.column < cursor_column) then
-          target = statement
+      for index = #targets, 1, -1 do
+        local candidate = targets[index]
+        if candidate.row < cursor_row or (candidate.row == cursor_row and candidate.column < cursor_column) then
+          target = candidate
           break
         end
       end
-      target = target or statements[#statements]
+      target = target or targets[#targets]
     end
 
     vim.cmd("normal! m'")
     if vim.api.nvim_get_mode().mode == "no" then vim.cmd("normal! v") end
     vim.api.nvim_win_set_cursor(0, { target.row + 1, target.column })
   end
+  local function move_csharp_statement(forward)
+    move_through_captures("c_sharp", { "statement.outer", "declaration.outer" }, forward, function(node)
+      return node:type() ~= "block"
+    end)
+  end
+  -- JSON counterparts: a pair or array element plays the role of a clause (]k), an object or
+  -- array the role of a query (]r), and [r climbs to the enclosing object or array.
+  local function is_json()
+    return vim.treesitter.language.get_lang(vim.bo.filetype) == "json"
+  end
+  local function go_to_json_parent()
+    local ok, parser = pcall(vim.treesitter.get_parser, 0, "json")
+    if not ok or not parser then return end
+    local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+    row = row - 1
+    local node = parser:parse()[1]:root():named_descendant_for_range(row, column, row, column)
+    while node do
+      if node:type() == "object" or node:type() == "array" then
+        local start_row, start_column = node:start()
+        if start_row < row or (start_row == row and start_column < column) then
+          vim.cmd("normal! m'")
+          if vim.api.nvim_get_mode().mode == "no" then vim.cmd("normal! v") end
+          vim.api.nvim_win_set_cursor(0, { start_row + 1, start_column })
+          return
+        end
+      end
+      node = node:parent()
+    end
+  end
   local function map_sql_clause(next_start, previous_start)
     local function move_clause(forward)
       if vim.bo.filetype == "cs" or vim.bo.filetype == "c_sharp" then
         move_csharp_statement(forward)
+        return
+      end
+      if is_json() then
+        move_through_captures("json", { "parameter.inner" }, forward)
         return
       end
       local ok, parser = pcall(vim.treesitter.get_parser, 0)
@@ -235,10 +275,10 @@ function M.setup()
     end
     vim.keymap.set({ "n", "x", "o" }, next_start, function()
       move_clause(true)
-    end, { desc = "Next SQL clause" })
+    end, { desc = "Next SQL clause, C# statement or JSON item" })
     vim.keymap.set({ "n", "x", "o" }, previous_start, function()
       move_clause(false)
-    end, { desc = "Previous SQL clause" })
+    end, { desc = "Previous SQL clause, C# statement or JSON item" })
   end
   local function map_sql_query(next_start, previous_start)
     local function go_to_parent_scope()
@@ -264,11 +304,19 @@ function M.setup()
       return false
     end
     vim.keymap.set({ "n", "x", "o" }, next_start, function()
+      if is_json() then
+        move_through_captures("json", { "block.outer" }, true)
+        return
+      end
       move_with_wrap("@query.outer", true, false)
-    end, { desc = "Next SQL query" })
+    end, { desc = "Next SQL query or JSON block" })
     vim.keymap.set({ "n", "x", "o" }, previous_start, function()
+      if is_json() then
+        go_to_json_parent()
+        return
+      end
       if not go_to_parent_scope() then move_with_wrap("@query.outer", false, false) end
-    end, { desc = "Parent SQL query or statement" })
+    end, { desc = "Parent SQL query, statement or JSON block" })
   end
 
   map_textobject("ab", "@block.outer", "Select around block")

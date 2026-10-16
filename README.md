@@ -101,8 +101,8 @@ C#, T-SQL ve JSON dosyalarında sözdizimine göre seçim yapmak için aşağıd
 | `]F` / `[F` | Sonraki / önceki method, function, procedure veya trigger sonu |
 | `]c` / `[c` | Sonraki / önceki conditional başlangıcı |
 | `]C` / `[C` | Sonraki / önceki conditional sonu |
-| `]r` / `[r` | Sonraki T-SQL query / iç query'den parent query veya statement'a çık |
-| `]k` / `[k` | T-SQL'de sonraki / önceki clause (`SELECT`, `FROM`, `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `OFFSET/FETCH`; ayrıca `UPDATE`/`DELETE` ve `SET`); C#'ta sonraki / önceki class, method, field veya statement (block'larda durmadan içeri girer) |
+| `]r` / `[r` | Sonraki T-SQL query / iç query'den parent query veya statement'a çık; JSON'da sonraki nesne veya dizi / kapsayan nesne veya diziye çık |
+| `]k` / `[k` | T-SQL'de sonraki / önceki clause (`SELECT`, `FROM`, `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `OFFSET/FETCH`; ayrıca `UPDATE`/`DELETE` ve `SET`); C#'ta sonraki / önceki class, method, field veya statement (block'larda durmadan içeri girer); JSON'da sonraki / önceki anahtar-değer çifti veya dizi öğesi |
 | `]s` / `[s` | Sonraki / önceki T-SQL statement |
 | `]S` / `[S` | Sonraki / önceki yazım hatası (spellcheck açıkken) |
 | `]K` / `[K` | Sonraki / önceki C# `case` veya `default` bölümü |

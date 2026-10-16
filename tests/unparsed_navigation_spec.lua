@@ -23,11 +23,13 @@ for _, filetype in ipairs({ "text", "conf" }) do
   end
 end
 
--- JSON has a parser and textobjects query, but no function/conditional/query/statement captures.
+-- JSON has a parser and textobjects query but no function/conditional/statement/switch captures.
+-- ]k/[k and ]r/[r do move there (see json_textobjects_spec), the rest must stay quiet.
 vim.api.nvim_buf_set_lines(0, 0, -1, false, { "{", '  "name": "value",', '  "other": [1, 2]', "}" })
 vim.bo.filetype = "json"
 assert(vim.treesitter.get_parser(0, nil, { error = false }) ~= nil, "json should have a parser installed")
-for _, key in ipairs(keys) do
+local json_quiet_keys = vim.tbl_filter(function(key) return not key:match("^[%[%]][kr]$") end, keys)
+for _, key in ipairs(json_quiet_keys) do
   vim.api.nvim_win_set_cursor(0, { 2, 4 })
   local ok, err = press(key, "n")
   assert(ok, string.format("%s in a json buffer raised: %s", key, tostring(err)))

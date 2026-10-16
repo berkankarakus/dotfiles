@@ -1,5 +1,7 @@
--- JSON reuses the existing text object keys: ab/ib for objects and arrays, aa/ia for pairs and
+-- JSON reuses the existing keys. Text objects: ab/ib for objects and arrays, aa/ia for pairs and
 -- array elements (aa takes the following comma, or the preceding one for the last element).
+-- Motions: ]k/[k hop between pairs and elements, ]r jumps to the next object or array and [r
+-- climbs to the enclosing one.
 local function assert_equal(expected, actual, message)
   assert(expected == actual, string.format("%s (expected %s, got %s)", message, vim.inspect(expected), vim.inspect(actual)))
 end
@@ -42,6 +44,46 @@ assert_equal(', "y": 2', select(y, "vaa"), "aa on the last pair should take the 
 local seven = column_of("7")
 assert_equal("7", select(seven, "vaa"), "aa on a lone element has no comma to take")
 assert_equal("[7]", select(seven, "vab"), "ab should still select the surrounding array")
+
+-- Motions, on a formatted document so lines and columns are easy to follow.
+vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+  "{",                  -- 1
+  '  "name": "app",',   -- 2
+  '  "tags": [',        -- 3
+  '    "a",',           -- 4
+  '    "b"',            -- 5
+  "  ],",               -- 6
+  '  "nested": {',      -- 7
+  '    "x": 1',         -- 8
+  "  }",                -- 9
+  "}",                  -- 10
+})
+
+local function press(key)
+  local mapping = vim.fn.maparg(key, "n", false, true)
+  assert(mapping and mapping.callback, "missing mapping " .. key)
+  mapping.callback()
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  return cursor[1] .. ":" .. cursor[2]
+end
+
+local function walk(start_line, start_col, key, expected)
+  vim.api.nvim_win_set_cursor(0, { start_line, start_col })
+  for step, position in ipairs(expected) do
+    assert_equal(position, press(key), string.format("%s step %d", key, step))
+  end
+end
+
+-- name -> tags -> "a" -> "b" -> nested -> x, then wrap to name.
+walk(2, 2, "]k", { "3:2", "4:4", "5:4", "7:2", "8:4", "2:2" })
+-- And back, wrapping from name to x.
+walk(8, 4, "[k", { "7:2", "5:4", "4:4", "3:2", "2:2", "8:4" })
+-- Objects and arrays by start: tags array, nested object, wrap to the root object.
+walk(2, 2, "]r", { "3:10", "7:12", "1:0" })
+-- [r climbs outward: x -> nested object -> root, and stays put at the root.
+walk(8, 4, "[r", { "7:12", "1:0", "1:0" })
+-- From inside the tags array the parent is the array itself.
+walk(4, 4, "[r", { "3:10" })
 
 print("json_textobjects_spec: ok")
 vim.cmd("qa!")
