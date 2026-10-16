@@ -82,6 +82,11 @@ out=$(run_install_cask "" ghostty true)
 run_install_cask "" ghostty false >/dev/null
 grep -qx 'brew install --cask ghostty' "$work/brew.log" || fail "a missing cask should be installed"
 
+# The zsh file is overwritten from the template, so the previous copy must be kept.
+zsh_line=$(grep -n 'install -m 644 "$SOURCE_DIR/templates/neovim-csharp.zsh" "$ZSH_DIR' bootstrap-macos.sh | cut -d: -f1)
+backup_line=$(grep -n 'backup_if_present "$ZSH_DIR/neovim-csharp.zsh"' bootstrap-macos.sh | cut -d: -f1)
+[[ -n "$zsh_line" && -n "$backup_line" && "$backup_line" -lt "$zsh_line" ]] || fail "the zsh file should be backed up before it is overwritten"
+
 # Options are parsed before anything is installed.
 help_output=$(./bootstrap-macos.sh --help)
 grep -Fq -- '--no-elm' <<<"$help_output" || fail "--help should document --no-elm"

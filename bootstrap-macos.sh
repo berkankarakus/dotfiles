@@ -125,6 +125,8 @@ fi
 
 backup_if_present "$GHOSTTY_DIR/config"
 install -m 644 "$SOURCE_DIR/templates/ghostty-config" "$GHOSTTY_DIR/config"
+# This file is easy to tweak in place; keep the previous copy so a re-run never silently discards it.
+backup_if_present "$ZSH_DIR/neovim-csharp.zsh"
 install -m 644 "$SOURCE_DIR/templates/neovim-csharp.zsh" "$ZSH_DIR/neovim-csharp.zsh"
 
 if ! grep -Fq 'source "$HOME/.config/zsh/neovim-csharp.zsh"' "$HOME/.zshrc" 2>/dev/null; then

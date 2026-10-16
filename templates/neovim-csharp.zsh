@@ -13,21 +13,9 @@ fi
 
 source "$HOME/.config/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
 ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(autosuggest-clear)
-bindkey '^G' autosuggest-clear
+bindkey '^G' autosuggest-accept
 
-ZSH_AUTOSUGGEST_IGNORE_WIDGETS+=(accept_suggestion_or_line)
-accept_suggestion_or_line() {
-  if [[ -n "$POSTDISPLAY" ]]; then
-    BUFFER="$BUFFER$POSTDISPLAY"
-    CURSOR=$#BUFFER
-    POSTDISPLAY=
-  else
-    zle .accept-line
-  fi
-}
-zle -N accept_suggestion_or_line
-bindkey '^M' accept_suggestion_or_line
-bindkey '^J' accept_suggestion_or_line
+bindkey '^M' accept-line
 
 # Option + Delete removes the next word.
 bindkey '^[d' kill-word

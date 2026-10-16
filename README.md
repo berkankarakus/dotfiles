@@ -174,8 +174,8 @@ Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızc
 | Kısayol | İşlev |
 | --- | --- |
 | `Ctrl-r` | Altta geçmiş komut aramasını açar; yazdıkça filtreler |
-| `Enter` | Açık geçmiş önerisini prompt'a alır; sonraki `Enter` komutu çalıştırır |
-| `Ctrl-g` | Silik geçmiş önerisini kapatır; yazılan komutu korur |
+| `Enter` | Yazılan komutu çalıştırır; silik geçmiş önerisini kabul etmez |
+| `Ctrl-g` | Silik geçmiş önerisini prompt'a alır (kabul eder); komutu çalıştırmaz |
 | `Option-Delete` | İmlecin sağındaki kelimeyi siler |
 
 ## Kısayol Yardımı

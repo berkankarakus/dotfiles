@@ -49,4 +49,5 @@ run_nvim_test tests/json_textobjects_spec.lua
 run_nvim_test tests/surround_format_spec.lua
 run_nvim_test tests/call_parens_spec.lua
 run_nvim_test tests/leader_prefix_spec.lua
+bash tests/zsh_template_spec.sh
 bash tests/bootstrap_spec.sh
