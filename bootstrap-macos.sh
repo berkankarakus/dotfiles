@@ -52,7 +52,7 @@ if [[ -z "$BREW_BIN" && -x /usr/local/bin/brew ]]; then BREW_BIN=/usr/local/bin/
 eval "$("$BREW_BIN" shellenv)"
 
 echo "Installing development tools..."
-brew install neovim ripgrep fzf zoxide fd bat git terminal-notifier tree-sitter-cli
+brew install neovim ripgrep fzf zoxide fd bat git jq terminal-notifier tree-sitter-cli
 if [[ "$WITH_ELM" == true ]]; then
   brew install fossil elm elm-format node
 fi
@@ -149,6 +149,7 @@ roslyn_is_pinned() {
 check "roslyn-language-server $ROSLYN_VERSION" roslyn_is_pinned
 check "netcoredbg debugger" test -x "$HOME/.local/share/nvim/lazy/netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg"
 check "Ghostty" test -d /Applications/Ghostty.app
+check "jq (JSON formatting)" command -v jq
 for parser in c_sharp mssql json; do
   check "Tree-sitter parser: $parser" test -f "$HOME/.local/share/nvim/site/parser/$parser.so"
 done

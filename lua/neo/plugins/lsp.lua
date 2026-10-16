@@ -148,7 +148,9 @@ return {
     opts = {
       -- C# formatting is delegated to Roslyn so project .editorconfig rules apply.
       -- There is deliberately no format_on_save: formatting happens on <leader>cf and after `ds`.
-      formatters_by_ft = { elm = { "elm_format" } },
+      -- jq has no range mode; conform then formats the whole document and applies only the changes
+      -- that overlap the selection (and jq refuses invalid JSON, which leaves the buffer untouched).
+      formatters_by_ft = { elm = { "elm_format" }, json = { "jq" } },
     },
     keys = {
       {

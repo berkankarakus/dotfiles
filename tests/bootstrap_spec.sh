@@ -16,6 +16,8 @@ for language in c_sharp mssql json; do
 done
 grep -Fq '"c_sharp", "mssql", "json"' bootstrap-macos.sh || fail "the json parser should be installed"
 grep -Fq 'for parser in c_sharp mssql json' bootstrap-macos.sh || fail "the json parser should be verified"
+grep -Eq 'brew install .* jq ' bootstrap-macos.sh || fail "jq should be installed for JSON formatting"
+grep -Fq 'command -v jq' bootstrap-macos.sh || fail "jq should be verified"
 
 # Every Lua module must be deployed, including the plugin spec modules in lua/neo/plugins/.
 grep -Fq '/lua/neo/plugins/*.lua' bootstrap-macos.sh || fail "plugin spec modules should be deployed"
