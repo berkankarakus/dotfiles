@@ -11,6 +11,21 @@ for script in bootstrap-macos.sh bootstrap-macos-csharp.sh; do
 done
 grep -Fq 'after/queries/mssql' bootstrap-macos.sh || fail "main script should deploy the mssql queries"
 
+# Every Lua module must be deployed, including the plugin spec modules in lua/neo/plugins/.
+grep -Fq '/lua/neo/plugins/*.lua' bootstrap-macos.sh || fail "plugin spec modules should be deployed"
+grep -Fq '"$NVIM_DIR/lua/neo/plugins"' bootstrap-macos.sh || fail "the plugins directory should be created before copying"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/lua/neo/plugins"
+touch "$work/lua/neo/a.lua" "$work/lua/neo/plugins/b.lua"
+deployed=$(for module in "$work"/lua/neo/*.lua "$work"/lua/neo/plugins/*.lua; do printf '%s\n' "${module#"$work"/lua/neo/}"; done)
+[[ "$deployed" == $'a.lua\nplugins/b.lua' ]] || fail "module destination paths should keep the plugins/ subdirectory"
+# Every module that exists in the repo must be covered by one of the two globs.
+for module in lua/neo/*.lua lua/neo/plugins/*.lua; do
+  [[ -f "$module" ]] || fail "unexpected non-file $module"
+done
+[[ -z "$(find lua -mindepth 3 -name '*.lua' -not -path 'lua/neo/plugins/*')" ]] || fail "a Lua module sits in a directory the bootstrap does not deploy"
+
 # The C# variant is a thin wrapper, so it cannot drift from the main script.
 grep -Fq -- 'bootstrap-macos.sh" --no-elm' bootstrap-macos-csharp.sh || fail "wrapper should delegate with --no-elm"
 [[ $(wc -l < bootstrap-macos-csharp.sh) -le 10 ]] || fail "wrapper should stay a thin delegate"

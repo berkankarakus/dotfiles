@@ -29,4 +29,95 @@ assert_equal(nil, nil_cache.get(), "nil launch contexts should be supported")
 assert_equal(nil, nil_cache.get(), "nil launch contexts should be cached too")
 assert_equal(1, nil_resolves, "nil launch context should not trigger repeated resolution")
 
+-- Project discovery and launch profile parsing (moved here from the DAP plugin config).
+local function write(path, text)
+  vim.fn.mkdir(vim.fs.dirname(path), "p")
+  vim.fn.writefile(vim.split(text, "\n"), path)
+end
+local function real(path) return path and vim.uv.fs_realpath(path) or path end
+
+local root = real(vim.fn.tempname() .. "-dotnet")
+vim.fn.mkdir(root, "p")
+root = real(root)
+write(root .. "/App.sln", "Microsoft Visual Studio Solution File")
+write(root .. "/Lib/Lib.csproj", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup></PropertyGroup></Project>')
+write(root .. "/Web/Web.csproj", '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>')
+write(root .. "/Cli/Cli.csproj", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup></Project>')
+write(root .. "/Worker/Worker.csproj", '<Project Sdk="Microsoft.NET.Sdk.Worker"></Project>')
+write(root .. "/Web/Properties/launchSettings.json", vim.json.encode({
+  profiles = {
+    IIS = { commandName = "IISExpress" },
+    Web = {
+      commandName = "Project",
+      applicationUrl = "http://localhost:5000;https://localhost:5001",
+      launchBrowser = true,
+      launchUrl = "swagger",
+      environmentVariables = { ASPNETCORE_ENVIRONMENT = "Development" },
+    },
+  },
+}))
+write(root .. "/Web/bin/Debug/net10.0/Web.dll", "dll")
+write(root .. "/Web/bin/Debug/net10.0/Web.runtimeconfig.json", "{}")
+
+assert_equal("Microsoft.NET.Sdk.Web", debug.project_sdk(root .. "/Web/Web.csproj"), "project_sdk should read the SDK attribute")
+assert_equal("Microsoft.NET.Sdk", debug.project_sdk(root .. "/Lib/Lib.csproj"), "project_sdk should read plain SDK projects")
+assert_equal(false, debug.project_sdk(nil), "project_sdk should handle a missing project")
+assert_equal(false, debug.project_sdk(root .. "/missing.csproj"), "project_sdk should handle an unreadable project")
+
+assert_equal(false, debug.project_is_executable(root .. "/Lib/Lib.csproj"), "libraries are not executable")
+assert_equal(true, debug.project_is_executable(root .. "/Web/Web.csproj"), "web projects are executable")
+assert_equal(true, debug.project_is_executable(root .. "/Cli/Cli.csproj"), "OutputType Exe is executable")
+assert_equal(true, debug.project_is_executable(root .. "/Worker/Worker.csproj"), "worker services are executable")
+assert_equal(false, debug.project_is_executable(nil), "a missing project is not executable")
+
+vim.cmd.cd(root .. "/Web")
+assert_equal(root .. "/Web/Web.csproj", real(debug.project_file()), "project_file should find the nearest csproj upward")
+assert_equal(root .. "/Web/Web.csproj", real(debug.debug_project_file()), "an executable nearest project should be debugged directly")
+
+vim.cmd.cd(root .. "/Lib")
+assert_equal(root .. "/Lib/Lib.csproj", real(debug.project_file()), "project_file should find the library project")
+-- The solution holds three executables (Web, Cli, Worker); drop two so exactly one remains.
+vim.fn.delete(root .. "/Cli", "rf")
+vim.fn.delete(root .. "/Worker", "rf")
+assert_equal(root .. "/Web/Web.csproj", real(debug.debug_project_file()),
+  "a library should fall back to the single executable project in the solution")
+
+vim.fn.delete(root .. "/App.sln")
+assert_equal(root .. "/Lib/Lib.csproj", real(debug.debug_project_file()),
+  "without a solution the nearest project is used")
+
+assert_equal(root .. "/Web/bin/Debug/net10.0/Web.dll", real(debug.program(root .. "/Web/Web.csproj")),
+  "program should find the built DLL that has a runtimeconfig")
+
+local profile = debug.launch_profile(root .. "/Web/Web.csproj")
+assert_equal(root .. "/Web", profile.cwd, "the working directory should be the project directory")
+assert_equal("Development", profile.env.ASPNETCORE_ENVIRONMENT, "profile environment variables should be kept")
+assert_equal("http://localhost:5000;https://localhost:5001", profile.env.ASPNETCORE_URLS, "applicationUrl should become ASPNETCORE_URLS")
+assert_equal("http://localhost:5000/swagger", profile.browser_url, "browser url should use the first URL and launchUrl")
+assert_equal(0, #profile.args, "a profile without commandLineArgs has no arguments")
+
+local no_settings = debug.launch_profile(root .. "/Lib/Lib.csproj")
+assert_equal(root .. "/Lib", no_settings.cwd, "projects without launchSettings still get their directory")
+assert_equal(nil, no_settings.browser_url, "projects without launchSettings open no browser")
+
+assert_equal(vim.fn.getcwd(), debug.launch_profile(nil).cwd, "no project falls back to the current directory")
+
+write(root .. "/Lib/Properties/launchSettings.json", "{ not json")
+local warnings = {}
+local original_notify = vim.notify
+vim.notify = function(message, level) warnings[#warnings + 1] = { message = message, level = level } end
+local broken = debug.launch_profile(root .. "/Lib/Lib.csproj")
+vim.notify = original_notify
+assert_equal(root .. "/Lib", broken.cwd, "invalid launchSettings should fall back to defaults")
+assert_equal(1, #warnings, "invalid launchSettings should warn once")
+assert_equal(vim.log.levels.WARN, warnings[1].level, "the warning should use WARN")
+
+vim.cmd.cd(root .. "/Web")
+local context = debug.resolve_launch_context()
+assert_equal(root .. "/Web/bin/Debug/net10.0/Web.dll", real(context.program), "resolve_launch_context should combine program and profile")
+assert_equal(root .. "/Web", context.profile.cwd, "resolve_launch_context should include the launch profile")
+
+vim.cmd.cd("/")
+vim.fn.delete(root, "rf")
+
 print("dotnet_debug_spec: ok")

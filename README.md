@@ -196,7 +196,12 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 
 ## Yapılandırma
 
-- `init.lua`: Tüm Neovim ayarları
+- `init.lua`: Giriş noktası; `lua/neo` modüllerini sırayla yükler
+- `lua/neo/plugins.lua`: lazy.nvim'i kurar ve `lua/neo/plugins/*.lua` modüllerindeki eklenti tanımlarını birleştirir
+- `lua/neo/plugins/`: Eklenti tanımları, konuya göre ayrılmıştır: `ui`, `editing`, `navigation`, `treesitter`, `lsp`, `completion`, `debug`
+- `lua/neo/textobjects.lua`: Tree-sitter textobject seçimi ve yapısal hareketler (`]f`, `]k`, `]s`, ...)
+- `lua/neo/dotnet_debug.lua`: Debugger için .NET proje keşfi ve `launchSettings.json` okuma
+- `lua/neo/call_parens.lua`: C# tamamlamadan sonra `()` ekleme ve imleç konumu
 - `lazy-lock.json`: Eklentilerin sabitlenmiş sürümleri
 - `README.md`: Bu rehber
 - `bootstrap-macos.sh`: Yeni bir Mac'i aynı ortamla kurar

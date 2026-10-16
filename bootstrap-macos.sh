@@ -82,14 +82,14 @@ if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
   for path in init.lua lazy-lock.json README.md bootstrap-macos.sh bootstrap-macos-csharp.sh lua after templates; do
     backup_if_present "$NVIM_DIR/$path"
   done
-  install -d -m 755 "$NVIM_DIR/lua/neo" "$NVIM_DIR/after/queries/c_sharp" "$NVIM_DIR/after/queries/mssql" "$NVIM_DIR/templates"
+  install -d -m 755 "$NVIM_DIR/lua/neo" "$NVIM_DIR/lua/neo/plugins" "$NVIM_DIR/after/queries/c_sharp" "$NVIM_DIR/after/queries/mssql" "$NVIM_DIR/templates"
   install -m 644 "$SOURCE_DIR/init.lua" "$NVIM_DIR/init.lua"
   install -m 644 "$SOURCE_DIR/lazy-lock.json" "$NVIM_DIR/lazy-lock.json"
   install -m 644 "$SOURCE_DIR/README.md" "$NVIM_DIR/README.md"
   install -m 755 "$SOURCE_DIR/bootstrap-macos.sh" "$NVIM_DIR/bootstrap-macos.sh"
   install -m 755 "$SOURCE_DIR/bootstrap-macos-csharp.sh" "$NVIM_DIR/bootstrap-macos-csharp.sh"
-  for module in "$SOURCE_DIR"/lua/neo/*.lua; do
-    install -m 644 "$module" "$NVIM_DIR/lua/neo/$(basename "$module")"
+  for module in "$SOURCE_DIR"/lua/neo/*.lua "$SOURCE_DIR"/lua/neo/plugins/*.lua; do
+    install -m 644 "$module" "$NVIM_DIR/lua/neo/${module#"$SOURCE_DIR"/lua/neo/}"
   done
   for query in "$SOURCE_DIR"/after/queries/c_sharp/*.scm; do
     install -m 644 "$query" "$NVIM_DIR/after/queries/c_sharp/$(basename "$query")"
