@@ -40,6 +40,7 @@ run_nvim_test tests/terminal_spec.lua
 run_nvim_test tests/frecency_cleanup_spec.lua
 run_nvim_test tests/json_format_spec.lua
 run_nvim_test tests/dotnet_build_spec.lua
+run_nvim_test tests/doctor_spec.lua
 run_nvim_test tests/sql_clause_navigation_spec.lua
 run_nvim_test tests/csharp_statement_navigation_spec.lua
 run_nvim_test tests/unparsed_navigation_spec.lua

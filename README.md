@@ -196,10 +196,16 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 - `lua/neo/textobjects.lua`: Tree-sitter textobject seçimi ve yapısal hareketler (`]f`, `]k`, `]s`, ...)
 - `lua/neo/dotnet_debug.lua`: Debugger için .NET proje keşfi ve `launchSettings.json` okuma
 - `lua/neo/call_parens.lua`: C# tamamlamadan sonra `()` ekleme ve imleç konumu
+- `lua/neo/dotnet_build.lua`: `dotnet build` hatalarını quickfix'e alır (`Space r b`)
+- `lua/neo/doctor.lua`: `:NeoDoctor` sağlık raporu
 - `lazy-lock.json`: Eklentilerin sabitlenmiş sürümleri
 - `README.md`: Bu rehber
 - `bootstrap-macos.sh`: Yeni bir Mac'i aynı ortamla kurar
 - `bootstrap-macos-csharp.sh`: `bootstrap-macos.sh --no-elm` için kısa sarmalayıcı (Fossil ve Elm araçları kurulmaz)
+
+## Makine Denetimi (`:NeoDoctor`)
+
+`:NeoDoctor`, bu makinenin config'in beklediği ortamla uyuşup uyuşmadığını gösteren bir rapor açar (`q` kapatır): Neovim ve Ghostty sürümü, Roslyn'in sabitlenen sürümle kurulu sürümü, eklentilerin `lazy-lock.json` ile aynı commit'te olup olmadığı, gerekli araçlar (`dotnet`, `git`, `rg`, `fd`, `tree-sitter`, isteğe bağlı `jq`, `terminal-notifier`), Tree-sitter parser'ları ve debugger. Her satır `ok`, `WARN` veya `FAIL` olarak işaretlenir. İki Mac farklı davrandığında ikisinde de çalıştırıp çıktıları karşılaştırın.
 
 ## Yeni Mac'e Taşıma
 
