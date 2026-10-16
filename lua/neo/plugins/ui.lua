@@ -35,7 +35,6 @@ return {
       icons = { mappings = false },
       spec = {
         { "<leader>f", group = "Find" },
-        { "<leader>b", group = "Breakpoint" },
         { "<leader>d", group = "Debug" },
         { "<leader>c", group = "Code" },
         { "<leader>r", group = "Refactor / Run" },

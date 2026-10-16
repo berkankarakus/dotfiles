@@ -156,12 +156,12 @@ Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızc
 | Kısayol | İşlev |
 | --- | --- |
 | `Space b` | Bulunduğun satırda breakpoint aç/kapat |
-| `Space b c` | Tüm breakpoint'leri temizle |
 | `F5` | Başlat / devam et |
 | `F10` | Step over |
 | `F11` | Step into |
 | `F12` | Step out |
 | `Space d u` | Debug panelini aç/kapat |
+| `Space d c` | Tüm breakpoint'leri temizle |
 | `Space d r` | Debug REPL'i aç |
 
 ## Terminal

@@ -9,10 +9,10 @@ return {
       { "<F11>", desc = "Debug: Step into" },
       { "<F12>", desc = "Debug: Step out" },
       { "<leader>b", desc = "Debug: Toggle breakpoint" },
-      { "<leader>bc", desc = "Debug: Clear all breakpoints" },
       { "<leader>B", desc = "Debug: Conditional breakpoint" },
       { "<leader>dr", desc = "Debug: Open REPL" },
       { "<leader>du", desc = "Debug: Toggle UI" },
+      { "<leader>dc", desc = "Debug: Clear all breakpoints" },
     },
     dependencies = {
       { "rcarriga/nvim-dap-ui", dependencies = { "nvim-neotest/nvim-nio" }, opts = {} },
@@ -88,10 +88,11 @@ return {
       vim.keymap.set("n", "<F11>", dap.step_into, { desc = "Debug: Step into" })
       vim.keymap.set("n", "<F12>", dap.step_out, { desc = "Debug: Step out" })
       vim.keymap.set("n", "<leader>b", persistent_breakpoints.toggle_breakpoint, { desc = "Debug: Toggle breakpoint" })
-      vim.keymap.set("n", "<leader>bc", persistent_breakpoints.clear_all_breakpoints, { desc = "Debug: Clear all breakpoints" })
       vim.keymap.set("n", "<leader>B", persistent_breakpoints.set_conditional_breakpoint, { desc = "Debug: Conditional breakpoint" })
       vim.keymap.set("n", "<leader>dr", dap.repl.open, { desc = "Debug: Open REPL" })
       vim.keymap.set("n", "<leader>du", dapui.toggle, { desc = "Debug: Toggle UI" })
+      -- Not under <leader>b: a mapping that is also a prefix makes <leader>b wait for timeoutlen.
+      vim.keymap.set("n", "<leader>dc", persistent_breakpoints.clear_all_breakpoints, { desc = "Debug: Clear all breakpoints" })
     end,
   },
 }

@@ -40,4 +40,5 @@ run_nvim_test tests/csharp_statement_navigation_spec.lua
 run_nvim_test tests/unparsed_navigation_spec.lua
 run_nvim_test tests/surround_format_spec.lua
 run_nvim_test tests/call_parens_spec.lua
+run_nvim_test tests/leader_prefix_spec.lua
 bash tests/bootstrap_spec.sh
