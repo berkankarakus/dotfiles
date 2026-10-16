@@ -69,6 +69,14 @@ return {
           disable_devicons = true,
           vimgrep_arguments = vimgrep_arguments,
         },
+        extensions = {
+          frecency = {
+            -- With db_safe_mode the first <leader>ff asks "remove N entries from database?" (once 10 or
+            -- more files are missing) from inside init(), which only waits 5 s: a slow answer ends in
+            -- "init() never returns during the time". Missing files are just dropped instead.
+            db_safe_mode = false,
+          },
+        },
       })
       pcall(telescope.load_extension, "fzf")
       local builtin = require("telescope.builtin")
