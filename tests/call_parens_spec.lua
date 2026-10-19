@@ -502,6 +502,60 @@ for _, key in ipairs({ "<M-i>", "<M-CR>" }) do
   assert_equal(true, vim.tbl_isempty(vim.fn.maparg(key, "i", false, true)), key .. " should not be mapped outside C#")
 end
 
+-- Collection expressions on request.
+local function collection(line, column)
+  setup(line, column)
+  local result = call_parens.to_collection_expression()
+  return result, vim.api.nvim_get_current_line(), vim.api.nvim_win_get_cursor(0)[2]
+end
+
+changed, text, col = collection("List<int> l = new List<int>()", #"List<int> l = new List<int>()")
+assert_equal(true, changed, "a typed declaration should convert")
+assert_equal("List<int> l = []", text, "the whole new expression should become []")
+assert_equal(#"List<int> l = [", col, "the cursor should sit between the brackets")
+
+changed, text = collection("List<int> l = new List<int>()", #"List<int> l = new List<int>(")
+assert_equal("List<int> l = []", text, "a cursor inside () should convert as well")
+
+changed, text, col = collection("List<int> l = new()", #"List<int> l = new()")
+assert_equal("List<int> l = []", text, "target-typed new should become []")
+assert_equal(#"List<int> l = [", col, "the cursor should sit between the brackets")
+
+changed, text = collection("private HashSet<string> _s = new HashSet<string>();", #"private HashSet<string> _s = new HashSet<string>()")
+assert_equal("private HashSet<string> _s = [];", text, "a field initializer should convert and keep the ;")
+
+changed, text = collection("l = new List<int>()", #"l = new List<int>()")
+assert_equal("l = []", text, "an assignment to a typed variable should convert")
+
+changed, text = collection("    return new List<int>()", #"    return new List<int>()")
+assert_equal("    return []", text, "a return should convert")
+
+changed, text = collection("var l = new List<int>()", #"var l = new List<int>()")
+assert_equal(false, changed, "var has no target type to infer from")
+assert_equal("var l = new List<int>()", text, "var declarations should stay unchanged")
+
+changed = collection("Foo f = new Foo()", #"Foo f = new Foo()")
+assert_equal(false, changed, "types that are not collections should stay unchanged")
+
+changed = collection("List<int> l = new List<int>(5)", #"List<int> l = new List<int>(5)")
+assert_equal(false, changed, "a constructor with arguments should stay unchanged")
+
+changed = collection("List<int> l = new List<int>() { 1 }", #"List<int> l = new List<int>()")
+assert_equal(false, changed, "an existing initializer should stay unchanged")
+
+changed = collection("if (x == new List<int>())", #"if (x == new List<int>()")
+assert_equal(false, changed, "a comparison is not a target-typed position")
+
+changed = collection("Take(new List<int>())", #"Take(new List<int>()")
+assert_equal(false, changed, "an argument position is left alone")
+
+vim.cmd("enew")
+vim.bo.filetype = "cs"
+assert_equal(1, vim.fn.maparg("<M-u>", "i", false, true).buffer, "<M-u> should be mapped in a C# buffer")
+vim.cmd("enew")
+vim.bo.filetype = "lua"
+assert_equal(true, vim.tbl_isempty(vim.fn.maparg("<M-u>", "i", false, true)), "<M-u> should not be mapped outside C#")
+
 vim.o.virtualedit = ""
 
 print("call_parens_spec: ok")

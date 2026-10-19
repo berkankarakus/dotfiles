@@ -44,6 +44,9 @@ co = coroutine.create(function()
       { "var r = f.Fo", "Fold", false, "a * b", nil, "<M-CR>", "" },
       { "l.Whe", "Where", false, "n => n > 1", nil, "<M-CR>", "" },
       { "var k = l.Cou", "Count", false, "", nil, "<M-CR>", "" },
+      { "List<int> a = new Lis", "List<>", true, "int>", ";", "<M-u>", "1, 2" },
+      { "HashSet<string> b = new HashS", "HashSet<>", true, "string>", ";", "<M-u>", '"a"' },
+      { "List<int> c = ne", "new", true, "", ";", "<M-u>", "3" },
       { "var h = new HashS", "HashSet<>", true, "int>", ";", "<M-i>", "1, 2" },
       { "var m = new Dictiona", "Dictionary<>", true, "int, string>", ";", "<M-i>", '{ 1, "a" }' },
     }
@@ -74,7 +77,13 @@ co = coroutine.create(function()
         lib.log(case[1], "-> no matching entry; first entries:", table.concat(labels, " | "))
         failures = failures + 1
       else
-        for _ = 1, index do cmp.select_next_item({ behavior = cmp.SelectBehavior.Select }) end
+        -- A target type makes Roslyn preselect an entry, so step until the wanted one is selected.
+        local wanted = (cmp.get_entries() or {})[index]:get_completion_item().label
+        for _ = 1, #(cmp.get_entries() or {}) + 1 do
+          cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+          local selected = cmp.get_selected_entry()
+          if selected and selected:get_completion_item().label == wanted then break end
+        end
         sleep(1500)
         cmp.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace })
         sleep(1200)

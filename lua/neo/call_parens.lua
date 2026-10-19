@@ -321,6 +321,43 @@ local SEMICOLON_PARENTS = {
   delegate_declaration = true,
 }
 
+-- Collection types a C# 12 collection expression (`[1, 2]`) can create through their Add method.
+local COLLECTION_TYPES = { List = true, HashSet = true, SortedSet = true, Collection = true, ObservableCollection = true }
+
+-- Replaces `new()` or `new List<int>()` with an empty collection expression, `[|]`, when the
+-- target type is known from the left-hand side. `var x = new List<int>()` is refused because
+-- `var x = []` has no type to infer. Works with the cursor inside or right after the `()`.
+-- Returns false when the cursor is not at such an expression.
+function M.to_collection_expression()
+  local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+  local line = vim.api.nvim_get_current_line()
+  local before, after = line:sub(1, column), line:sub(column + 1)
+  local finish
+  if before:sub(-1) == "(" and after:sub(1, 1) == ")" then
+    finish = column + 1
+  elseif before:sub(-2) == "()" then
+    finish = column
+  else
+    return false
+  end
+  local prefix, type_text = line:sub(1, finish - 2):match("^(.*)%f[%w_]new%s*([%w_%.<>, %[%]]-)%s*$")
+  if not prefix then return false end
+  if line:sub(finish + 1):match("^%s*{") then return false end
+
+  local assigned = prefix:match("=%s*$") and not prefix:match("[=!<>]=%s*$") and not prefix:match("=>%s*$")
+  local returned = prefix:match("%f[%w_]return%s+$")
+  if not assigned and not returned then return false end
+  if prefix:match("%f[%w_]var%s+[%w_]+%s*=%s*$") then return false end
+  if type_text ~= "" then
+    local name = type_text:match("([%w_]+)<")
+    if not name or not COLLECTION_TYPES[name] then return false end
+  end
+
+  vim.api.nvim_buf_set_text(0, row - 1, #prefix, row - 1, finish, { "[]" })
+  vim.api.nvim_win_set_cursor(0, { row, #prefix + 1 })
+  return true
+end
+
 -- Collects the MISSING and ERROR nodes that touch a row.
 local function row_findings(node, row, found)
   local start_row, _, end_row = node:range()

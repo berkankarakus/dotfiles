@@ -54,6 +54,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | 120. sütundaki ince çizgi | Önerilen satır uzunluğu rehberi |
 | `Option-Left` / `Option-Right` (yazma modunda) | Önceki / sonraki kelimeye git |
 | `Option-i` (C# yazma modunda) | `new List<int>()` içindeki `()` yerine `{ | }` koleksiyon başlatıcısı koyar; `new int[3]` sonuna da ekler; hedef tipli `new()` için `new() { | }` yapar |
+| `Option-u` (C# yazma modunda) | `List<int> l = new List<int>()` ya da `new()` ifadesini `[|]` koleksiyon ifadesine çevirir (C# 12+). Hedef tip bilinmeli: `var x = new List<int>()`, argümanlı kurucu ve başlatıcılı ifadelere dokunmaz |
 | `Option-Enter` (C# yazma modunda) | İfadeyi bitirir (alan, property başlatıcısı ve `=>` gövdesi dahil; dosya üstü ifadelere, `using` satırlarına ve lambda gövdelerine dokunmaz): satırdaki `)` / `]` üzerinden atlar, ayrıştırıcı eksik `;` bildiriyorsa ekler; `if (x)` başlığı gibi belirsiz ya da yarım satırlara dokunmaz |
 | `Command-Left` / `Command-Right` (yazma modunda) | Satır başına / sonuna git |
 | `Left` / `Right` (satır başı/sonunda, yazma modunda) | Önceki satırın sonuna / sonraki satırın başına git |
