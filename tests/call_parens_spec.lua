@@ -400,6 +400,108 @@ assert_equal("    foo.Bar(1,", text, "an unfinished argument list must be left a
 
 changed, text = finish("    var f = x =>", #"    var f = x =>")
 assert_equal("    var f = x =>", text, "an unfinished lambda must be left alone")
+
+local function finish_rows(lines, row, column)
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+  vim.bo.filetype = "cs"
+  vim.api.nvim_win_set_cursor(0, { row, column })
+  local result = call_parens.finish_statement()
+  return result, vim.api.nvim_buf_get_lines(0, 0, -1, false)
+end
+
+local function inside_method(statement) return { "class A { void M() {", statement, "} }" } end
+
+for _, case in ipairs({
+  { "    throw new Exception()", "    throw new Exception();" },
+  { "    yield return f()", "    yield return f();" },
+  { "    break", "    break;" },
+  { "    continue", "    continue;" },
+  { "    do { } while (x)", "    do { } while (x);" },
+}) do
+  _, text = finish(case[1], #case[1])
+  assert_equal(case[2], text, case[1] .. " should get its ;")
+end
+
+_, text = finish("    do { } while (x)", #"    do { } while (x")
+assert_equal("    do { } while (x);", text, "closers inside a do-while condition should be stepped over")
+
+local rows
+changed, rows = finish_rows({ "class A {", "  int x = 1", "}" }, 2, #"  int x = 1")
+assert_equal("  int x = 1;", rows[2], "a field declaration should get its ;")
+
+changed, rows = finish_rows({ "class A {", "  public int X { get; set; } = 1", "}" }, 2, #"  public int X { get; set; } = 1")
+assert_equal("  public int X { get; set; } = 1;", rows[2], "a property initializer should get its ;")
+
+changed, rows = finish_rows({ "class A { int P => f()", "}" }, 1, #"class A { int P => f()")
+assert_equal("class A { int P => f();", rows[1], "an expression body should get its ;")
+
+changed, rows = finish_rows({ "class A {", "  public int X { get; set; }", "}" }, 2, #"  public int X { get; set; }")
+assert_equal("  public int X { get; set; }", rows[2], "a property without initializer must not get a ;")
+
+changed, rows = finish_rows({ "abstract class A {", "  void M()", "}" }, 2, #"  void M()")
+assert_equal("  void M()", rows[2], "a method header must not become an abstract declaration")
+
+changed, rows = finish_rows({ "class A { void M() {", "    var x = list", "        .Where(a => a)", "        .ToList()", "} }" }, 4, #"        .ToList()")
+assert_equal("        .ToList();", rows[4], "a chain should get its ; on the last row")
+assert_equal("    var x = list", rows[2], "earlier rows of the chain should stay untouched")
+
+changed, rows = finish_rows({ "class A { void M() {", "    var x = a.B(", "        c(d))", "} }" }, 3, #"        c(d))")
+assert_equal("        c(d));", rows[3], "a call spanning rows should get its ; on the last row")
+
+-- Top-level statements, usings and lambda bodies are deliberately left alone.
+changed, rows = finish_rows({ "var x = list.Count()", "Console.WriteLine(x);" }, 1, #"var x = list.Count()")
+assert_equal("var x = list.Count()", rows[1], "a top-level statement should be left alone")
+
+changed, rows = finish_rows({ "using System", "class A { }" }, 1, #"using System")
+assert_equal("using System", rows[1], "a using directive should be left alone")
+
+changed, rows = finish_rows(inside_method("    Action a = () => { f() };"), 2, #"    Action a = () => { f(")
+assert_equal("    Action a = () => { f() };", rows[2], "a statement inside a lambda body should be left alone")
+
+-- No scratch buffer may outlive a check, whether it accepted the ; or not.
+local buffers = #vim.api.nvim_list_bufs()
+finish("    var x = list.Count()", #"    var x = list.Count(")
+finish("    if (f)", #"    if (f")
+assert_equal(buffers, #vim.api.nvim_list_bufs(), "finish_statement should not leak scratch buffers")
+
+-- Target-typed new keeps its "()".
+changed, text, col = initializer("List<int> l = new()", #"List<int> l = new()")
+assert_equal(true, changed, "target-typed new should convert")
+assert_equal("List<int> l = new() {  }", text, "target-typed new should keep its ()")
+assert_equal(#"List<int> l = new() { ", col, "the cursor should sit between the braces")
+
+changed, text = initializer("var l = new()  ", #"var l = new(")
+assert_equal("var l = new() {  }", text:gsub("%s+$", ""), "a cursor inside new() should convert as well")
+
+-- The generic ">" mapping goes away on leaving insert mode and on changing rows.
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { "var a = new List", "next row" })
+vim.api.nvim_win_set_cursor(0, { 1, #"var a = new List" })
+call_parens.handle(event(CLASS, nil, "List<T>"))
+assert_equal("function", type(vim.fn.maparg(">", "i", false, true).callback), "the mapping should be armed")
+vim.api.nvim_exec_autocmds("InsertLeave", { buffer = 0 })
+assert_equal(nil, vim.fn.maparg(">", "i", false, true).callback, "InsertLeave should disarm the mapping")
+
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { "var a = new List", "next row" })
+vim.api.nvim_win_set_cursor(0, { 1, #"var a = new List" })
+call_parens.handle(event(CLASS, nil, "List<T>"))
+vim.api.nvim_exec_autocmds("CursorMovedI", { buffer = 0 })
+assert_equal("function", type(vim.fn.maparg(">", "i", false, true).callback), "moving within the row should keep it armed")
+vim.api.nvim_win_set_cursor(0, { 2, 0 })
+vim.api.nvim_exec_autocmds("CursorMovedI", { buffer = 0 })
+assert_equal(nil, vim.fn.maparg(">", "i", false, true).callback, "changing rows should disarm the mapping")
+
+-- The C# editing keys exist in C# buffers only.
+vim.cmd("enew")
+vim.bo.filetype = "cs"
+for _, key in ipairs({ "<M-i>", "<M-CR>" }) do
+  assert_equal(1, vim.fn.maparg(key, "i", false, true).buffer, key .. " should be mapped in a C# buffer")
+end
+vim.cmd("enew")
+vim.bo.filetype = "lua"
+for _, key in ipairs({ "<M-i>", "<M-CR>" }) do
+  assert_equal(true, vim.tbl_isempty(vim.fn.maparg(key, "i", false, true)), key .. " should not be mapped outside C#")
+end
+
 vim.o.virtualedit = ""
 
 print("call_parens_spec: ok")

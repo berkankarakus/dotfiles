@@ -293,8 +293,11 @@ function M.to_initializer()
   else
     return false
   end
-  if not line:sub(1, start):match(type_expression) and start ~= finish then return false end
+  local target_typed = line:sub(1, start):match("%f[%w_]new%s*$") ~= nil
+  if not line:sub(1, start):match(type_expression) and not target_typed and start ~= finish then return false end
   if after:sub(1, 1) == "{" then return false end
+  -- `new()` is complete as it is (`new() { }`), whereas `new List<int>()` loses its "()".
+  if target_typed then start = finish end
   vim.api.nvim_buf_set_text(0, row - 1, start, row - 1, finish, { " {  }" })
   vim.api.nvim_win_set_cursor(0, { row, start + 3 })
   return true
@@ -349,6 +352,27 @@ local function has_error_on(node, row)
   return false
 end
 
+-- Declarations that take a ";" only after an initializer or an expression body, e.g.
+-- `public int X { get; set; } = 1` or `int P => f()`. Without one, `void M()` plus ";" would
+-- turn a method header into an abstract declaration.
+local EXPRESSION_BODIED = {
+  property_declaration = true,
+  method_declaration = true,
+  indexer_declaration = true,
+  operator_declaration = true,
+  conversion_operator_declaration = true,
+}
+
+local function ends_a_statement(parent)
+  if SEMICOLON_PARENTS[parent:type()] then return true end
+  if not EXPRESSION_BODIED[parent:type()] then return false end
+  if #parent:field("value") > 0 then return true end
+  for child in parent:iter_children() do
+    if child:type() == "arrow_expression_clause" or child:type() == "equals_value_clause" then return true end
+  end
+  return false
+end
+
 -- Members whose text parses on its own; the check reparses only the one around the cursor.
 local MEMBER_TYPES = {
   method_declaration = true,
@@ -393,7 +417,7 @@ local function semicolon_fits(lines, row, column, range)
     local root = parser:parse(true)[1]:root()
     local token = root:descendant_for_range(row, column, row, column + 1)
     fits = not has_error_on(root, row) and token ~= nil and token:type() == ";"
-      and token:parent() ~= nil and SEMICOLON_PARENTS[token:parent():type()] == true
+      and token:parent() ~= nil and ends_a_statement(token:parent())
   end)
   vim.api.nvim_buf_delete(scratch, { force = true })
   return fits
