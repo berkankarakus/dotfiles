@@ -68,7 +68,6 @@ end
 -- the cursor belongs. Returns nil for types without a sensible placeholder.
 local function template_for(parameter_type)
   parameter_type = parameter_type:gsub("%?$", ""):gsub("^System%.", "")
-  if parameter_type == "string" then return '""', 1 end
   if parameter_type == "char" then return "''", 1 end
   local name, arguments = parameter_type:match("^([%w_]+)<(.*)>$")
   name = name or parameter_type
@@ -115,28 +114,15 @@ local function argument_template(help)
   return template_for(agreed)
 end
 
-local function returns_void(help)
-  for _, signature in ipairs(help.signatures) do
-    if not (signature.label or ""):gsub("^%(extension%)%s*", ""):match("^void%s") then return false end
-  end
-  return true
-end
-
--- A statement-position call such as `list.Clear` on its own line, with nothing after it.
-local function is_statement(before_cursor, after_cursor)
-  return before_cursor:match("^%s*[%w_%.%?!]+$") ~= nil and after_cursor:match("^%s*$") ~= nil
-end
-
--- What to add once the language server has answered: text inside the parentheses, a trailing
--- ";" for void calls in statement position, and where the cursor ends up.
-function M.plan(help, before_cursor, after_cursor)
+-- What to add once the language server has answered: text inside the parentheses and where the
+-- cursor ends up. A ";" is left to Option-Enter (finish_statement).
+function M.plan(help)
   if not help or not help.signatures or #help.signatures == 0 then return nil end
-  local plan = { inside = "", back = 0, semicolon = false, past_close = takes_no_arguments(help) }
+  local plan = { inside = "", back = 0, past_close = takes_no_arguments(help) }
   if not plan.past_close then
     local inside, back = argument_template(help)
     plan.inside, plan.back = inside or "", back or 0
   end
-  plan.semicolon = returns_void(help) and is_statement(before_cursor, after_cursor)
   return plan
 end
 
@@ -226,9 +212,8 @@ local function apply_plan(buf, row, column, plan)
     vim.api.nvim_buf_set_text(buf, row - 1, column + 1, row - 1, column + 1, { plan.inside })
     close = close + #plan.inside
   end
-  if plan.semicolon then vim.api.nvim_buf_set_text(buf, row - 1, close, row - 1, close, { ";" }) end
   if plan.past_close then
-    vim.api.nvim_win_set_cursor(0, { row, close + (plan.semicolon and 1 or 0) })
+    vim.api.nvim_win_set_cursor(0, { row, close })
   elseif plan.inside ~= "" then
     vim.api.nvim_win_set_cursor(0, { row, close - 1 - plan.back })
   end
@@ -309,9 +294,9 @@ end
 
 -- Inserts "()" after a confirmed C# method/constructor completion with the cursor
 -- inside, then asks the language server what the call takes: a parameterless call moves the
--- cursor past ")", a first argument of a known type gets a placeholder (`""`, `''`, `x => `),
--- and a void call in statement position gets its ";". Keywords such as `new` and `typeof`
--- keep the cursor inside, built-in types behind `new` get "[]" and generic types get "<>".
+-- cursor past ")" and a first argument of a known type gets a placeholder (`''`, `x => `). The
+-- statement's ";" is left to Option-Enter. Keywords such as `new` and `typeof` keep the cursor
+-- inside, built-in types behind `new` get "[]" and generic types get "<>".
 function M.handle(event)
   if event.commit_character then return end
 
@@ -340,7 +325,7 @@ function M.handle(event)
     context = { triggerKind = 2, triggerCharacter = "(", isRetrigger = false },
   }
   M.request(buf, params, function(help)
-    local plan = M.plan(help, before_cursor, after_cursor)
+    local plan = M.plan(help)
     if not plan then return end
     if vim.api.nvim_get_current_buf() ~= buf or vim.api.nvim_buf_get_changedtick(buf) ~= tick then return end
     local current_row, current_column = unpack(vim.api.nvim_win_get_cursor(0))

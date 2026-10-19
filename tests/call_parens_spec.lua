@@ -159,8 +159,8 @@ local function typed(label, ...)
 end
 
 text, col = run(METHOD, "f.Say", { signatures = { typed("string message") } })
-assert_equal('f.Say("")', text, "a string parameter should get quotes")
-assert_equal(#'f.Say("', col, "the cursor should sit between the quotes")
+assert_equal("f.Say()", text, "a string parameter should get no placeholder")
+assert_equal(#"f.Say(", col, "the cursor should stay inside the parentheses")
 
 text, col = run(METHOD, "f.Pick", { signatures = { typed("char separator = ','", "int count") } })
 assert_equal("f.Pick('')", text, "a char parameter should get single quotes")
@@ -180,7 +180,7 @@ text = run(METHOD, "f.Fold", { signatures = { typed("Func<int, Dictionary<int, s
 assert_equal("f.Fold((a, b) => )", text, "nested generic arguments should count as one")
 
 text = run(METHOD, "f.Find", { signatures = { typed("string? name") } })
-assert_equal('f.Find("")', text, "a nullable string should still get quotes")
+assert_equal("f.Find()", text, "a nullable string should get no placeholder either")
 
 text = run(METHOD, "f.Num", { signatures = { typed("int value") } })
 assert_equal("f.Num()", text, "types without a placeholder should stay empty")
@@ -198,11 +198,14 @@ text = run(METHOD, "f.Opt", { signatures = { { label = "sig", parameters = {} },
 assert_equal("f.Opt()", text, "a parameterless overload should keep the call empty")
 
 text = run(METHOD, "f.Same", { signatures = { typed("string a"), typed("string b", "int c") } })
-assert_equal('f.Same("")', text, "overloads agreeing on the first type should get the placeholder")
+assert_equal("f.Same()", text, "string overloads should stay empty")
 
-local offsets = { label = "void F.G(string name)", parameters = { { label = { 9, 20 } } } }
+text = run(METHOD, "f.SameChar", { signatures = { typed("char a"), typed("char b", "int c") } })
+assert_equal("f.SameChar('')", text, "overloads agreeing on the first type should get the placeholder")
+
+local offsets = { label = "void F.G(char separator)", parameters = { { label = { 9, 23 } } } }
 text = run(METHOD, "f.G", { signatures = { offsets } })
-assert_equal('f.G("")', text, "offset labels should be resolved against the signature label")
+assert_equal("f.G('')", text, "offset labels should be resolved against the signature label")
 
 -- Roslyn labels parameters by name only; the type is read from the signature label.
 local function roslyn(label, ...)
@@ -211,8 +214,11 @@ local function roslyn(label, ...)
   return { label = label, parameters = parameters }
 end
 
+text = run(METHOD, "f.Say", { signatures = { roslyn("void Foo.Say(char separator)", "separator") } })
+assert_equal("f.Say('')", text, "the type should come from the signature label")
+
 text = run(METHOD, "f.Say", { signatures = { roslyn("void Foo.Say(string message)", "message") } })
-assert_equal('f.Say("")', text, "the type should come from the signature label")
+assert_equal("f.Say()", text, "a string parameter named by the signature label gets no placeholder")
 
 text = run(METHOD, "l.Where", { signatures = { roslyn("(extension) IEnumerable<int> IEnumerable<int>.Where<int>(Func<int, bool> predicate)", "predicate") } })
 assert_equal("l.Where(x => )", text, "extension signatures should be read without their prefix")
@@ -223,7 +229,7 @@ assert_equal("l.Where()", text, "overloads with different delegate types should 
 text = run(METHOD, "f.Fold", { signatures = { roslyn("int Foo.Fold(Func<int, int, int> folder)", "folder") } })
 assert_equal("f.Fold((a, b) => )", text, "Func should count its inputs from the signature label")
 
--- Void calls in statement position get their semicolon. "onemore" lets the cursor sit past
+-- A void call gets no ";" of its own: Option-Enter adds it. "onemore" lets the cursor sit past
 -- the last character, so nothing follows it.
 vim.o.virtualedit = "onemore"
 local function run_statement(line, help)
@@ -241,30 +247,19 @@ local function void(label, count)
 end
 
 text, col = run_statement("    list.Clear", { signatures = { void("void List<int>.Clear()", 0) } })
-assert_equal("    list.Clear();", text, "a void statement should get a semicolon")
-assert_equal(#"    list.Clear();", col, "the cursor should end after the semicolon")
+assert_equal("    list.Clear()", text, "a parameterless void call should get no semicolon")
+assert_equal(#"    list.Clear()", col, "the cursor should end after the parentheses")
 
 text, col = run_statement("    list.Add", { signatures = { void("void List<int>.Add(int p1)", 1) } })
-assert_equal("    list.Add();", text, "a void statement with arguments should get a semicolon")
+assert_equal("    list.Add()", text, "a void call with arguments should get no semicolon")
 assert_equal(#"    list.Add" + 1, col, "the cursor should stay inside the parentheses")
 
-text = run_statement("    var x = list.Clear", { signatures = { void("void L.Clear()", 0) } })
-assert_equal("    var x = list.Clear()", text, "a call inside an expression should not get a semicolon")
+text, col = run_statement("    f.Say", { signatures = { { label = "void F.Say(char m)", parameters = { { label = "char m" } } } } })
+assert_equal("    f.Say('')", text, "a placeholder should come without a semicolon")
+assert_equal(#"    f.Say('", col, "the cursor should sit between the quotes")
 
-text = run_statement("    list.Count", { signatures = { void("int L.Count()", 0) } })
-assert_equal("    list.Count()", text, "a non-void call should not get a semicolon")
-
-text = run_statement("    list.Clear", { signatures = { void("void L.Clear()", 0) } })
-assert_equal("    list.Clear();", text, "sanity check for the statement case")
-pending = nil
-setup("    list.Clear.x", #"    list.Clear")
-call_parens.handle(event(METHOD))
-pending.callback({ signatures = { void("void L.Clear()", 0) } })
-assert_equal("    list.Clear().x", vim.api.nvim_get_current_line(), "text after the call should block the semicolon")
-
-text, col = run_statement("    f.Say", { signatures = { { label = "void F.Say(string m)", parameters = { { label = "string m" } } } } })
-assert_equal('    f.Say("");', text, "placeholder and semicolon should combine")
-assert_equal(#'    f.Say("', col, "the cursor should sit between the quotes")
+text = run_statement("    var x = list.Count", { signatures = { void("int L.Count()", 0) } })
+assert_equal("    var x = list.Count()", text, "a non-void call should get no semicolon either")
 
 vim.o.virtualedit = ""
 
