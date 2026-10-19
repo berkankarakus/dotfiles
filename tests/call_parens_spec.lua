@@ -150,4 +150,150 @@ setup("x = new")
 call_parens.handle_new(event(METHOD, nil, "new"))
 assert_equal("x = new;", vim.api.nvim_get_current_line(), "handle_new should ignore non-keyword items")
 
+-- Argument placeholders follow the first parameter's type.
+local function typed(label, ...)
+  local result = { label = "sig" }
+  result.parameters = { { label = label } }
+  for _, extra in ipairs({ ... }) do table.insert(result.parameters, { label = extra }) end
+  return result
+end
+
+text, col = run(METHOD, "f.Say", { signatures = { typed("string message") } })
+assert_equal('f.Say("")', text, "a string parameter should get quotes")
+assert_equal(#'f.Say("', col, "the cursor should sit between the quotes")
+
+text, col = run(METHOD, "f.Pick", { signatures = { typed("char separator = ','", "int count") } })
+assert_equal("f.Pick('')", text, "a char parameter should get single quotes")
+assert_equal(#"f.Pick('", col, "the cursor should sit between the single quotes")
+
+text, col = run(METHOD, "f.Where", { signatures = { typed("Func<int, bool> predicate") } })
+assert_equal("f.Where(x => )", text, "a Func with one input should get a lambda head")
+assert_equal(#"f.Where(x => ", col, "the cursor should follow the lambda arrow")
+
+text = run(METHOD, "f.Sort", { signatures = { typed("Comparison<int> comparison") } })
+assert_equal("f.Sort((a, b) => )", text, "a Comparison should get two lambda parameters")
+
+text = run(METHOD, "f.Each", { signatures = { typed("Action action") } })
+assert_equal("f.Each(() => )", text, "a plain Action should get an empty parameter list")
+
+text = run(METHOD, "f.Fold", { signatures = { typed("Func<int, Dictionary<int, string>, bool> f") } })
+assert_equal("f.Fold((a, b) => )", text, "nested generic arguments should count as one")
+
+text = run(METHOD, "f.Find", { signatures = { typed("string? name") } })
+assert_equal('f.Find("")', text, "a nullable string should still get quotes")
+
+text = run(METHOD, "f.Num", { signatures = { typed("int value") } })
+assert_equal("f.Num()", text, "types without a placeholder should stay empty")
+
+text = run(METHOD, "f.Many", { signatures = { typed("params string[] values") } })
+assert_equal("f.Many()", text, "params arrays should stay empty")
+
+text = run(METHOD, "f.Out", { signatures = { typed("out string value") } })
+assert_equal("f.Out()", text, "out parameters should stay empty")
+
+text = run(METHOD, "f.Mixed", { signatures = { typed("string a"), typed("int b") } })
+assert_equal("f.Mixed()", text, "overloads that disagree should stay empty")
+
+text = run(METHOD, "f.Opt", { signatures = { { label = "sig", parameters = {} }, typed("string a") } })
+assert_equal("f.Opt()", text, "a parameterless overload should keep the call empty")
+
+text = run(METHOD, "f.Same", { signatures = { typed("string a"), typed("string b", "int c") } })
+assert_equal('f.Same("")', text, "overloads agreeing on the first type should get the placeholder")
+
+local offsets = { label = "void F.G(string name)", parameters = { { label = { 9, 20 } } } }
+text = run(METHOD, "f.G", { signatures = { offsets } })
+assert_equal('f.G("")', text, "offset labels should be resolved against the signature label")
+
+-- Void calls in statement position get their semicolon. "onemore" lets the cursor sit past
+-- the last character, so nothing follows it.
+vim.o.virtualedit = "onemore"
+local function run_statement(line, help)
+  pending = nil
+  setup(line, #line)
+  call_parens.handle(event(METHOD))
+  pending.callback(help)
+  return vim.api.nvim_get_current_line(), vim.api.nvim_win_get_cursor(0)[2]
+end
+
+local function void(label, count)
+  local parameters = {}
+  for index = 1, count do parameters[index] = { label = "int p" .. index } end
+  return { label = label, parameters = parameters }
+end
+
+text, col = run_statement("    list.Clear", { signatures = { void("void List<int>.Clear()", 0) } })
+assert_equal("    list.Clear();", text, "a void statement should get a semicolon")
+assert_equal(#"    list.Clear();", col, "the cursor should end after the semicolon")
+
+text, col = run_statement("    list.Add", { signatures = { void("void List<int>.Add(int p1)", 1) } })
+assert_equal("    list.Add();", text, "a void statement with arguments should get a semicolon")
+assert_equal(#"    list.Add" + 1, col, "the cursor should stay inside the parentheses")
+
+text = run_statement("    var x = list.Clear", { signatures = { void("void L.Clear()", 0) } })
+assert_equal("    var x = list.Clear()", text, "a call inside an expression should not get a semicolon")
+
+text = run_statement("    list.Count", { signatures = { void("int L.Count()", 0) } })
+assert_equal("    list.Count()", text, "a non-void call should not get a semicolon")
+
+text = run_statement("    list.Clear", { signatures = { void("void L.Clear()", 0) } })
+assert_equal("    list.Clear();", text, "sanity check for the statement case")
+pending = nil
+setup("    list.Clear.x", #"    list.Clear")
+call_parens.handle(event(METHOD))
+pending.callback({ signatures = { void("void L.Clear()", 0) } })
+assert_equal("    list.Clear().x", vim.api.nvim_get_current_line(), "text after the call should block the semicolon")
+
+text, col = run_statement("    f.Say", { signatures = { { label = "void F.Say(string m)", parameters = { { label = "string m" } } } } })
+assert_equal('    f.Say("");', text, "placeholder and semicolon should combine")
+assert_equal(#'    f.Say("', col, "the cursor should sit between the quotes")
+
+vim.o.virtualedit = ""
+
+-- Built-in types behind new start an array.
+local function run_type(line, kind, label)
+  pending = nil
+  setup(line)
+  call_parens.handle(event(kind, nil, label))
+  return (vim.api.nvim_get_current_line():gsub(";$", "")), vim.api.nvim_win_get_cursor(0)[2]
+end
+
+text, col = run_type("var a = new int", KEYWORD, "int")
+assert_equal("var a = new int[]", text, "a built-in type after new should get brackets")
+assert_equal(#"var a = new int[", col, "the cursor should sit inside the brackets")
+assert_equal(nil, pending, "arrays should not query signature help")
+
+text = run_type("int a", KEYWORD, "int")
+assert_equal("int a", text, "a built-in type outside new should be left alone")
+
+-- Generic types get angle brackets, and typing ">" steps over the closing one.
+text, col = run_type("var a = new List", CLASS, "List<T>")
+assert_equal("var a = new List<>", text, "a generic type should get angle brackets")
+assert_equal(#"var a = new List<", col, "the cursor should sit inside the angle brackets")
+assert_equal(nil, pending, "generic types should not query signature help")
+
+local function close_key()
+  return vim.fn.maparg(">", "i", false, true).callback()
+end
+
+assert_equal("<Right>()<Left>", close_key(), "closing a generic behind new should step over > and add ()")
+
+assert_equal(nil, vim.fn.maparg(">", "i", false, true).callback, "stepping over > should disarm the mapping")
+
+run_type("var a = new List", CLASS, "List<T>")
+vim.api.nvim_buf_set_text(0, 0, #"var a = new List<", 0, #"var a = new List<", { "int" })
+vim.api.nvim_win_set_cursor(0, { 1, #"var a = new List<int" })
+assert_equal("<Right>()<Left>", close_key(), "typed arguments should not stop the step over")
+
+text = run_type("List", CLASS, "List<T>")
+assert_equal("List<>", text, "a generic type outside new should only get angle brackets")
+assert_equal("<Right>", close_key(), "closing a generic outside new should only step over >")
+
+run_type("var a = new Dictionary", CLASS, "Dictionary<TKey, TValue>")
+vim.api.nvim_buf_set_text(0, 0, #"var a = new Dictionary<", 0, #"var a = new Dictionary<", { "string, List<int" })
+vim.api.nvim_win_set_cursor(0, { 1, #"var a = new Dictionary<string, List<int" })
+assert_equal(">", close_key(), "an unbalanced inner < should type a literal >")
+
+text = run_type("var a = new Foo", CLASS, "Foo")
+assert_equal("var a = new Foo()", text, "a non-generic type should still get parentheses")
+
 print("call_parens_spec: ok")
