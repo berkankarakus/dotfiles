@@ -534,6 +534,43 @@ assert_equal("l = []", text, "an assignment to a typed variable should convert")
 changed, text = collection("    return new List<int>()", #"    return new List<int>()")
 assert_equal("    return []", text, "a return should convert")
 
+-- A declaration without an initializer gets " = []".
+for _, case in ipairs({
+  { "    List<int> m", "    List<int> m = []" },
+  { "    List<int> m;", "    List<int> m = [];" },
+  { "    private HashSet<string> _s", "    private HashSet<string> _s = []" },
+  { "    int[] a", "    int[] a = []" },
+  { "    IEnumerable<int> e;", "    IEnumerable<int> e = [];" },
+  { "  public ReadOnlySpan<char> text", "  public ReadOnlySpan<char> text = []" },
+}) do
+  local line = case[1]
+  changed, text, col = collection(line, #line:gsub(";$", ""))
+  assert_equal(true, changed, line .. " should get an initializer")
+  assert_equal(case[2], text, line .. " should become " .. case[2])
+  assert_equal(text:find(" = [", 1, true) + 3, col, line .. ": the cursor should sit between the brackets")
+end
+
+for _, line in ipairs({ "    var v", "    Foo f", "    return x", "    string s", "    List<int> m = []", "    foreach (List<int> x in y)", "    List<int> m, n" }) do
+  changed, text = collection(line, #line)
+  assert_equal(false, changed, line .. " should stay unchanged")
+  assert_equal(line, text, line .. " should not be edited")
+end
+
+-- Option-u then Option-Enter on a bare declaration: " = []" and then its ";".
+for _, case in ipairs({
+  { "    List<int> m", "    List<int> m = [];" },
+  { "    int[] a", "    int[] a = [];" },
+  { "    HashSet<string> s", "    HashSet<string> s = [];" },
+}) do
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, { "class A { void M() {", case[1], "} }" })
+  vim.bo.filetype = "cs"
+  vim.api.nvim_win_set_cursor(0, { 2, #case[1] })
+  assert_equal(true, call_parens.to_collection_expression(), case[1] .. ": Option-u should add the initializer")
+  assert_equal(true, call_parens.finish_statement(), case[1] .. ": Option-Enter should then add the ;")
+  assert_equal(case[2], vim.api.nvim_buf_get_lines(0, 1, 2, false)[1], case[1] .. ": the combo result")
+  assert_equal(#case[2], vim.api.nvim_win_get_cursor(0)[2], case[1] .. ": the cursor should end after the ;")
+end
+
 changed, text = collection("var l = new List<int>()", #"var l = new List<int>()")
 assert_equal(false, changed, "var has no target type to infer from")
 assert_equal("var l = new List<int>()", text, "var declarations should stay unchanged")
