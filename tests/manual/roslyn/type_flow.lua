@@ -111,6 +111,43 @@ co = coroutine.create(function()
         if not build_ok then lib.log((build.stdout or ""):sub(1, 400)) end
       end
     end
+
+    -- Option-Enter on rows that must stay as they are, and on rows that must gain a ";".
+    -- "|" marks the cursor; the row is compared after the key.
+    local rows = {
+      { "if (f|)", "if (f)" },
+      { "for (int i = 0; i < 3; i++|)", "for (int i = 0; i < 3; i++)" },
+      { "while (running|)", "while (running)" },
+      { "foreach (var n in l|)", "foreach (var n in l)" },
+      { "foo.Bar(1,|", "foo.Bar(1," },
+      { "var fn = x =>|", "var fn = x =>" },
+      { "else|", "else" },
+      { "try|", "try" },
+      { "f.Zero();|", "f.Zero();" },
+      { "f.Zero(|)", "f.Zero();" },
+      { "var t = (1, 2|)", "var t = (1, 2);" },
+      { "l.Add(l.Count(|))", "l.Add(l.Count());" },
+      { "return f.Fold((a, b) => a + b|)", "return f.Fold((a, b) => a + b);" },
+      { "var a = new int[l.Count(|)]", "var a = new int[l.Count()];" },
+      { "f.Zero()|  // done", "f.Zero();  // done" },
+    }
+    for _, row in ipairs(rows) do
+      keys("<Esc>")
+      sleep(100)
+      local column = row[1]:find("|", 1, true) - 1
+      local text = row[1]:gsub("|", "", 1)
+      vim.api.nvim_buf_set_lines(buf, marker, marker + 1, false, { "        " .. text })
+      keys("A")
+      sleep(200)
+      vim.api.nvim_win_set_cursor(0, { marker + 1, 8 + column })
+      keys("<M-CR>", "m")
+      sleep(500)
+      local actual = vim.api.nvim_get_current_line():sub(9)
+      local passed = actual == row[2]
+      if not passed then failures = failures + 1 end
+      lib.log(string.format("%-4s %-40s -> %s", passed and "ok" or "FAIL", row[1], actual))
+    end
+    keys("<Esc>")
     lib.log("failures: " .. failures)
   end)
   if not ok then lib.log("ERROR", err) end
