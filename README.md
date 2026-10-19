@@ -213,7 +213,7 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 `:NeoDoctor`, bu config'in dayandığı her şeyi tek raporda listeler ve bu makinenin beklenenle uyuşup uyuşmadığını gösterir (`q` kapatır). Her satır `ok`, `WARN`, `FAIL` veya (Elm gibi isteğe bağlı kurulmayan şeyler için) `info` olarak işaretlenir. Bölümler:
 
 - **Environment:** Neovim sürümü ve konumu, işlemci mimarisi, macOS sürümü, kabuk, Ghostty sürümü.
-- **Deployed files:** Bootstrap'ın repodaki şablonlardan dağıttığı dosyalar (`~/.config/zsh/neovim-csharp.zsh`, `~/.config/ghostty/config`) şablonla aynı mı; farklıysa ilk farklı satırı iki sürümüyle gösterir. Ayrıca `~/.zshrc` zsh dosyasını `source` ediyor mu ve `zsh-autosuggestions` kurulu mu.
+- **Deployed files:** Bootstrap'ın repodaki şablonlardan dağıttığı dosyalar (`~/.config/zsh/neovim-csharp.zsh`, `~/.config/ghostty/config`) şablonla aynı mı; farklıysa ilk farklı satırı iki sürümüyle gösterir. Ayrıca `~/.zshrc` zsh dosyasını `source` ediyor mu ve `zsh-autosuggestions` kurulu mu. `~/.claude/CLAUDE.md`'nin `templates/claude-global.md` dosyasına giden bir sembolik bağlantı olup olmadığına da bakar; bağlantı sıradan bir dosyaya dönmüşse ya da kopmuşsa uyarır.
 - **Ghostty:** `ghostty +show-config` çıktısına göre şablondaki her ayarın ve tuş bağının gerçekten uygulandığı (varsayılan değerler dahil) ve `~/Library/Application Support/com.mitchellh.ghostty/config` gibi, ana config'i geçersiz kılabilecek ikinci bir config olup olmadığı.
 - **Tools:** Roslyn'in sabitlenen sürümle kurulu sürümü ve `dotnet`, `git`, `rg`, `fd`, `tree-sitter`, `jq`, `fzf`, `zoxide`, `bat`, `terminal-notifier` ile Elm araçlarının (`node`, `elm`, `elm-format`, `elm-language-server`, `elm-test`, `fossil`) konumu ve sürümü.
 - **Plugins:** Eklentilerin `lazy-lock.json` ile aynı commit'te olup olmadığı. `:NeoDoctor!` her eklentiyi commit'iyle tek tek listeler.
@@ -235,6 +235,16 @@ Script Homebrew, .NET SDK, Roslyn language server, Neovim, Ghostty, font, Fossil
 Bootstrap eklentileri `lazy-lock.json` içindeki commit'lere sabitler (`Lazy! install`, ardından `Lazy! restore`); böylece iki Mac aynı eklenti sürümlerini kullanır. Roslyn language server de `bootstrap-macos.sh` içindeki `ROSLYN_VERSION` sürümüne sabitlenir; sürüm yükseltmek için bu değeri bilerek değiştirin. Kurulum sonunda Roslyn, debugger, Ghostty ve Tree-sitter parser'larının varlığı denetlenir; eksik bir bileşen varsa script bunu yazar ve hata koduyla çıkar.
 
 Eklentileri bu makinede güncelledikten sonra `lazy-lock.json` dosyasını commit etmeyi unutmayın; yeni Mac'e taşınan sürümler bu dosyadan gelir.
+
+Claude Code'un kişisel genel talimatlarının aslı `templates/claude-global.md` dosyasıdır; `~/.claude/CLAUDE.md` ona bağlanan bir sembolik bağlantıdır, böylece tek kopya vardır ve değişiklikler `git status`'ta görünür. Bootstrap bunu kurmaz; yeni Mac'te elle bağlayın (var olan dosya önce yedeklenir):
+
+```sh
+mkdir -p ~/.claude
+[ -e ~/.claude/CLAUDE.md ] && [ ! -L ~/.claude/CLAUDE.md ] && mv ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak
+ln -sfn ~/.config/nvim/templates/claude-global.md ~/.claude/CLAUDE.md
+```
+
+Bağlantı `~/.config/nvim` yoluna bağlıdır. Bir araç dosyayı yerinde değiştirmek yerine yeniden yazıp adını değiştirirse bağlantı kopar ve `~/.claude/CLAUDE.md` bağımsız bir dosyaya döner; `ls -l ~/.claude/CLAUDE.md` ile `->` işaretini görerek denetleyin.
 
 Fossil ve Elm gerekmeyen bir Mac'te bunun yerine şunu çalıştırın:
 

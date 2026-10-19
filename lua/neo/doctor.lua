@@ -146,12 +146,31 @@ function M.file_check(label, template_lines, deployed_lines, template_name)
     template_name, difference.line, shorten(difference.right, 50), shorten(difference.left, 50)))
 end
 
+-- A file that must be a symlink to its original inside the repo (the single copy of
+-- ~/.claude/CLAUDE.md). A tool that rewrites the file instead of editing it in place replaces the link
+-- with an ordinary file, after which the two copies drift apart without any error.
+function M.symlink_check(label, link_path, target_path, target_name)
+  local section = "Deployed files"
+  local info = vim.uv.fs_lstat(link_path)
+  if not info then return check(section, "warn", label, "missing (see README, Yeni Mac'e Taşıma)") end
+  if info.type ~= "link" then
+    return check(section, "warn", label, "an ordinary file, no longer linked to " .. target_name)
+  end
+  local actual = vim.uv.fs_realpath(link_path)
+  local expected = vim.uv.fs_realpath(target_path)
+  if not actual then return check(section, "warn", label, "a broken link to " .. (vim.uv.fs_readlink(link_path) or "?")) end
+  if actual ~= expected then return check(section, "warn", label, "links to " .. actual .. ", not " .. target_name) end
+  return check(section, "ok", label, "links to " .. target_name)
+end
+
 local function deployed_file_checks()
   local results = {
     M.file_check("zsh config", read_lines(config_path("templates/neovim-csharp.zsh")),
       read_lines(home(".config/zsh/neovim-csharp.zsh")), "templates/neovim-csharp.zsh"),
     M.file_check("Ghostty config", read_lines(config_path("templates/ghostty-config")),
       read_lines(home(".config/ghostty/config")), "templates/ghostty-config"),
+    M.symlink_check("~/.claude/CLAUDE.md link", home(".claude/CLAUDE.md"),
+      config_path("templates/claude-global.md"), "templates/claude-global.md"),
   }
 
   local zshrc = read_lines(home(".zshrc")) or {}

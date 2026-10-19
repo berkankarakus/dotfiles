@@ -106,6 +106,38 @@ assert(lines[8]:find("^%[FAIL%] jq"), "fail line: " .. lines[8])
 assert(lines[9]:find("^%[info%] elm"), "info line: " .. lines[9])
 assert(lines[#lines]:find("1 ok, 1 warnings, 1 failures, 1 not installed (info)", 1, true), "summary line: " .. lines[#lines])
 
+-- A symlinked original: linked, ordinary file, wrong target, broken link, missing.
+local directory = vim.fn.tempname()
+vim.fn.mkdir(directory, "p")
+local original = directory .. "/original.md"
+local other = directory .. "/other.md"
+vim.fn.writefile({ "x" }, original)
+vim.fn.writefile({ "y" }, other)
+local link = directory .. "/link.md"
+
+vim.uv.fs_symlink(original, link)
+assert_equal("ok", doctor.symlink_check("link", link, original, "templates/x").status, "a link to the original is ok")
+
+vim.fn.delete(link)
+vim.uv.fs_symlink(other, link)
+local wrong = doctor.symlink_check("link", link, original, "templates/x")
+assert_equal("warn", wrong.status, "a link to another file warns")
+assert(wrong.detail:find("other.md", 1, true), "the warning names the actual target: " .. wrong.detail)
+
+vim.fn.delete(link)
+vim.fn.writefile({ "x" }, link)
+local ordinary = doctor.symlink_check("link", link, original, "templates/x")
+assert_equal("warn", ordinary.status, "a link replaced by an ordinary file warns")
+assert(ordinary.detail:find("no longer linked", 1, true), "the warning says the link is gone: " .. ordinary.detail)
+
+vim.fn.delete(link)
+vim.uv.fs_symlink(directory .. "/gone.md", link)
+assert_equal("warn", doctor.symlink_check("link", link, original, "templates/x").status, "a broken link warns")
+
+vim.fn.delete(link)
+assert_equal("warn", doctor.symlink_check("link", link, original, "templates/x").status, "a missing link warns")
+vim.fn.delete(directory, "rf")
+
 -- ------------------------------------------------------- the real command
 assert_equal(2, vim.fn.exists(":NeoDoctor"), ":NeoDoctor should exist")
 vim.cmd("NeoDoctor")
@@ -114,7 +146,7 @@ assert_equal(false, vim.bo.modifiable, "the report is read-only")
 local report = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
 for _, expected in ipairs({
   "Environment", "Deployed files", "Ghostty", "Tools", "Plugins", "Parsers and debugger",
-  "Neovim", "macOS", "zsh config", "Ghostty config", "~/.zshrc sources the zsh config", "zsh-autosuggestions",
+  "Neovim", "macOS", "zsh config", "Ghostty config", "~/.claude/CLAUDE.md link", "~/.zshrc sources the zsh config", "zsh-autosuggestions",
   "Second Ghostty config", "Ghostty applied settings", "Roslyn language server", "dotnet", "Plugins match lazy-lock.json",
   "Tree-sitter parser: c_sharp", "netcoredbg debugger", "ok,",
 }) do
