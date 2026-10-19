@@ -121,6 +121,56 @@ co = coroutine.create(function()
       end
     end
 
+    -- Confirming the one thing inside a pair of brackets moves the cursor past the closer. "|" marks the
+    -- cursor before the completion; the cursor must end right behind `expected_prefix`.
+    do
+      local bracket_cases = {
+        { "var a = new HashSet<in|>()", "int", "var a = new HashSet<int>", "var a = new HashSet<int>()" },
+        { "List<Ba|> l;", "Baz", "List<Baz>", "List<Baz> l;" },
+        { "var t = typeof(Ba|);", "Baz", "var t = typeof(Baz)", "var t = typeof(Baz);" },
+        { "var n = nameof(f.Zer|);", "Zero", "var n = nameof(f.Zero)", "var n = nameof(f.Zero);" },
+        { "var d = new Dictionary<string, in|>();", "int", "var d = new Dictionary<string, int", "var d = new Dictionary<string, int>();" },
+      }
+      for _, case in ipairs(bracket_cases) do
+        keys("<Esc>")
+        sleep(100)
+        local column = case[1]:find("|", 1, true) - 1
+        local text = case[1]:gsub("|", "", 1)
+        vim.api.nvim_buf_set_lines(buf, marker, marker + 1, false, { "        " .. text })
+        keys("A")
+        sleep(300)
+        vim.api.nvim_win_set_cursor(0, { marker + 1, 8 + column })
+        sleep(400) -- cmp handles the cursor move later and would reset a selection made too early
+        cmp.complete()
+        wait_until(function() return cmp.visible() end, 6000)
+        local wanted
+        for _, entry in ipairs(cmp.get_entries() or {}) do
+          local label = entry:get_completion_item().label
+          if label == case[2] then wanted = label break end
+        end
+        local passed = false
+        local actual, cursor = "no matching entry", -1
+        if wanted then
+          for _ = 1, #(cmp.get_entries() or {}) + 1 do
+            cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+            local selected = cmp.get_selected_entry()
+            if selected and selected:get_completion_item().label == wanted then break end
+          end
+          sleep(800)
+          cmp.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace })
+          sleep(900)
+          actual = vim.api.nvim_get_current_line():sub(9)
+          cursor = vim.api.nvim_win_get_cursor(0)[2] - 8
+          -- Dictionary<string, int> keeps the cursor before ">": its last argument may be followed by nothing.
+          local wanted_cursor = #case[3]
+          passed = actual == case[4] and cursor == wanted_cursor
+          if case[1]:find("Dictionary", 1, true) then passed = actual == case[4] and cursor == #case[3] end
+        end
+        if not passed then failures = failures + 1 end
+        lib.log(string.format("%-4s %-44s -> %s | cursor %d", passed and "ok" or "FAIL", case[1], actual, cursor))
+      end
+    end
+
     -- The `swe` snippet through cmp and the real <Tab>: typed results add arms, an untouched
     -- pattern takes the arm away again and lands on the default.
     do

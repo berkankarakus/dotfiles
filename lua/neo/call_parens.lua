@@ -234,6 +234,65 @@ local function apply_plan(buf, row, column, plan)
   end
 end
 
+-- Generic types that take exactly one type argument; once it is chosen the closing ">" is next.
+local SINGLE_ARGUMENT_GENERICS = {}
+for _, name in ipairs({
+  "List", "HashSet", "SortedSet", "Queue", "Stack", "LinkedList", "Collection", "ObservableCollection",
+  "IEnumerable", "IEnumerator", "IAsyncEnumerable", "ICollection", "IList", "ISet", "IReadOnlyList",
+  "IReadOnlyCollection", "IReadOnlySet", "Task", "ValueTask", "Lazy", "Nullable", "Span", "ReadOnlySpan",
+  "Memory", "ReadOnlyMemory", "ImmutableArray", "ImmutableList", "ImmutableHashSet", "IComparer",
+  "IEqualityComparer", "IComparable", "IEquatable", "Comparer", "EqualityComparer",
+}) do
+  SINGLE_ARGUMENT_GENERICS[name] = true
+end
+
+-- Completion kinds that name a type (LSP: Class, Interface, Enum, Keyword, Struct, TypeParameter).
+local TYPE_KINDS = { [7] = true, [8] = true, [13] = true, [14] = true, [22] = true, [25] = true }
+
+-- The generic type whose "<...>" the cursor sits in, when only a single, unfinished argument precedes it.
+local function enclosing_generic(before_cursor)
+  local depth = 0
+  for index = #before_cursor, 1, -1 do
+    local character = before_cursor:sub(index, index)
+    if character == ">" then
+      depth = depth + 1
+    elseif character == "<" then
+      if depth == 0 then return before_cursor:sub(1, index - 1):match("([%w_]+)%s*$") end
+      depth = depth - 1
+    elseif character == "," and depth == 0 then
+      return nil
+    elseif not character:match("[%w_%.%?%[%] ]") then
+      return nil
+    end
+  end
+  return nil
+end
+
+-- After confirming the one thing a pair of brackets holds, the cursor moves past the closer:
+-- `HashSet<int|>` -> `HashSet<int>|`, `typeof(Foo|)` -> `typeof(Foo)|`. `nameof` also takes methods and
+-- properties, which must not get "()". Returns true when the completion was handled here.
+local function leave_closer(item, row, column, before_cursor, after_cursor)
+  local closer = after_cursor:sub(1, 1)
+  if closer ~= ">" and closer ~= ")" then return false end
+  if (item.label or ""):find("<", 1, true) then return false end
+
+  local applies = false
+  if closer == ">" then
+    local name = enclosing_generic(before_cursor)
+    applies = name ~= nil and SINGLE_ARGUMENT_GENERICS[name] == true and TYPE_KINDS[item.kind] == true
+  else
+    local operator = before_cursor:match("%f[%w_](%a+)%s*%(%s*[%w_%.%?%[%] ]*$")
+    if operator == "nameof" then
+      applies = true
+    elseif operator == "typeof" or operator == "sizeof" or operator == "default" then
+      applies = TYPE_KINDS[item.kind] == true
+    end
+  end
+  if not applies then return false end
+  vim.api.nvim_win_set_cursor(0, { row, column + 1 })
+  return true
+end
+
 -- Inserts "()" after a confirmed C# method/constructor completion with the cursor
 -- inside, then asks the language server what the call takes: a parameterless call moves the
 -- cursor past ")", a first argument of a known type gets a placeholder (`""`, `''`, `x => `),
@@ -249,6 +308,7 @@ function M.handle(event)
   local before_cursor = line:sub(1, column)
   local after_cursor = line:sub(column + 1)
   local next_character = after_cursor:sub(1, 1)
+  if leave_closer(item, row, column, before_cursor, after_cursor) then return end
   if next_character == "(" or next_character == "[" or next_character == "<" then return end
   if handle_array(item, buf, row, column, before_cursor) then return end
   if handle_keyword(item, CSHARP_KEYWORDS, buf, row, column, line) then return end
@@ -393,35 +453,50 @@ function M.to_collection_expression()
   return true
 end
 
--- Collects the MISSING and ERROR nodes that touch a row.
-local function row_findings(node, row, found)
+-- The last real token on a row (comments do not count): its type and where it ends.
+local function last_token_on_row(node, row, best)
   local start_row, _, end_row = node:range()
-  if row < start_row or row > end_row then return end
-  if node:type() == "ERROR" then table.insert(found.errors, node) end
-  if node:missing() then
-    if start_row == row then table.insert(found.missing, node) end
-    return
+  if row < start_row or row > end_row then return best end
+  if node:child_count() == 0 then
+    local token_row, token_column = node:end_()
+    if token_row == row and node:type() ~= "comment" and not node:missing()
+      and (not best or token_column > best.column) then
+      return { type = node:type(), column = token_column }
+    end
+    return best
   end
-  for child in node:iter_children() do row_findings(child, row, found) end
+  for child in node:iter_children() do best = last_token_on_row(child, row, best) end
+  return best
 end
 
-local function last_real_end(node)
-  local last
+-- ERROR and MISSING nodes under a node; an ERROR counts once however much it swallowed. A MISSING
+-- token the parser invented inside a hidden rule (`x =>` gets a missing identifier) is not a visible
+-- child, so a node that reports an error none of its children shows counts for one itself.
+local function count_errors(node)
+  if node:type() == "ERROR" or node:missing() then return 1 end
+  if not node:has_error() then return 0 end
+  local total, explained = 0, false
   for child in node:iter_children() do
-    if child:type() ~= "comment" then last = child end
+    if child:has_error() or child:type() == "ERROR" or child:missing() then
+      explained = true
+      total = total + count_errors(child)
+    end
   end
-  if last and last:child_count() > 0 then return last_real_end(last) end
-  return (last or node):end_()
+  return explained and total or 1
 end
 
+-- Whether an error or a missing token sits on a row, hidden ones included (see count_errors).
 local function has_error_on(node, row)
   local start_row, _, end_row = node:range()
   if row < start_row or row > end_row then return false end
   if node:type() == "ERROR" or node:missing() then return true end
+  if not node:has_error() then return false end
+  local explained = false
   for child in node:iter_children() do
+    if child:has_error() or child:type() == "ERROR" or child:missing() then explained = true end
     if has_error_on(child, row) then return true end
   end
-  return false
+  return not explained
 end
 
 -- Declarations that take a ";" only after an initializer or an expression body, e.g.
@@ -462,33 +537,68 @@ local MEMBER_TYPES = {
   delegate_declaration = true,
 }
 
--- The range of the member around a position, or nil to parse the whole file.
-local function member_range(root, row, column)
+-- The member around a position, or nil when the position is not inside one (top-level statements).
+local function member_node(root, row, column)
   local node = root:descendant_for_range(row, column, row, column)
   while node and not MEMBER_TYPES[node:type()] do node = node:parent() end
-  if not node then return nil end
-  local start_row, start_column, end_row, end_column = node:range()
-  return { start_row, start_column, end_row, end_column }
+  return node
 end
 
--- Whether adding ";" at the position makes the row parse cleanly with the ";" ending a real
--- statement. Tried in a scratch buffer, so a wrong guess never touches the file, and only the
--- member around the position is parsed, so the cost does not grow with the file.
-local function semicolon_fits(lines, row, column, range)
+local TYPE_TYPES = {
+  class_declaration = true,
+  struct_declaration = true,
+  record_declaration = true,
+  record_struct_declaration = true,
+  interface_declaration = true,
+}
+
+-- The ranges to parse for a member: its enclosing type's opening (up to and including "{"), the
+-- member itself and the closing "}". Parsed together they read as `class A { <member> }`, which a
+-- property or constructor needs to parse as what it is (alone it turns into top-level statements).
+-- Without an enclosing type the member alone is parsed.
+local function member_regions(member)
+  local type_node = member:parent()
+  while type_node and not TYPE_TYPES[type_node:type()] do type_node = type_node:parent() end
+  local member_range = { member:range() }
+  local body = type_node and type_node:field("body")[1]
+  if not body or body:child_count() < 2 then return { member_range } end
+  local open, close = body:child(0), body:child(body:child_count() - 1)
+  if open:type() ~= "{" or close:type() ~= "}" then return { member_range } end
+  local type_start_row, type_start_column = type_node:range()
+  local open_end_row, open_end_column = open:end_()
+  local close_start_row, close_start_column, close_end_row, close_end_column = close:range()
+  return {
+    { type_start_row, type_start_column, open_end_row, open_end_column },
+    member_range,
+    { close_start_row, close_start_column, close_end_row, close_end_column },
+  }
+end
+
+-- Whether adding ";" at the position fixes something: the row parses cleanly afterwards, the
+-- ";" ends a real statement, and the member has fewer errors than before (so a ";" that merely
+-- cuts a multi-row statement short, or ends an `if (x)` header, does not count). Tried in a
+-- scratch buffer, so a wrong guess never touches the file, and only the member around the
+-- position is parsed, so the cost does not grow with the file.
+local function semicolon_fits(lines, row, column, member, errors_before)
   local scratch = vim.api.nvim_create_buf(false, true)
   local fits = false
   pcall(function()
     vim.api.nvim_buf_set_lines(scratch, 0, -1, false, lines)
     vim.api.nvim_buf_set_text(scratch, row, column, row, column, { ";" })
     local parser = vim.treesitter.get_parser(scratch, "c_sharp")
-    if range then
-      -- The inserted ";" widens the member by one column only when it ends on the same row.
-      if range[3] == row then range[4] = range[4] + 1 end
-      parser:set_included_regions({ { range } })
+    if member then
+      local regions = member_regions(member)
+      -- The inserted ";" pushes everything on its row at or after the insertion column one to the right.
+      for _, region in ipairs(regions) do
+        if region[1] == row and region[2] >= column then region[2] = region[2] + 1 end
+        if region[3] == row and region[4] >= column then region[4] = region[4] + 1 end
+      end
+      parser:set_included_regions({ regions })
     end
     local root = parser:parse(true)[1]:root()
     local token = root:descendant_for_range(row, column, row, column + 1)
-    fits = not has_error_on(root, row) and token ~= nil and token:type() == ";"
+    fits = not has_error_on(root, row) and count_errors(root) < errors_before
+      and token ~= nil and token:type() == ";"
       and token:parent() ~= nil and ends_a_statement(token:parent())
   end)
   vim.api.nvim_buf_delete(scratch, { force = true })
@@ -496,9 +606,9 @@ local function semicolon_fits(lines, row, column, range)
 end
 
 -- Finishes the statement under the cursor: steps over the `)` / `]` that follow it, then adds
--- a ";" where one is missing. The spot comes from the parse tree and the result is checked
--- in a scratch copy first, so an unfinished or ambiguous row (an unclosed bracket, an
--- `if (x)` header) is left alone instead of guessed at.
+-- a ";" after the row's last token when that makes the code parse with fewer errors (checked in a
+-- scratch copy first), so an unfinished or ambiguous row (an unclosed bracket, an `if (x)`
+-- header) is left alone instead of guessed at.
 -- Returns true when the buffer or the cursor changed.
 function M.finish_statement()
   local buf = vim.api.nvim_get_current_buf()
@@ -514,24 +624,15 @@ function M.finish_statement()
   local ok, parser = pcall(vim.treesitter.get_parser, buf, "c_sharp")
   if not ok or not parser then return changed end
   local root = parser:parse(true)[1]:root()
-  local found = { missing = {}, errors = {} }
-  row_findings(root, row - 1, found)
-
-  local semicolon_column
-  if #found.missing == 1 and #found.errors == 0 and found.missing[1]:type() == ";" then
-    local previous = found.missing[1]:prev_sibling()
-    while previous and previous:type() == "comment" do previous = previous:prev_sibling() end
-    if previous then
-      local previous_row, previous_column = previous:end_()
-      if previous_row == row - 1 then semicolon_column = previous_column end
-    end
-  elseif #found.missing == 0 and #found.errors == 1 then
-    local error_row, error_column = last_real_end(found.errors[1])
-    if error_row == row - 1 then semicolon_column = error_column end
-  end
-  if not semicolon_column then return changed end
-  local range = member_range(root, row - 1, semicolon_column)
-  if not semicolon_fits(vim.api.nvim_buf_get_lines(buf, 0, -1, false), row - 1, semicolon_column, range) then
+  -- The candidate is right after the row's last real token. It is the parse that decides: the
+  -- parser reports a forgotten ";" differently depending on the next row (an identifier there
+  -- makes it swallow both rows into one ERROR), so the tree itself is not trusted to point it out.
+  local last = last_token_on_row(root, row - 1)
+  if not last or last.type == ";" then return changed end
+  local semicolon_column = last.column
+  local member = member_node(root, row - 1, semicolon_column - 1)
+  if not semicolon_fits(vim.api.nvim_buf_get_lines(buf, 0, -1, false), row - 1, semicolon_column, member,
+    count_errors(member or root)) then
     return changed
   end
 

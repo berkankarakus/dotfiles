@@ -284,6 +284,65 @@ assert_equal(nil, pending, "arrays should not query signature help")
 text = run_type("int a", KEYWORD, "int")
 assert_equal("int a", text, "a built-in type outside new should be left alone")
 
+-- After confirming the one thing a pair of brackets holds, the cursor leaves through the closer.
+local function leaves(kind, label, line, column)
+  pending = nil
+  setup(line, column)
+  call_parens.handle(event(kind, nil, label))
+  return vim.api.nvim_get_current_line(), vim.api.nvim_win_get_cursor(0)[2], pending
+end
+
+local TYPE_CLASS, INTERFACE, ENUM, PROPERTY = 7, 8, 13, 10
+
+for _, case in ipairs({
+  { "var a = new HashSet<Foo>();", "var a = new HashSet<Foo", "single-argument generic" },
+  { "List<Foo> l;", "List<Foo", "a declaration" },
+  { "Task<Foo> t;", "Task<Foo", "Task" },
+  { "IEnumerable<Foo> e;", "IEnumerable<Foo", "an interface" },
+  { "var t = typeof(Foo);", "var t = typeof(Foo", "typeof" },
+  { "var s = sizeof(Foo);", "var s = sizeof(Foo", "sizeof" },
+  { "var d = default(Foo);", "var d = default(Foo", "default" },
+}) do
+  text, col, pending = leaves(TYPE_CLASS, "Foo", case[1], #case[2])
+  assert_equal(case[1], text, case[3] .. ": the text should stay as it is")
+  assert_equal(#case[2] + 1, col, case[3] .. ": the cursor should move past the closer")
+  assert_equal(nil, pending, case[3] .. ": no signature help should be asked for")
+end
+
+text, col = leaves(INTERFACE, "IFoo", "List<IFoo> l;", #"List<IFoo")
+assert_equal(#"List<IFoo" + 1, col, "an interface should leave the brackets too")
+text, col = leaves(ENUM, "Color", "HashSet<Color> c;", #"HashSet<Color")
+assert_equal(#"HashSet<Color" + 1, col, "an enum should leave the brackets too")
+text, col = leaves(KEYWORD, "int", "HashSet<int> c;", #"HashSet<int")
+assert_equal(#"HashSet<int" + 1, col, "a built-in type should leave the brackets too")
+
+-- Several type arguments, an argument list and unknown generics keep the cursor where it is.
+text, col = leaves(TYPE_CLASS, "string", "Dictionary<string, int> d;", #"Dictionary<string")
+assert_equal(#"Dictionary<string", col, "a two-argument generic should wait for the comma")
+text, col = leaves(TYPE_CLASS, "Foo", "Dictionary<string, Foo> d;", #"Dictionary<string, Foo")
+assert_equal(#"Dictionary<string, Foo", col, "the last argument of a two-argument generic stays too")
+text, col = leaves(TYPE_CLASS, "Foo", "Mystery<Foo> m;", #"Mystery<Foo")
+assert_equal(#"Mystery<Foo", col, "an unknown generic has an unknown arity")
+text, col = leaves(TYPE_CLASS, "Foo", "Take(Foo);", #"Take(Foo")
+assert_equal(#"Take(Foo", col, "an ordinary argument list may take more arguments")
+
+-- Completing a generic inside the brackets still gets its own "<>".
+text, col = leaves(TYPE_CLASS, "List<>", "HashSet<List>", #"HashSet<List")
+assert_equal("HashSet<List<>>", text, "a generic argument should get its own angle brackets")
+assert_equal(#"HashSet<List<", col, "the cursor should sit inside the inner brackets")
+
+-- nameof also takes methods and properties, which must not get parentheses.
+text, col, pending = leaves(METHOD, "Add", "var n = nameof(list.Add);", #"var n = nameof(list.Add")
+assert_equal("var n = nameof(list.Add);", text, "a method inside nameof should not get ()")
+assert_equal(#"var n = nameof(list.Add" + 1, col, "the cursor should leave nameof")
+assert_equal(nil, pending, "nameof should not ask for signature help")
+text, col = leaves(PROPERTY, "Count", "var n = nameof(list.Count);", #"var n = nameof(list.Count")
+assert_equal(#"var n = nameof(list.Count" + 1, col, "a property inside nameof should leave it")
+
+-- typeof only takes types: a method there is left to the normal handling.
+text = leaves(METHOD, "Foo", "var t = typeof(Foo);", #"var t = typeof(Foo")
+assert_equal(false, text == "var t = typeof(Foo);", "typeof does not treat a method as a type")
+
 -- Generic types get angle brackets, and typing ">" steps over the closing one.
 text, col = run_type("var a = new List", CLASS, "List<T>")
 assert_equal("var a = new List<>", text, "a generic type should get angle brackets")
@@ -448,12 +507,28 @@ assert_equal("    var x = list", rows[2], "earlier rows of the chain should stay
 changed, rows = finish_rows({ "class A { void M() {", "    var x = a.B(", "        c(d))", "} }" }, 3, #"        c(d))")
 assert_equal("        c(d));", rows[3], "a call spanning rows should get its ; on the last row")
 
--- Top-level statements, usings and lambda bodies are deliberately left alone.
+-- Top-level statements and usings work like any other statement, whatever the next row starts with.
 changed, rows = finish_rows({ "var x = list.Count()", "Console.WriteLine(x);" }, 1, #"var x = list.Count()")
-assert_equal("var x = list.Count()", rows[1], "a top-level statement should be left alone")
+assert_equal("var x = list.Count();", rows[1], "a top-level statement should get its ;")
 
 changed, rows = finish_rows({ "using System", "class A { }" }, 1, #"using System")
-assert_equal("using System", rows[1], "a using directive should be left alone")
+assert_equal("using System;", rows[1], "a using directive should get its ;")
+
+-- A forgotten ; before a row that starts with an identifier, in a collection expression or not.
+for _, case in ipairs({
+  { "    List<int> l = [1, 2, 3]", "    l.Add(4);", "    List<int> l = [1, 2, 3];" },
+  { "    var x = list.Count()", "    Console.WriteLine(x);", "    var x = list.Count();" },
+  { "    list.Add(items.First())", "    list.Clear();", "    list.Add(items.First());" },
+  { "    List<int> l = [1, 2, 3]", "    (a, b) = (1, 2);", "    List<int> l = [1, 2, 3];" },
+}) do
+  changed, rows = finish_rows({ "class A { void M() {", case[1], case[2], "} }" }, 2, #case[1])
+  assert_equal(case[3], rows[2], case[1] .. " followed by " .. case[2] .. " should get its ;")
+  assert_equal(case[2], rows[3], "the next row should stay untouched")
+end
+
+-- A row the next row can legitimately continue is read as one expression and left alone.
+changed, rows = finish_rows({ "class A { void M() {", "    var y = a", "        .B()", "} }" }, 2, #"    var y = a")
+assert_equal("    var y = a", rows[2], "a row a chain continues on must not get a ;")
 
 changed, rows = finish_rows(inside_method("    Action a = () => { f() };"), 2, #"    Action a = () => { f(")
 assert_equal("    Action a = () => { f() };", rows[2], "a statement inside a lambda body should be left alone")
