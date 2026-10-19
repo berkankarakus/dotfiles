@@ -121,6 +121,65 @@ co = coroutine.create(function()
       end
     end
 
+    -- The `swe` snippet through cmp and the real <Tab>: typed results add arms, an untouched
+    -- pattern takes the arm away again and lands on the default.
+    do
+      keys("<Esc>")
+      sleep(100)
+      vim.api.nvim_buf_set_lines(buf, marker, marker + 1, false, { "        var sw = swe" })
+      vim.api.nvim_win_set_cursor(0, { marker + 1, 0 })
+      keys("A")
+      sleep(400)
+      cmp.complete()
+      wait_until(function() return cmp.visible() end, 6000)
+      for _ = 1, #(cmp.get_entries() or {}) + 1 do
+        local selected = cmp.get_selected_entry()
+        if selected and selected:get_completion_item().label == "swe" then break end
+        cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+      end
+      sleep(800)
+      cmp.confirm({ select = false, behavior = cmp.ConfirmBehavior.Replace })
+      sleep(800)
+      local function type_text(text)
+        for character in text:gmatch(".") do
+          keys(character, "m")
+          sleep(120)
+        end
+      end
+      local function tab()
+        -- With the completion menu open Tab walks the menu, as everywhere in this config.
+        if cmp.visible() then cmp.close() end
+        keys("<Tab>", "m")
+        sleep(250)
+      end
+      type_text("l.Count")
+      tab(); type_text("1")
+      tab(); type_text('"one"')
+      tab(); type_text("2") -- Tab on a typed result adds an arm
+      tab(); type_text('"two"')
+      tab() -- a third arm appears ...
+      tab() -- ... and goes away again on an untouched pattern
+      type_text('"many"')
+      keys("<Esc>")
+      sleep(200)
+      -- The switch ends at the first "}" indented like the `var` it belongs to.
+      local last = marker + 1
+      while vim.api.nvim_buf_get_lines(buf, last, last + 1, false)[1] ~= "        }" do last = last + 1 end
+      last = last + 1
+      local block = vim.api.nvim_buf_get_lines(buf, marker, last, false)
+      block[#block] = block[#block] .. ";"
+      vim.api.nvim_buf_set_lines(buf, marker, last, false, block)
+      vim.cmd("silent write")
+      local tree = parser:parse(true)[1]
+      local build = vim.system({ "dotnet", "build", "-nologo", "-v", "q", "-clp:ErrorsOnly" }, { text = true }):wait(60000)
+      local ok = not tree:root():has_error() and build.code == 0
+      if not ok then failures = failures + 1 end
+      lib.log((ok and "ok   " or "FAIL ") .. "swe snippet -> " .. table.concat(vim.tbl_map(vim.trim, block), " "))
+      if build.code ~= 0 then lib.log((build.stdout or ""):sub(1, 400)) end
+      -- Put the single probe row back so the checks below find their marker line.
+      vim.api.nvim_buf_set_lines(buf, marker, marker + #block, false, { "        // PROBES" })
+    end
+
     -- Option-Enter on rows that must stay as they are, and on rows that must gain a ";".
     -- "|" marks the cursor; the row is compared after the key.
     local rows = {
