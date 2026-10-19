@@ -295,26 +295,43 @@ end
 local TYPE_CLASS, INTERFACE, ENUM, PROPERTY = 7, 8, 13, 10
 
 for _, case in ipairs({
-  { "var a = new HashSet<Foo>();", "var a = new HashSet<Foo", "single-argument generic" },
-  { "List<Foo> l;", "List<Foo", "a declaration" },
-  { "Task<Foo> t;", "Task<Foo", "Task" },
-  { "IEnumerable<Foo> e;", "IEnumerable<Foo", "an interface" },
-  { "var t = typeof(Foo);", "var t = typeof(Foo", "typeof" },
-  { "var s = sizeof(Foo);", "var s = sizeof(Foo", "sizeof" },
-  { "var d = default(Foo);", "var d = default(Foo", "default" },
+  -- { line, cursor before the closer, how far past it the cursor lands, label }
+  { "var a = new HashSet<Foo>();", "var a = new HashSet<Foo", 1, "a generic followed by ( stays attached" },
+  { "List<Foo> l;", "List<Foo", 2, "a declaration lands after the space before the name" },
+  { "Task<Foo> t;", "Task<Foo", 2, "Task" },
+  { "IEnumerable<Foo> e;", "IEnumerable<Foo", 2, "an interface" },
+  { "var t = typeof(Foo);", "var t = typeof(Foo", 1, "typeof" },
+  { "var s = sizeof(Foo);", "var s = sizeof(Foo", 1, "sizeof" },
+  { "var d = default(Foo);", "var d = default(Foo", 1, "default" },
+  { "List<Foo>;", "List<Foo", 1, "a generic followed by ; stays attached" },
 }) do
   text, col, pending = leaves(TYPE_CLASS, "Foo", case[1], #case[2])
-  assert_equal(case[1], text, case[3] .. ": the text should stay as it is")
-  assert_equal(#case[2] + 1, col, case[3] .. ": the cursor should move past the closer")
-  assert_equal(nil, pending, case[3] .. ": no signature help should be asked for")
+  assert_equal(case[1], text, case[4] .. ": the text should stay as it is")
+  assert_equal(#case[2] + case[3], col, case[4] .. ": the cursor should move past the closer")
+  assert_equal(nil, pending, case[4] .. ": no signature help should be asked for")
 end
 
+-- A generic that ends the line gets the space itself, so the variable name can follow.
+-- ("onemore" lets the cursor sit past the last character, as it does in insert mode.)
+vim.o.virtualedit = "onemore"
+text, col = leaves(TYPE_CLASS, "Foo", "HashSet<Foo>", #"HashSet<Foo")
+assert_equal("HashSet<Foo> ", text, "the space after the closing > should be added")
+assert_equal(#"HashSet<Foo> ", col, "the cursor should sit after that space")
+
+text, col = leaves(TYPE_CLASS, "Foo", "    private List<Foo>", #"    private List<Foo")
+assert_equal("    private List<Foo> ", text, "a field type at the end of the line gets the space too")
+assert_equal(#"    private List<Foo> ", col, "the cursor should sit after the space")
+
+text, col = leaves(TYPE_CLASS, "Foo", "typeof(Foo)", #"typeof(Foo")
+assert_equal("typeof(Foo)", text, "no space is added after a closing parenthesis")
+vim.o.virtualedit = ""
+
 text, col = leaves(INTERFACE, "IFoo", "List<IFoo> l;", #"List<IFoo")
-assert_equal(#"List<IFoo" + 1, col, "an interface should leave the brackets too")
+assert_equal(#"List<IFoo> ", col, "an interface should leave the brackets too")
 text, col = leaves(ENUM, "Color", "HashSet<Color> c;", #"HashSet<Color")
-assert_equal(#"HashSet<Color" + 1, col, "an enum should leave the brackets too")
+assert_equal(#"HashSet<Color> ", col, "an enum should leave the brackets too")
 text, col = leaves(KEYWORD, "int", "HashSet<int> c;", #"HashSet<int")
-assert_equal(#"HashSet<int" + 1, col, "a built-in type should leave the brackets too")
+assert_equal(#"HashSet<int> ", col, "a built-in type should leave the brackets too")
 
 -- Several type arguments, an argument list and unknown generics keep the cursor where it is.
 text, col = leaves(TYPE_CLASS, "string", "Dictionary<string, int> d;", #"Dictionary<string")

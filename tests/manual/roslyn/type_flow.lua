@@ -126,7 +126,7 @@ co = coroutine.create(function()
     do
       local bracket_cases = {
         { "var a = new HashSet<in|>()", "int", "var a = new HashSet<int>", "var a = new HashSet<int>()" },
-        { "List<Ba|> l;", "Baz", "List<Baz>", "List<Baz> l;" },
+        { "List<Ba|> l;", "Baz", "List<Baz> ", "List<Baz> l;" },
         { "var t = typeof(Ba|);", "Baz", "var t = typeof(Baz)", "var t = typeof(Baz);" },
         { "var n = nameof(f.Zer|);", "Zero", "var n = nameof(f.Zero)", "var n = nameof(f.Zero);" },
         { "var d = new Dictionary<string, in|>();", "int", "var d = new Dictionary<string, int", "var d = new Dictionary<string, int>();" },

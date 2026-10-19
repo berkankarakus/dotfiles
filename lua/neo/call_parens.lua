@@ -269,7 +269,7 @@ local function enclosing_generic(before_cursor)
 end
 
 -- After confirming the one thing a pair of brackets holds, the cursor moves past the closer:
--- `HashSet<int|>` -> `HashSet<int>|`, `typeof(Foo|)` -> `typeof(Foo)|`. `nameof` also takes methods and
+-- `HashSet<int|>` -> `HashSet<int> |`, `typeof(Foo|)` -> `typeof(Foo)|`. `nameof` also takes methods and
 -- properties, which must not get "()". Returns true when the completion was handled here.
 local function leave_closer(item, row, column, before_cursor, after_cursor)
   local closer = after_cursor:sub(1, 1)
@@ -289,6 +289,20 @@ local function leave_closer(item, row, column, before_cursor, after_cursor)
     end
   end
   if not applies then return false end
+  if closer == ">" then
+    -- A type that ends a declaration (`List<int>` before its variable name) gets a space after it;
+    -- a following "(", ";" or similar stays directly attached.
+    local rest = after_cursor:sub(2)
+    if rest == "" then
+      vim.api.nvim_buf_set_text(0, row - 1, column + 1, row - 1, column + 1, { " " })
+      vim.api.nvim_win_set_cursor(0, { row, column + 2 })
+    elseif rest:sub(1, 1) == " " then
+      vim.api.nvim_win_set_cursor(0, { row, column + 2 })
+    else
+      vim.api.nvim_win_set_cursor(0, { row, column + 1 })
+    end
+    return true
+  end
   vim.api.nvim_win_set_cursor(0, { row, column + 1 })
   return true
 end
