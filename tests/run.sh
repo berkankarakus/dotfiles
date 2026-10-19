@@ -47,6 +47,7 @@ run_nvim_test tests/csharp_statement_navigation_spec.lua
 run_nvim_test tests/unparsed_navigation_spec.lua
 run_nvim_test tests/json_textobjects_spec.lua
 run_nvim_test tests/surround_format_spec.lua
+run_nvim_test tests/lsp_config_spec.lua
 run_nvim_test tests/snippets_spec.lua
 run_nvim_test tests/debug_notification_spec.lua
 run_nvim_test tests/call_parens_spec.lua
