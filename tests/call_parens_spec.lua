@@ -458,6 +458,10 @@ assert_equal("using System", rows[1], "a using directive should be left alone")
 changed, rows = finish_rows(inside_method("    Action a = () => { f() };"), 2, #"    Action a = () => { f(")
 assert_equal("    Action a = () => { f() };", rows[2], "a statement inside a lambda body should be left alone")
 
+-- A multi-row switch expression ends with "};" on its last row.
+changed, rows = finish_rows({ "class A { string M(int n) {", "    var y = n switch", "    {", '        1 => "one",', '        _ => "many",', "    }", "} }" }, 6, #"    }")
+assert_equal("    };", rows[6], "a switch expression should get its ; after the closing brace")
+
 -- No scratch buffer may outlive a check, whether it accepted the ; or not.
 local buffers = #vim.api.nvim_list_bufs()
 finish("    var x = list.Count()", #"    var x = list.Count(")

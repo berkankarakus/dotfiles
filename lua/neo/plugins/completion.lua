@@ -33,6 +33,11 @@ return {
         s("comment", { t({ "/*", " * " }), i(1), t({ "", " */", "" }), i(0) }),
         s("psr", { t("private static readonly "), i(0) }),
         s("try", { t({ "try", "{", "    " }), i(1), t({ "", "}", "catch (" }), i(2, "Exception ex"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
+        -- A switch expression; the closing `;` is left to the statement it ends.
+        s("swe", {
+          i(1, "value"), t({ " switch", "{", "    " }), i(2, "pattern"), t(" => "), i(3, "result"),
+          t({ ",", "    _ => " }), i(4, "default"), t({ ",", "}" }), i(0),
+        }),
         s("cw", { t("Console.WriteLine("), i(1), t(");") }),
       })
       cmp.setup({
