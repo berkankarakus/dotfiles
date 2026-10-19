@@ -198,7 +198,8 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 - `lua/neo/plugins/`: Eklenti tanımları, konuya göre ayrılmıştır: `ui`, `editing`, `navigation`, `treesitter`, `lsp`, `completion`, `debug`
 - `lua/neo/textobjects.lua`: Tree-sitter textobject seçimi ve yapısal hareketler (`]f`, `]k`, `]s`, ...)
 - `lua/neo/dotnet_debug.lua`: Debugger için .NET proje keşfi ve `launchSettings.json` okuma
-- `lua/neo/call_parens.lua`: C# tamamlamadan sonra `()` ekleme; imleç konumu ve ilk argüman şablonu (`""`, `''`, `x => `), void çağrılarda `;`, `new int[]` ve generic `<>` tipe göre belirlenir
+- `lua/neo/call_parens.lua`: C# tamamlamadan sonra `()` ekleme; imleç konumu ve ilk argüman şablonu (`""`, `''`, `x => `), void çağrılarda `;`, `new int[]` ve generic `<>` tipe göre belirlenir. Ayrıca yazma modu tuşları: `to_initializer` (`Option-i`), `to_collection_expression` (`Option-u`), `finish_statement` (`Option-Enter`)
+- `lua/neo/snippets.lua`: `swe` switch expression snippet'i ve `Tab` ile kol ekleme/silme mantığı
 - `lua/neo/dotnet_build.lua`: `dotnet build` hatalarını quickfix'e alır (`Space r b`)
 - `lua/neo/dotnet_test.lua`: İmlecin altındaki testi veya sınıfı çalıştırır (`Space r t`)
 - `lua/neo/doctor.lua`: `:NeoDoctor` sağlık raporu
