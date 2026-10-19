@@ -349,15 +349,48 @@ local function has_error_on(node, row)
   return false
 end
 
+-- Members whose text parses on its own; the check reparses only the one around the cursor.
+local MEMBER_TYPES = {
+  method_declaration = true,
+  constructor_declaration = true,
+  destructor_declaration = true,
+  operator_declaration = true,
+  conversion_operator_declaration = true,
+  accessor_declaration = true,
+  local_function_statement = true,
+  property_declaration = true,
+  indexer_declaration = true,
+  field_declaration = true,
+  event_field_declaration = true,
+  event_declaration = true,
+  delegate_declaration = true,
+}
+
+-- The range of the member around a position, or nil to parse the whole file.
+local function member_range(root, row, column)
+  local node = root:descendant_for_range(row, column, row, column)
+  while node and not MEMBER_TYPES[node:type()] do node = node:parent() end
+  if not node then return nil end
+  local start_row, start_column, end_row, end_column = node:range()
+  return { start_row, start_column, end_row, end_column }
+end
+
 -- Whether adding ";" at the position makes the row parse cleanly with the ";" ending a real
--- statement. Tried in a scratch buffer, so a wrong guess never touches the file.
-local function semicolon_fits(lines, row, column)
+-- statement. Tried in a scratch buffer, so a wrong guess never touches the file, and only the
+-- member around the position is parsed, so the cost does not grow with the file.
+local function semicolon_fits(lines, row, column, range)
   local scratch = vim.api.nvim_create_buf(false, true)
   local fits = false
   pcall(function()
     vim.api.nvim_buf_set_lines(scratch, 0, -1, false, lines)
     vim.api.nvim_buf_set_text(scratch, row, column, row, column, { ";" })
-    local root = vim.treesitter.get_parser(scratch, "c_sharp"):parse(true)[1]:root()
+    local parser = vim.treesitter.get_parser(scratch, "c_sharp")
+    if range then
+      -- The inserted ";" widens the member by one column only when it ends on the same row.
+      if range[3] == row then range[4] = range[4] + 1 end
+      parser:set_included_regions({ { range } })
+    end
+    local root = parser:parse(true)[1]:root()
     local token = root:descendant_for_range(row, column, row, column + 1)
     fits = not has_error_on(root, row) and token ~= nil and token:type() == ";"
       and token:parent() ~= nil and SEMICOLON_PARENTS[token:parent():type()] == true
@@ -401,7 +434,8 @@ function M.finish_statement()
     if error_row == row - 1 then semicolon_column = error_column end
   end
   if not semicolon_column then return changed end
-  if not semicolon_fits(vim.api.nvim_buf_get_lines(buf, 0, -1, false), row - 1, semicolon_column) then
+  local range = member_range(root, row - 1, semicolon_column)
+  if not semicolon_fits(vim.api.nvim_buf_get_lines(buf, 0, -1, false), row - 1, semicolon_column, range) then
     return changed
   end
 
