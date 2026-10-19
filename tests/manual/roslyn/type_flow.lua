@@ -39,6 +39,11 @@ co = coroutine.create(function()
       { "var g = new Lis", "List<>", true, "int>", ";" },
       { "var d = new Dictiona", "Dictionary<>", true, "string, List<int>>", ";" },
       { "var q = new Fo", "Foo", true, "", ";" },
+      -- Option-Enter must supply the ";" on its own: no tail here.
+      { "f.Fo", "Fold", false, "a + b", nil, "<M-CR>", "" },
+      { "var r = f.Fo", "Fold", false, "a * b", nil, "<M-CR>", "" },
+      { "l.Whe", "Where", false, "n => n > 1", nil, "<M-CR>", "" },
+      { "var k = l.Cou", "Count", false, "", nil, "<M-CR>", "" },
       { "var h = new HashS", "HashSet<>", true, "int>", ";", "<M-i>", "1, 2" },
       { "var m = new Dictiona", "Dictionary<>", true, "int, string>", ";", "<M-i>", '{ 1, "a" }' },
     }

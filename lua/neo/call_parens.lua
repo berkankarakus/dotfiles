@@ -300,4 +300,114 @@ function M.to_initializer()
   return true
 end
 
+-- Statements and declarations that end in ";". A missing ";" under anything else, such as the
+-- empty statement the parser invents after `if (x)`, is not a semicolon the user forgot.
+local SEMICOLON_PARENTS = {
+  expression_statement = true,
+  local_declaration_statement = true,
+  return_statement = true,
+  throw_statement = true,
+  break_statement = true,
+  continue_statement = true,
+  yield_statement = true,
+  goto_statement = true,
+  do_statement = true,
+  field_declaration = true,
+  event_field_declaration = true,
+  using_directive = true,
+  delegate_declaration = true,
+}
+
+-- Collects the MISSING and ERROR nodes that touch a row.
+local function row_findings(node, row, found)
+  local start_row, _, end_row = node:range()
+  if row < start_row or row > end_row then return end
+  if node:type() == "ERROR" then table.insert(found.errors, node) end
+  if node:missing() then
+    if start_row == row then table.insert(found.missing, node) end
+    return
+  end
+  for child in node:iter_children() do row_findings(child, row, found) end
+end
+
+local function last_real_end(node)
+  local last
+  for child in node:iter_children() do
+    if child:type() ~= "comment" then last = child end
+  end
+  if last and last:child_count() > 0 then return last_real_end(last) end
+  return (last or node):end_()
+end
+
+local function has_error_on(node, row)
+  local start_row, _, end_row = node:range()
+  if row < start_row or row > end_row then return false end
+  if node:type() == "ERROR" or node:missing() then return true end
+  for child in node:iter_children() do
+    if has_error_on(child, row) then return true end
+  end
+  return false
+end
+
+-- Whether adding ";" at the position makes the row parse cleanly with the ";" ending a real
+-- statement. Tried in a scratch buffer, so a wrong guess never touches the file.
+local function semicolon_fits(lines, row, column)
+  local scratch = vim.api.nvim_create_buf(false, true)
+  local fits = false
+  pcall(function()
+    vim.api.nvim_buf_set_lines(scratch, 0, -1, false, lines)
+    vim.api.nvim_buf_set_text(scratch, row, column, row, column, { ";" })
+    local root = vim.treesitter.get_parser(scratch, "c_sharp"):parse(true)[1]:root()
+    local token = root:descendant_for_range(row, column, row, column + 1)
+    fits = not has_error_on(root, row) and token ~= nil and token:type() == ";"
+      and token:parent() ~= nil and SEMICOLON_PARENTS[token:parent():type()] == true
+  end)
+  vim.api.nvim_buf_delete(scratch, { force = true })
+  return fits
+end
+
+-- Finishes the statement under the cursor: steps over the `)` / `]` that follow it, then adds
+-- a ";" where one is missing. The spot comes from the parse tree and the result is checked
+-- in a scratch copy first, so an unfinished or ambiguous row (an unclosed bracket, an
+-- `if (x)` header) is left alone instead of guessed at.
+-- Returns true when the buffer or the cursor changed.
+function M.finish_statement()
+  local buf = vim.api.nvim_get_current_buf()
+  local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+  local line = vim.api.nvim_get_current_line()
+  local closers = #line:sub(column + 1):match("^[%)%]]*")
+  local changed = closers > 0
+  if changed then
+    column = column + closers
+    vim.api.nvim_win_set_cursor(0, { row, column })
+  end
+
+  local ok, parser = pcall(vim.treesitter.get_parser, buf, "c_sharp")
+  if not ok or not parser then return changed end
+  local root = parser:parse(true)[1]:root()
+  local found = { missing = {}, errors = {} }
+  row_findings(root, row - 1, found)
+
+  local semicolon_column
+  if #found.missing == 1 and #found.errors == 0 and found.missing[1]:type() == ";" then
+    local previous = found.missing[1]:prev_sibling()
+    while previous and previous:type() == "comment" do previous = previous:prev_sibling() end
+    if previous then
+      local previous_row, previous_column = previous:end_()
+      if previous_row == row - 1 then semicolon_column = previous_column end
+    end
+  elseif #found.missing == 0 and #found.errors == 1 then
+    local error_row, error_column = last_real_end(found.errors[1])
+    if error_row == row - 1 then semicolon_column = error_column end
+  end
+  if not semicolon_column then return changed end
+  if not semicolon_fits(vim.api.nvim_buf_get_lines(buf, 0, -1, false), row - 1, semicolon_column) then
+    return changed
+  end
+
+  vim.api.nvim_buf_set_text(buf, row - 1, semicolon_column, row - 1, semicolon_column, { ";" })
+  vim.api.nvim_win_set_cursor(0, { row, math.max(column, semicolon_column + 1) })
+  return true
+end
+
 return M

@@ -54,6 +54,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | 120. sütundaki ince çizgi | Önerilen satır uzunluğu rehberi |
 | `Option-Left` / `Option-Right` (yazma modunda) | Önceki / sonraki kelimeye git |
 | `Option-i` (C# yazma modunda) | `new List<int>()` içindeki `()` yerine `{ | }` koleksiyon başlatıcısı koyar; `new int[3]` sonuna da ekler |
+| `Option-Enter` (C# yazma modunda) | İfadeyi bitirir: satırdaki `)` / `]` üzerinden atlar, ayrıştırıcı eksik `;` bildiriyorsa ekler; `if (x)` başlığı gibi belirsiz ya da yarım satırlara dokunmaz |
 | `Command-Left` / `Command-Right` (yazma modunda) | Satır başına / sonuna git |
 | `Left` / `Right` (satır başı/sonunda, yazma modunda) | Önceki satırın sonuna / sonraki satırın başına git |
 | `Left` / `Right` / `h` / `l` (satır başı/sonunda, normal modda) | Önceki satırın sonuna / sonraki satırın başına git |

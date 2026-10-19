@@ -354,4 +354,52 @@ changed, text = initializer("var l = new Foo(1)", #"var l = new Foo(")
 assert_equal(false, changed, "a call with arguments should not be converted")
 vim.o.virtualedit = ""
 
+-- Finishing a statement: step over closers, add only a semicolon the parser reports missing.
+vim.o.virtualedit = "onemore"
+local function finish(statement, column)
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, { "class A { void M() {", statement, "} }" })
+  vim.bo.filetype = "cs"
+  vim.api.nvim_win_set_cursor(0, { 2, column })
+  local result = call_parens.finish_statement()
+  return result, vim.api.nvim_buf_get_lines(0, 1, 2, false)[1], vim.api.nvim_win_get_cursor(0)[2]
+end
+
+changed, text, col = finish("    var x = list.Count()", #"    var x = list.Count(")
+assert_equal(true, changed, "a missing ; should be added")
+assert_equal("    var x = list.Count();", text, "the ; should follow the call")
+assert_equal(#text, col, "the cursor should end after the ;")
+
+changed, text, col = finish("    list.Add(items.First())", #"    list.Add(items.First(")
+assert_equal("    list.Add(items.First());", text, "nested closers should all be stepped over")
+assert_equal(#text, col, "the cursor should end after the ;")
+
+changed, text = finish("    return a.B(c(d))  // note", #"    return a.B(c(d")
+assert_equal("    return a.B(c(d));  // note", text, "the ; should go before a trailing comment")
+
+changed, text = finish("    var a = new int[3]", #"    var a = new int[3")
+assert_equal("    var a = new int[3];", text, "brackets should be stepped over as well")
+
+changed, text = finish("    list.Clear();", #"    list.Clear(")
+assert_equal("    list.Clear();", text, "an existing ; should not be doubled")
+assert_equal(true, changed, "stepping over the closers still counts as a change")
+
+changed, text, col = finish("    list.Clear();", #"    list.Clear();")
+assert_equal(false, changed, "a finished statement at its end should change nothing")
+
+changed, text = finish("    if (x)", #"    if (x")
+assert_equal("    if (x)", text, "the empty statement after if () must not get a ;")
+
+changed, text = finish("    for (int i = 0; i < 3; i++)", #"    for (int i = 0; i < 3; i++")
+assert_equal("    for (int i = 0; i < 3; i++)", text, "a for header must not get a ;")
+
+changed, text = finish("    while (running)", #"    while (running")
+assert_equal("    while (running)", text, "a while header must not get a ;")
+
+changed, text = finish("    foo.Bar(1,", #"    foo.Bar(1,")
+assert_equal("    foo.Bar(1,", text, "an unfinished argument list must be left alone")
+
+changed, text = finish("    var f = x =>", #"    var f = x =>")
+assert_equal("    var f = x =>", text, "an unfinished lambda must be left alone")
+vim.o.virtualedit = ""
+
 print("call_parens_spec: ok")
