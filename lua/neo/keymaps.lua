@@ -154,6 +154,9 @@ function M.setup()
       vim.opt_local.comments = vim.bo.comments:gsub(",://", "")
       vim.opt_local.formatoptions:append("r")
       vim.opt_local.formatoptions:remove("o")
+      vim.keymap.set("i", "<M-i>", function()
+        require("neo.call_parens").to_initializer()
+      end, { buffer = true, desc = "new Type() to a collection initializer" })
     end,
   })
 

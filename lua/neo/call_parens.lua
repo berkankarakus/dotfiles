@@ -79,7 +79,13 @@ local function template_for(parameter_type)
   return lambda_head(count), 0
 end
 
-local function parameter_label(signature, parameter)
+-- Roslyn labels a parameter with its name only; the type sits in the signature label,
+-- "void Foo.Say(string message)" or "(extension) T X.Where<T>(Func<T, bool> predicate)".
+local function parameter_declaration(signature, index, parameter)
+  local text = (signature.label or ""):gsub("^%(extension%)%s*", "")
+  local inside = text:match("%((.*)%)%s*$")
+  local declaration = inside and split_top_level(inside)[index]
+  if declaration then return declaration end
   local label = parameter.label
   if type(label) == "table" then label = signature.label and signature.label:sub(label[1] + 1, label[2]) end
   return type(label) == "string" and label or nil
@@ -100,7 +106,7 @@ local function argument_template(help)
   for _, signature in ipairs(help.signatures) do
     local first = signature.parameters and signature.parameters[1]
     if not first then return nil end
-    local label = parameter_label(signature, first)
+    local label = parameter_declaration(signature, 1, first)
     local parameter_type = label and parameter_type_of(label)
     if not parameter_type or (agreed and agreed ~= parameter_type) then return nil end
     agreed = parameter_type
@@ -111,7 +117,7 @@ end
 
 local function returns_void(help)
   for _, signature in ipairs(help.signatures) do
-    if not (signature.label or ""):match("^void%s") then return false end
+    if not (signature.label or ""):gsub("^%(extension%)%s*", ""):match("^void%s") then return false end
   end
   return true
 end
@@ -267,6 +273,31 @@ function M.handle(event)
     if current_row ~= row or current_column ~= column + 1 then return end
     apply_plan(buf, row, column, plan)
   end)
+end
+
+-- Turns the `()` of a `new Type()` into a collection initializer, ` { | }`, or appends one
+-- to an array creation (`new int[3]`). Works with the cursor inside or right after the `()`.
+-- Returns false when the cursor is not at such an expression.
+function M.to_initializer()
+  local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+  local line = vim.api.nvim_get_current_line()
+  local before, after = line:sub(1, column), line:sub(column + 1)
+  local type_expression = "%f[%w_]new%s+[%w_%.<>, %[%]]+$"
+  local start, finish
+  if before:sub(-1) == "(" and after:sub(1, 1) == ")" then
+    start, finish = column - 1, column + 1
+  elseif before:sub(-2) == "()" then
+    start, finish = column - 2, column
+  elseif before:match("%f[%w_]new%s+[%w_%.<>, ]+%[[^%]]*%]$") then
+    start, finish = column, column
+  else
+    return false
+  end
+  if not line:sub(1, start):match(type_expression) and start ~= finish then return false end
+  if after:sub(1, 1) == "{" then return false end
+  vim.api.nvim_buf_set_text(0, row - 1, start, row - 1, finish, { " {  }" })
+  vim.api.nvim_win_set_cursor(0, { row, start + 3 })
+  return true
 end
 
 return M

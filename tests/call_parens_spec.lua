@@ -204,6 +204,25 @@ local offsets = { label = "void F.G(string name)", parameters = { { label = { 9,
 text = run(METHOD, "f.G", { signatures = { offsets } })
 assert_equal('f.G("")', text, "offset labels should be resolved against the signature label")
 
+-- Roslyn labels parameters by name only; the type is read from the signature label.
+local function roslyn(label, ...)
+  local parameters = {}
+  for _, name in ipairs({ ... }) do table.insert(parameters, { label = name }) end
+  return { label = label, parameters = parameters }
+end
+
+text = run(METHOD, "f.Say", { signatures = { roslyn("void Foo.Say(string message)", "message") } })
+assert_equal('f.Say("")', text, "the type should come from the signature label")
+
+text = run(METHOD, "l.Where", { signatures = { roslyn("(extension) IEnumerable<int> IEnumerable<int>.Where<int>(Func<int, bool> predicate)", "predicate") } })
+assert_equal("l.Where(x => )", text, "extension signatures should be read without their prefix")
+
+text = run(METHOD, "l.Where", { signatures = { roslyn("(extension) IEnumerable<int> L.Where<int>(Func<int, bool> predicate)", "predicate"), roslyn("(extension) IEnumerable<int> L.Where<int>(Func<int, int, bool> predicate)", "predicate") } })
+assert_equal("l.Where()", text, "overloads with different delegate types should stay empty")
+
+text = run(METHOD, "f.Fold", { signatures = { roslyn("int Foo.Fold(Func<int, int, int> folder)", "folder") } })
+assert_equal("f.Fold((a, b) => )", text, "Func should count its inputs from the signature label")
+
 -- Void calls in statement position get their semicolon. "onemore" lets the cursor sit past
 -- the last character, so nothing follows it.
 vim.o.virtualedit = "onemore"
@@ -295,5 +314,44 @@ assert_equal(">", close_key(), "an unbalanced inner < should type a literal >")
 
 text = run_type("var a = new Foo", CLASS, "Foo")
 assert_equal("var a = new Foo()", text, "a non-generic type should still get parentheses")
+
+-- Collection initializers on request.
+vim.o.virtualedit = "onemore"
+local function initializer(line, column)
+  setup(line, column)
+  local changed = call_parens.to_initializer()
+  return changed, vim.api.nvim_get_current_line(), vim.api.nvim_win_get_cursor(0)[2]
+end
+
+local changed
+changed, text, col = initializer("var l = new List<int>()", #"var l = new List<int>()")
+assert_equal(true, changed, "a cursor after () should convert")
+assert_equal("var l = new List<int> {  }", text, "() should become an initializer")
+assert_equal(#"var l = new List<int> { ", col, "the cursor should sit between the braces")
+
+changed, text, col = initializer("var l = new List<int>()", #"var l = new List<int>(")
+assert_equal("var l = new List<int> {  }", text, "a cursor inside () should convert")
+assert_equal(#"var l = new List<int> { ", col, "the cursor should sit between the braces")
+
+changed, text = initializer("var d = new Dictionary<string, List<int>>();", #"var d = new Dictionary<string, List<int>>()")
+assert_equal("var d = new Dictionary<string, List<int>> {  };", text, "nested generics and a trailing ; should be kept")
+
+changed, text, col = initializer("var a = new int[3]", #"var a = new int[3]")
+assert_equal("var a = new int[3] {  }", text, "an array creation should get an initializer")
+assert_equal(#"var a = new int[3] { ", col, "the cursor should sit between the braces")
+
+changed, text = initializer("var a = new int[]", #"var a = new int[]")
+assert_equal("var a = new int[] {  }", text, "an unsized array should get an initializer")
+
+changed, text = initializer("list.Clear()", #"list.Clear()")
+assert_equal(false, changed, "an ordinary call must not be converted")
+assert_equal("list.Clear()", text, "an ordinary call should stay unchanged")
+
+changed = initializer("var l = new List<int> {  }", #"var l = new List<int>")
+assert_equal(false, changed, "an existing initializer should not be duplicated")
+
+changed, text = initializer("var l = new Foo(1)", #"var l = new Foo(")
+assert_equal(false, changed, "a call with arguments should not be converted")
+vim.o.virtualedit = ""
 
 print("call_parens_spec: ok")

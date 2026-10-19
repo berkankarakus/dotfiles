@@ -10,6 +10,11 @@ class Foo
     public void Over() { }
     public void Over(int a) { }
     public int Gen<T>() => 0;
+    public void Say(string message) { }
+    public void Sep(char separator) { }
+    public void Each(Action<int> action) { }
+    public void Ordr(Comparison<int> comparison) { }
+    public int Fold(Func<int, int, int> folder) => 0;
 }
 class Bar { public Bar(int x) { } }
 class Baz { }
