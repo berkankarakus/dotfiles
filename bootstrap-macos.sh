@@ -52,7 +52,7 @@ if [[ -z "$BREW_BIN" && -x /usr/local/bin/brew ]]; then BREW_BIN=/usr/local/bin/
 eval "$("$BREW_BIN" shellenv)"
 
 echo "Installing development tools..."
-brew install neovim ripgrep fzf zoxide fd bat git jq terminal-notifier tree-sitter-cli
+brew install neovim ripgrep fzf zoxide fd bat git jq awk terminal-notifier tree-sitter-cli
 if [[ "$WITH_ELM" == true ]]; then
   brew install fossil elm elm-format node
 fi
