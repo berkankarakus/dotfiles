@@ -1,5 +1,5 @@
 # Managed by the Neovim C# bootstrap. This file is sourced from ~/.zshrc.
-export PATH="$HOME/.dotnet/tools:$HOME/.local/bin:/opt/homebrew/bin:$PATH"
+export PATH="/opt/homebrew/opt/awk/bin:$HOME/.dotnet/tools:$HOME/.local/bin:/opt/homebrew/bin:$PATH"
 
 HISTFILE="$HOME/.zsh_history"
 HISTSIZE=10000
