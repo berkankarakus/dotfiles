@@ -36,6 +36,7 @@ return {
         require("neo.snippets").switch_expression(ls),
         s("cw", { t("Console.WriteLine("), i(1), t(");") }),
       })
+      ls.add_snippets("cs", require("neo.snippets").collection_declarations(ls))
       cmp.setup({
         enabled = function()
           local context = require("cmp.config.context")

@@ -57,4 +57,36 @@ function M.switch_tab()
   return false
 end
 
+-- Declarations with the type written once, on the left, and the right side ready for elements.
+-- List, HashSet and arrays take a collection expression (C# 12+). Queue and Stack have no Add
+-- method, so their elements go into the constructor, `new([1, 2, 3])`; a Dictionary takes an
+-- index initializer, `new() { ["a"] = 1 }`.
+function M.collection_declarations(ls)
+  local s, t, i = ls.snippet, ls.text_node, ls.insert_node
+
+  local function with_elements(trigger, open, default_type, default_name)
+    return s(trigger, {
+      t(open), i(1, default_type), t("> "), i(2, default_name), t(" = ["), i(0), t("];"),
+    })
+  end
+
+  local function with_constructor(trigger, open, default_type, default_name)
+    return s(trigger, {
+      t(open), i(1, default_type), t("> "), i(2, default_name), t(" = new(["), i(0), t("]);"),
+    })
+  end
+
+  return {
+    with_elements("lst", "List<", "int", "items"),
+    with_elements("hset", "HashSet<", "int", "items"),
+    s("arr", { i(1, "int"), t("[] "), i(2, "values"), t(" = ["), i(0), t("];") }),
+    s("dict", {
+      t("Dictionary<"), i(1, "string"), t(", "), i(2, "int"), t("> "), i(3, "map"), t(" = new() { ["),
+      i(4, "key"), t("] = "), i(5, "value"), t(" };"), i(0),
+    }),
+    with_constructor("queue", "Queue<", "int", "queue"),
+    with_constructor("stack", "Stack<", "int", "stack"),
+  }
+end
+
 return M

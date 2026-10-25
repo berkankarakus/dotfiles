@@ -95,4 +95,36 @@ expand("swe", "var y = ")
 ls.jump(1)
 assert_equal(false, swe.switch_tab(), "Tab on the first pattern should be left to the normal jump")
 
+-- Collection declarations: the type is written once, the right side is an empty collection expression.
+for _, case in ipairs({
+  { "lst", "List<int> items = [];", { "int", "items" }, "[" },
+  { "hset", "HashSet<int> items = [];", { "int", "items" }, "[" },
+  { "arr", "int[] values = [];", { "int", "values" }, "[" },
+  { "dict", "Dictionary<string, int> map = new() { [key] = value };", { "string", "int", "map", "key", "value" } },
+  { "queue", "Queue<int> queue = new([]);", { "int", "queue" }, "[" },
+  { "stack", "Stack<int> stack = new([]);", { "int", "stack" }, "[" },
+}) do
+  local trigger, expected, stops, inside = case[1], case[2], case[3], case[4]
+  local lines = expand(trigger, "")
+  assert_equal(1, #lines, trigger .. " should expand to one line")
+  assert_equal(expected, lines[1], trigger .. " should expand to " .. expected)
+  assert_equal(stops[1], current_text(), trigger .. ": the first stop should be the type")
+  for index = 2, #stops do
+    ls.jump(1)
+    assert_equal(stops[index], current_text(), trigger .. ": stop " .. index)
+  end
+  if inside then
+    -- The final stop sits between the brackets, before the ";".
+    local from, to = current_node().parent.insert_nodes[0]:get_buf_position()
+    local bracket = lines[1]:match(".*()%[")
+    assert_equal(bracket, from[2], trigger .. ": the final stop should sit right after [")
+    assert_equal(bracket, to[2], trigger .. ": and be empty")
+  end
+
+  -- With the placeholders filled in, the line must parse as a declaration.
+  local source = "class A { void M() {\n" .. expected .. "\n} }"
+  local root = vim.treesitter.get_string_parser(source, "c_sharp"):parse()[1]:root()
+  assert_equal(false, root:has_error(), trigger .. ": the expansion should parse cleanly: " .. source)
+end
+
 print("snippets_spec: ok")

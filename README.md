@@ -33,7 +33,7 @@ csharp_preserve_single_line_statements = true
 
 ## C# Şablonları
 
-Yazma modunda `ctor`, `prop`, `propg`, `if`, `for`, `foreach`, `dowhile`, `swe` (switch expression: sonucu yazıp `Tab`'a basınca yeni kol eklenir; dokunmadığınız boş kolda `Tab` onu geri siler ve `_ =>` varsayılanına geçer), `region`, `try` veya `cw` yazın; completion menüsünden şablonu `Enter` ile seçin. `Tab` sonraki yer tutucuya, `Shift-Tab` öncekine gider. `ctor`, içinde bulunduğunuz sınıfın adını otomatik kullanır.
+Yazma modunda `ctor`, `prop`, `propg`, `if`, `for`, `foreach`, `dowhile`, `lst`, `hset`, `arr`, `dict`, `queue`, `stack` (tipi solda bir kez yazılan koleksiyon bildirimi; `lst`, `hset`, `arr` için `= [|];`, `queue` ve `stack` için `= new([|]);` (`Add` metotları olmadığı için elemanlar kurucuya girer), `dict` için `= new() { [anahtar] = değer };`; C# 12+), `swe` (switch expression: sonucu yazıp `Tab`'a basınca yeni kol eklenir; dokunmadığınız boş kolda `Tab` onu geri siler ve `_ =>` varsayılanına geçer), `region`, `try` veya `cw` yazın; completion menüsünden şablonu `Enter` ile seçin. `Tab` sonraki yer tutucuya, `Shift-Tab` öncekine gider. `ctor`, içinde bulunduğunuz sınıfın adını otomatik kullanır.
 
 Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi code action'larını gösterir. Birkaç statement'ı `V` ile seçip `Space c a` yaptığınızda **Extract method** ile fonksiyona ayırabilirsiniz.
 
