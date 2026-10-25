@@ -172,6 +172,7 @@ check "netcoredbg debugger" test -x "$HOME/.local/share/nvim/lazy/netcoredbg-mac
 check "Ghostty" test -d /Applications/Ghostty.app
 check "JetBrainsMono Nerd Font" font_installed
 check "jq (JSON formatting)" command -v jq
+check "awk (Homebrew)" test -x /opt/homebrew/opt/awk/bin/awk
 for parser in c_sharp mssql json; do
   check "Tree-sitter parser: $parser" test -f "$HOME/.local/share/nvim/site/parser/$parser.so"
 done
