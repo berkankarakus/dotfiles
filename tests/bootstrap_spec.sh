@@ -99,6 +99,7 @@ fi
 # Options are parsed before anything is installed.
 help_output=$(./bootstrap-macos.sh --help)
 grep -Fq -- '--no-elm' <<<"$help_output" || fail "--help should document --no-elm"
+grep -Fq -- '--with-mono' <<<"$help_output" || fail "--help should document --with-mono"
 [[ $(./bootstrap-macos-csharp.sh --help) == "$help_output" ]] || fail "wrapper --help should match the main script"
 
 if ./bootstrap-macos.sh --definitely-unknown >/dev/null 2>&1; then
@@ -125,5 +126,15 @@ grep -Fq 'Verifying installation' bootstrap-macos.sh || fail "a verification sum
 
 # Elm tooling is optional.
 awk '/WITH_ELM.*== true/ { found = 1 } END { exit !found }' bootstrap-macos.sh || fail "Elm steps should be gated by WITH_ELM"
+
+# Mono and its debug adapter are opt-in: off by default, installed only for --with-mono, and the
+# downloaded archive is verified against a pinned SHA-256 before it is extracted.
+grep -Fq 'WITH_MONO=false' bootstrap-macos.sh || fail "Mono should be off by default"
+grep -Fq -- '--with-mono) WITH_MONO=true' bootstrap-macos.sh || fail "--with-mono should enable Mono"
+awk '/WITH_MONO.*== true/ { found = 1 } END { exit !found }' bootstrap-macos.sh || fail "Mono steps should be gated by WITH_MONO"
+grep -Eq 'MONO_DEBUG_SHA256="[0-9a-f]{64}"' bootstrap-macos.sh || fail "the Mono debug adapter archive should be pinned by SHA-256"
+verify_line=$(grep -n 'shasum -a 256 -c' bootstrap-macos.sh | head -1 | cut -d: -f1)
+extract_line=$(grep -n "unzip -q" bootstrap-macos.sh | head -1 | cut -d: -f1)
+[[ -n "$verify_line" && -n "$extract_line" && "$verify_line" -lt "$extract_line" ]] || fail "the archive hash should be verified before extraction"
 
 printf 'bootstrap_spec: ok\n'

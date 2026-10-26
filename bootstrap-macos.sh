@@ -3,17 +3,24 @@
 #
 #   ./bootstrap-macos.sh            full setup (C# + Elm)
 #   ./bootstrap-macos.sh --no-elm   C#-focused setup without Elm tooling
+#   ./bootstrap-macos.sh --with-mono  also install Mono and the Mono debug adapter (.NET Framework projects)
 set -euo pipefail
 
 # Pinned so every machine gets the same language server; bump deliberately.
 ROSLYN_VERSION="5.12.0-1.26426.8"
+# The Mono debug adapter is Microsoft's prebuilt mono-debug extension from Open VSX; the archive is
+# checked against its published SHA-256 before anything is extracted.
+MONO_DEBUG_VERSION="0.16.3"
+MONO_DEBUG_SHA256="a9a6b460583f81f96077bdec636671058ca89fd4b4b07fec3c77a2bcf60deace"
 WITH_ELM=true
+WITH_MONO=false
 
 for argument in "$@"; do
   case "$argument" in
     --no-elm) WITH_ELM=false ;;
+    --with-mono) WITH_MONO=true ;;
     -h|--help)
-      sed -n '3,5p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '3,6p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -33,6 +40,7 @@ NVIM_DIR="$HOME/.config/nvim"
 GHOSTTY_DIR="$HOME/.config/ghostty"
 ZSH_DIR="$HOME/.config/zsh"
 BACKUP_DIR="$HOME/.config/neovim-csharp-backup/$(date +%Y%m%d-%H%M%S)"
+MONO_DEBUG_DIR="$HOME/.local/share/nvim/mono-debug"
 
 backup_if_present() {
   local path="$1"
@@ -88,6 +96,26 @@ fi
 if [[ "$WITH_ELM" == true ]]; then
   echo "Installing Elm language server and test runner..."
   npm install -g elm-test @elm-tooling/elm-language-server
+fi
+
+# Optional: Mono runs and debugs .NET Framework projects. Failures here only warn; the checks at the
+# end report what is missing. The steps are chained with && because set -e is off inside `||`.
+install_mono_debug() {
+  local vsix_dir
+  [[ -f "$MONO_DEBUG_DIR/mono-debug.exe" ]] && return 0
+  vsix_dir="$(mktemp -d)" &&
+    curl -fsSL -o "$vsix_dir/mono-debug.vsix" \
+      "https://open-vsx.org/api/ms-vscode/mono-debug/$MONO_DEBUG_VERSION/file/ms-vscode.mono-debug-$MONO_DEBUG_VERSION.vsix" &&
+    echo "$MONO_DEBUG_SHA256  $vsix_dir/mono-debug.vsix" | shasum -a 256 -c - &&
+    unzip -q "$vsix_dir/mono-debug.vsix" 'extension/bin/Release/*' -d "$vsix_dir/out" &&
+    mkdir -p "$MONO_DEBUG_DIR" &&
+    cp -R "$vsix_dir/out/extension/bin/Release/." "$MONO_DEBUG_DIR/" &&
+    rm -rf "$vsix_dir"
+}
+if [[ "$WITH_MONO" == true ]]; then
+  echo "Installing Mono and the Mono debug adapter $MONO_DEBUG_VERSION..."
+  brew install mono || echo "warning: brew install mono failed" >&2
+  install_mono_debug || echo "warning: the Mono debug adapter could not be installed" >&2
 fi
 
 echo "Installing Zsh autosuggestions..."
@@ -176,6 +204,10 @@ check "awk (Homebrew)" test -x /opt/homebrew/opt/awk/bin/awk
 for parser in c_sharp mssql json; do
   check "Tree-sitter parser: $parser" test -f "$HOME/.local/share/nvim/site/parser/$parser.so"
 done
+if [[ "$WITH_MONO" == true ]]; then
+  check "Mono" command -v mono
+  check "Mono debug adapter" test -f "$MONO_DEBUG_DIR/mono-debug.exe"
+fi
 if [[ "$WITH_ELM" == true ]]; then
   check "Tree-sitter parser: elm" test -f "$HOME/.local/share/nvim/site/parser/elm.so"
   check "elm-language-server" command -v elm-language-server
