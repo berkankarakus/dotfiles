@@ -143,6 +143,25 @@ T-SQL'de `vaf` / `vif` stored procedure, function veya trigger'ı; `vab` / `vib`
 
 Önce `dotnet build` çalıştırın. Ardından `F5`, açık dosya bir class library içindeyse çözümdeki çalıştırılabilir (`OutputType=Exe`, Web veya Worker SDK) projeyi bulup onun Debug `.dll` çıktısını başlatır. Projede `Properties/launchSettings.json` varsa `commandLineArgs`, `workingDirectory` ve environment değerleri de otomatik uygulanır. Web projelerinde `applicationUrl` uygulanır; `launchBrowser` açıksa Swagger adresi açılır. Breakpoint'ler proje kapatılıp açıldığında korunur. Breakpoint'e ulaşıldığında macOS bildirimi gelir; bildirime tıklamak Neovim'in çalıştığı terminali öne getirir. Bulamazsa yalnızca o zaman DLL yolunu sorar. Apple Silicon macOS'ta yerel ARM netcoredbg ikilisi kullanılır.
 
+### .NET Framework projelerini hata ayıklama (Mono)
+
+`F5`, projeye bakarak hata ayıklayıcıyı seçer: `net4x` hedefli (`net48`, `net472` vb.) ya da eski tarz `TargetFrameworkVersion v4.x` projeleri Mono'nun hata ayıklayıcısıyla (Microsoft'un `mono-debug` adaptörü), diğerleri `netcoredbg` ile başlar. Çalıştırılacak dosya `bin/Debug` altındaki en yeni `<AssemblyName>.exe`'dir; önce projeyi derleyin (`Space r b`, eski tarz projede terminalden `msbuild`). Çıktı Neovim içindeki konsolda görünür.
+
+Gerekenler: Mono (`brew install mono`) ve `mono-debug.exe`. İkisi de `./bootstrap-macos.sh --with-mono` ile kurulur; elle kurmak için adaptör Microsoft'un hazır paketinden (Open VSX'teki `ms-vscode.mono-debug` 0.16.3) çıkarılıp `~/.local/share/nvim/mono-debug/` altına konur (adres `NEO_MONO_DEBUG` ortam değişkeniyle değiştirilebilir). Kaynaktan derlemek (`vscode-mono-debug` deposu) macOS'ta `dotnet build` ile çalışmaz: alt projeler eski tarz ve NuGet paketlerini çözemez. Paketin yayınlanan SHA-256 özeti kontrol edilir:
+
+```sh
+d=$(mktemp -d)
+curl -fsSL -o "$d/mono-debug.vsix" https://open-vsx.org/api/ms-vscode/mono-debug/0.16.3/file/ms-vscode.mono-debug-0.16.3.vsix
+echo "a9a6b460583f81f96077bdec636671058ca89fd4b4b07fec3c77a2bcf60deace  $d/mono-debug.vsix" | shasum -a 256 -c -
+unzip -q "$d/mono-debug.vsix" 'extension/bin/Release/*' -d "$d/out"
+mkdir -p ~/.local/share/nvim/mono-debug
+cp -R "$d/out/extension/bin/Release/." ~/.local/share/nvim/mono-debug/
+ls ~/.local/share/nvim/mono-debug/mono-debug.exe
+```
+
+Adaptör yoksa `F5` bir hata mesajıyla durur. Ayrıntı: `lua/neo/dotnet_debug.lua` (proje tanıma, `.exe` bulma) ve `lua/neo/plugins/debug.lua`.
+
+
 Terminaldeki `dotnet run`, aksi belirtilmedikçe Release yapılandırmasını kullanır. `Microsoft.NET.Sdk.Web` projelerinde `launchSettings.json` içinde `launchBrowser: true` ve `applicationUrl` tanımlıysa uygulama hazır olduğunda Swagger adresi tarayıcıda açılır. `--configuration Debug` veya `--no-launch-profile` gibi açık seçenekler korunur; Worker ve class library projeleri tarayıcı açmaz.
 
 Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızca whitespace ise bunun yerine kısa bir uyarı yazar; ham görünümü gerektiğinde `command git diff` ile alabilirsiniz.
@@ -247,6 +266,12 @@ ln -sfn ~/.config/nvim/templates/claude-global.md ~/.claude/CLAUDE.md
 ```
 
 Bağlantı `~/.config/nvim` yoluna bağlıdır. Bir araç dosyayı yerinde değiştirmek yerine yeniden yazıp adını değiştirirse bağlantı kopar ve `~/.claude/CLAUDE.md` bağımsız bir dosyaya döner; `ls -l ~/.claude/CLAUDE.md` ile `->` işaretini görerek denetleyin.
+
+İsteğe bağlı olarak .NET Framework projeleri için Mono ve Mono hata ayıklama adaptörü kurulabilir (varsayılan olarak kurulmaz; `brew install mono` ve Open VSX'ten SHA-256'sı doğrulanan `mono-debug` 0.16.3 paketi):
+
+```sh
+./bootstrap-macos.sh --with-mono
+```
 
 Fossil ve Elm gerekmeyen bir Mac'te bunun yerine şunu çalıştırın:
 

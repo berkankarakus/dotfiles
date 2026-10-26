@@ -120,4 +120,68 @@ assert_equal(root .. "/Web", context.profile.cwd, "resolve_launch_context should
 vim.cmd.cd("/")
 vim.fn.delete(root, "rf")
 
+-- .NET Framework projects: detection, the executable to debug and the launch context.
+local function project(name, text)
+  local path = root .. "/Framework/" .. name .. ".csproj"
+  write(path, text)
+  return path
+end
+
+assert_equal(true, debug.project_is_framework(project("Sdk48", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net48</TargetFramework></PropertyGroup></Project>')), "net48 should be a Framework project")
+assert_equal(true, debug.project_is_framework(project("Sdk472", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net472</TargetFramework></PropertyGroup></Project>')), "net472 should be a Framework project")
+assert_equal(true, debug.project_is_framework(project("Many", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net462;net48</TargetFrameworks></PropertyGroup></Project>')), "all-Framework target lists should count")
+assert_equal(true, debug.project_is_framework(project("Old", '<Project ToolsVersion="15.0"><PropertyGroup><TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion></PropertyGroup></Project>')), "an old-style v4.7.2 project should be a Framework project")
+assert_equal(false, debug.project_is_framework(project("Core", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')), "net10.0 is not a Framework project")
+assert_equal(false, debug.project_is_framework(project("Mixed", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net48;net8.0</TargetFrameworks></PropertyGroup></Project>')), "a list that includes .NET should not count")
+assert_equal(false, debug.project_is_framework(project("Std", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>netstandard2.0</TargetFramework></PropertyGroup></Project>')), "netstandard is not a Framework project")
+assert_equal(false, debug.project_is_framework(root .. "/Framework/Missing.csproj"), "a missing file is not a Framework project")
+assert_equal(false, debug.project_is_framework(nil), "no project is not a Framework project")
+
+-- SDK style: bin/Debug/<tfm>/<Name>.exe, the newest one wins.
+local sdk_project = root .. "/Framework/Sdk48.csproj"
+write(root .. "/Framework/bin/Debug/net472/Sdk48.exe", "old")
+write(root .. "/Framework/bin/Debug/net48/Sdk48.exe", "new")
+write(root .. "/Framework/bin/Debug/net48/Other.exe", "other")
+vim.uv.fs_utime(root .. "/Framework/bin/Debug/net472/Sdk48.exe", 1000, 1000)
+assert_equal(root .. "/Framework/bin/Debug/net48/Sdk48.exe", real(debug.framework_program(sdk_project)), "the newest build of the project's own exe should be debugged")
+
+-- Old style: bin/Debug/<AssemblyName>.exe, the assembly name may differ from the project name.
+local old_project = project("OldNamed", '<Project ToolsVersion="15.0"><PropertyGroup><AssemblyName>Shipped.App</AssemblyName><TargetFrameworkVersion>v4.8</TargetFrameworkVersion></PropertyGroup></Project>')
+write(root .. "/Framework/bin/Debug/Shipped.App.exe", "exe")
+assert_equal(root .. "/Framework/bin/Debug/Shipped.App.exe", real(debug.framework_program(old_project)), "an old-style project should use its AssemblyName and no target folder")
+
+-- The launch context carries the Framework flag; ordinary projects do not.
+vim.cmd("cd " .. vim.fn.fnameescape(root .. "/Framework"))
+vim.cmd("silent! %bwipeout!")
+vim.cmd("edit " .. vim.fn.fnameescape(root .. "/Framework/Program.cs"))
+os.remove(root .. "/Framework/OldNamed.csproj")
+os.remove(root .. "/Framework/Old.csproj")
+os.remove(root .. "/Framework/Many.csproj")
+os.remove(root .. "/Framework/Sdk472.csproj")
+os.remove(root .. "/Framework/Core.csproj")
+os.remove(root .. "/Framework/Mixed.csproj")
+os.remove(root .. "/Framework/Std.csproj")
+write(root .. "/Framework/Sdk48.csproj", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net48</TargetFramework></PropertyGroup></Project>')
+local framework_context = debug.resolve_launch_context()
+assert_equal(true, framework_context.framework, "a Framework project should flag the launch context")
+assert_equal(root .. "/Framework/bin/Debug/net48/Sdk48.exe", real(framework_context.program), "the launch context should name the exe")
+assert_equal(root .. "/Framework", framework_context.profile.cwd, "the launch context should run in the project directory")
+
+write(root .. "/Plain/Plain.csproj", '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>')
+write(root .. "/Plain/bin/Debug/net10.0/Plain.dll", "dll")
+write(root .. "/Plain/bin/Debug/net10.0/Plain.runtimeconfig.json", "{}")
+vim.cmd("cd " .. vim.fn.fnameescape(root .. "/Plain"))
+vim.cmd("silent! %bwipeout!")
+vim.cmd("edit " .. vim.fn.fnameescape(root .. "/Plain/Program.cs"))
+local plain_context = debug.resolve_launch_context()
+assert_equal(nil, plain_context.framework, "an ordinary project must not be flagged")
+assert_equal(root .. "/Plain/bin/Debug/net10.0/Plain.dll", real(plain_context.program), "an ordinary project still debugs its dll")
+
+-- The adapter lives under the Neovim data directory unless NEO_MONO_DEBUG overrides it.
+vim.env.NEO_MONO_DEBUG = nil
+assert_equal(vim.fn.stdpath("data") .. "/mono-debug/mono-debug.exe", debug.mono_debug_path(), "the default adapter location")
+vim.env.NEO_MONO_DEBUG = "/somewhere/mono-debug.exe"
+assert_equal("/somewhere/mono-debug.exe", debug.mono_debug_path(), "NEO_MONO_DEBUG should override the location")
+vim.env.NEO_MONO_DEBUG = nil
+
 print("dotnet_debug_spec: ok")

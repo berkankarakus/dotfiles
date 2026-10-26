@@ -50,6 +50,7 @@ run_nvim_test tests/surround_format_spec.lua
 run_nvim_test tests/lsp_config_spec.lua
 run_nvim_test tests/snippets_spec.lua
 run_nvim_test tests/debug_notification_spec.lua
+run_nvim_test tests/mono_debug_spec.lua
 run_nvim_test tests/call_parens_spec.lua
 run_nvim_test tests/leader_prefix_spec.lua
 bash tests/zsh_template_spec.sh

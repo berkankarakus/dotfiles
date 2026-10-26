@@ -62,6 +62,41 @@ local function dotnet_program(project_file)
   end
   return vim.fn.input("Path to DLL: ", vim.fn.getcwd() .. "/bin/Debug/", "file")
 end
+-- .NET Framework projects (net4x, or an old-style TargetFrameworkVersion v4.x) cannot run on the
+-- .NET runtime; they run on Mono and are debugged through its soft debugger.
+local function project_is_framework(project_file)
+  if not project_file or vim.fn.filereadable(project_file) == 0 then return false end
+  local project_text = table.concat(vim.fn.readfile(project_file), "\n")
+  if project_text:match("<TargetFrameworkVersion>%s*v4[%.%d]*%s*</TargetFrameworkVersion>") then return true end
+
+  local frameworks = project_text:match("<TargetFrameworks?[^>]*>%s*([^<]-)%s*</TargetFrameworks?>")
+  if not frameworks then return false end
+  for framework in frameworks:gmatch("[^;%s]+") do
+    if not framework:match("^net4%d+$") then return false end
+  end
+  return true
+end
+local function framework_program(project_file)
+  local project_dir = project_file and vim.fs.dirname(project_file) or vim.fn.getcwd()
+  if project_file then
+    local project_text = table.concat(vim.fn.readfile(project_file), "\n")
+    local assembly_name = project_text:match("<AssemblyName>%s*([^<]-)%s*</AssemblyName>")
+      or vim.fn.fnamemodify(project_file, ":t:r")
+    local candidates = vim.fn.globpath(project_dir, "bin/Debug/*.exe", false, true)
+    vim.list_extend(candidates, vim.fn.globpath(project_dir, "bin/Debug/**/*.exe", false, true))
+
+    local newest, newest_time
+    for _, exe in ipairs(candidates) do
+      local stat = vim.uv.fs_stat(exe)
+      if vim.fn.fnamemodify(exe, ":t") == assembly_name .. ".exe" and stat then
+        local modified = stat.mtime.sec
+        if not newest or modified > newest_time then newest, newest_time = exe, modified end
+      end
+    end
+    if newest then return newest end
+  end
+  return vim.fn.input("Path to EXE: ", project_dir .. "/bin/Debug/", "file")
+end
 local function dotnet_launch_profile(project_file)
   if not project_file then return { cwd = vim.fn.getcwd(), args = {}, env = {} } end
 
@@ -124,10 +159,24 @@ M.project_sdk = project_sdk
 M.project_is_executable = project_is_executable
 M.debug_project_file = debug_project_file
 M.program = dotnet_program
+M.project_is_framework = project_is_framework
+M.framework_program = framework_program
 M.launch_profile = dotnet_launch_profile
+
+-- Where the Mono debug adapter (vscode-mono-debug's mono-debug.exe) is installed.
+function M.mono_debug_path()
+  return vim.env.NEO_MONO_DEBUG or vim.fn.stdpath("data") .. "/mono-debug/mono-debug.exe"
+end
 
 function M.resolve_launch_context()
   local project_file = debug_project_file()
+  if project_is_framework(project_file) then
+    return {
+      framework = true,
+      program = framework_program(project_file),
+      profile = dotnet_launch_profile(project_file),
+    }
+  end
   return {
     program = dotnet_program(project_file),
     profile = dotnet_launch_profile(project_file),

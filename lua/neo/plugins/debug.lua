@@ -22,6 +22,13 @@ return {
     config = function()
       local dap = require("dap")
       dap.set_log_level("INFO")
+      -- The default breakpoint signs are dim letters: a red dot, a red diamond for conditional ones
+      -- (tokyonight's red) and a muted red hollow circle for breakpoints the adapter rejected.
+      vim.api.nvim_set_hl(0, "DapBreakpoint", { fg = "#f7768e" })
+      vim.api.nvim_set_hl(0, "DapBreakpointRejected", { fg = "#8a4b55" })
+      vim.fn.sign_define("DapBreakpoint", { text = "●", texthl = "DapBreakpoint", linehl = "", numhl = "" })
+      vim.fn.sign_define("DapBreakpointCondition", { text = "◆", texthl = "DapBreakpoint", linehl = "", numhl = "" })
+      vim.fn.sign_define("DapBreakpointRejected", { text = "○", texthl = "DapBreakpointRejected", linehl = "", numhl = "" })
       local dapui = require("dapui")
       require("persistent-breakpoints").setup({ load_breakpoints_event = { "BufReadPost" } })
       local persistent_breakpoints = require("persistent-breakpoints.api")
@@ -32,16 +39,28 @@ return {
         return launch_context.get()
       end
       dap.adapters.coreclr = { type = "executable", command = netcoredbg, args = { "--interpreter=vscode" } }
-      dap.configurations.cs = {
-        {
-          type = "coreclr", name = "Launch .NET project", request = "launch",
-          program = function() return current_launch_context().program end,
-          args = function() return current_launch_context().profile.args end,
-          cwd = function() return current_launch_context().profile.cwd end,
-          env = function() return current_launch_context().profile.env end,
-          stopAtEntry = false,
-        },
+      -- .NET Framework projects run on Mono; the soft debugger is reached through Microsoft's mono-debug adapter.
+      dap.adapters.mono = function(callback)
+        callback({ type = "executable", command = "mono", args = { dotnet.mono_debug_path() } })
+      end
+      local coreclr_configuration = {
+        type = "coreclr", name = "Launch .NET project", request = "launch",
+        program = function() return current_launch_context().program end,
+        args = function() return current_launch_context().profile.args end,
+        cwd = function() return current_launch_context().profile.cwd end,
+        env = function() return current_launch_context().profile.env end,
+        stopAtEntry = false,
       }
+      local mono_configuration = {
+        type = "mono", name = "Launch .NET Framework project (Mono)", request = "launch",
+        program = function() return current_launch_context().program end,
+        args = function() return current_launch_context().profile.args end,
+        cwd = function() return current_launch_context().profile.cwd end,
+        env = function() return current_launch_context().profile.env end,
+        console = "internalConsole",
+        externalConsole = false,
+      }
+      dap.configurations.cs = { coreclr_configuration }
       dap.listeners.after.event_initialized["dapui"] = function()
         local browser_url = current_launch_context().profile.browser_url
         dapui.open()
@@ -80,7 +99,16 @@ return {
       dap.listeners.before.event_terminated["dapui"] = close_debug_ui
       dap.listeners.before.event_exited["dapui"] = close_debug_ui
       vim.keymap.set("n", "<F5>", function()
-        if not dap.session() then launch_context.reset() end
+        if not dap.session() then
+          launch_context.reset()
+          -- The project decides the debugger: .NET Framework runs on Mono, everything else on coreclr.
+          local context = current_launch_context()
+          if context.framework and vim.fn.filereadable(dotnet.mono_debug_path()) == 0 then
+            vim.notify("Mono debug adapter not found: " .. dotnet.mono_debug_path() .. " (see README, .NET Framework)", vim.log.levels.ERROR)
+            return
+          end
+          dap.configurations.cs = { context.framework and mono_configuration or coreclr_configuration }
+        end
         dap.continue()
       end, { desc = "Debug: Continue" })
       vim.keymap.set("n", "<F10>", dap.step_over, { desc = "Debug: Step over" })
