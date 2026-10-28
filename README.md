@@ -77,6 +77,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | SQL'de bir identifier üzerinde kısa süre bekle | Aynı identifier'ın diğer geçişlerini vurgula (harf duyarsız) |
 | `K` | Dokümantasyonu aç |
 | `Space s` | Metod parametrelerini göster |
+| `Option-s` / `Option-Shift-s` | Açık imza yardımında sonraki / önceki overload'a geç |
 | `Space r n` | Sembolü yeniden adlandır |
 | `Space c a` | Kod aksiyonu |
 | `Space c d` | C# XML docstring ekle |
@@ -90,8 +91,9 @@ Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add usin
 ## sqldeps ile SQL Gezinme
 
 Bir SQL projesini önce `sqldeps index .` ile indeksleyin. SQL nesnesinin üstündeyken `:SqlDef` tanımını,
-`:SqlRefs` ise o nesneyi kullanan yordamları quickfix listesinde açar; adı komuta doğrudan da
-verebilirsiniz (`:SqlDef dbo.UpdatePrices`). Bu komutlar C# LSP'nin `gd` ve `gr` kısayollarını değiştirmez.
+`:SqlRefs` ise o nesneyi kullanan yordamları, `:SqlColumns` da okuduğu ve yazdığı sütunları quickfix
+listesinde açar; adı komuta doğrudan da verebilirsiniz (`:SqlDef dbo.UpdatePrices`). Bu komutlar C# LSP'nin
+`gd` ve `gr` kısayollarını değiştirmez.
 Bir C# tamponunda prosedür adının üstündeyken `Space c s`, tek bir tanım bulunursa onu doğrudan açar;
 birden fazla tanım varsa seçim için quickfix listesi açılır. Kaydedilmemiş C# değişikliği varsa mevcut
 tamponu korumak için tanım sağ bölmede açılır.
@@ -245,10 +247,6 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 - `README.md`: Bu rehber
 - `bootstrap-macos.sh`: Yeni bir Mac'i aynı ortamla kurar
 - `bootstrap-macos-csharp.sh`: `bootstrap-macos.sh --no-elm` için kısa sarmalayıcı (Fossil ve Elm araçları kurulmaz)
-
-## T-SQL bağımlılık dizini (`tools/sqldeps`)
-
-`tools/sqldeps`, bir klasördeki `.sql` dosyalarını Microsoft'un `ScriptDom` ayrıştırıcısıyla okuyup "hangi yordam hangi tabloyu hangi işlemle kullanıyor" bilgisini SQLite'a yazan küçük bir .NET aracıdır (CodeGraph SQL'i desteklemediği için). `./tools/sqldeps/install.sh` ile `~/.local/bin/sqldeps` olarak kurulur; kullanım, tablolar ve örnek sorgular `tools/sqldeps/README.md` içindedir.
 
 ## Makine Denetimi (`:NeoDoctor`)
 

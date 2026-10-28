@@ -46,6 +46,21 @@ local references = vim.fn.getqflist({ title = 0, items = 1 })
 assert(references.title == "sqldeps references: dbo.Prices", "SqlRefs should title quickfix")
 assert(references.items[1].text == "dbo.Report SELECT -> dbo.Prices", "SqlRefs should describe the reference")
 
+vim.system = function(arguments, _, callback)
+  command = arguments
+  callback({
+    code = 0,
+    stdout = '[{"table_name":"dbo.Prices","column_name":"price","operation":"UPDATE","source_file":"procedures/prices.sql","line":19}]',
+    stderr = "",
+  })
+end
+
+sqldeps.columns("dbo.UpdatePrices")
+assert(command[4]:find("column_usage WHERE source_object = 'dbo.UpdatePrices'", 1, true), "SqlColumns should query column usage")
+local columns = vim.fn.getqflist({ title = 0, items = 1 })
+assert(columns.title == "sqldeps columns: dbo.UpdatePrices", "SqlColumns should title quickfix")
+assert(columns.items[1].text == "UPDATE dbo.Prices.price", "SqlColumns should describe the column usage")
+
 vim.cmd("cclose")
 vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'var command = "dbo.UpdatePrices";' })
 vim.bo.filetype = "cs"

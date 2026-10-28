@@ -91,7 +91,8 @@ function M.setup()
         vim.lsp.buf.code_action()
       end
       local signature_state = {}
-      local function show_next_signature()
+      local function show_next_signature(direction)
+        direction = direction or 1
         local params = vim.lsp.util.make_position_params(0, client and client.offset_encoding or "utf-16")
         vim.lsp.buf_request(event.buf, "textDocument/signatureHelp", params, function(err, result)
           if err or not result or not result.signatures or #result.signatures == 0 then
@@ -103,7 +104,7 @@ function M.setup()
           local state_key = table.concat({ event.buf, position[1], position[2], #result.signatures }, ":")
           local signature_index
           if signature_state.key == state_key then
-            signature_index = (signature_state.index + 1) % #result.signatures
+            signature_index = (signature_state.index + direction) % #result.signatures
           else
             signature_index = result.activeSignature or 0
           end
@@ -122,6 +123,12 @@ function M.setup()
       map("gr", vim.lsp.buf.references, "References")
       map("K", vim.lsp.buf.hover, "Documentation")
       map("<leader>s", show_next_signature, "Next overload")
+      vim.keymap.set({ "n", "i" }, "<M-s>", function()
+        show_next_signature(1)
+      end, { buffer = event.buf, desc = "Next overload" })
+      vim.keymap.set({ "n", "i" }, "<M-S>", function()
+        show_next_signature(-1)
+      end, { buffer = event.buf, desc = "Previous overload" })
       map("<leader>rn", vim.lsp.buf.rename, "Rename")
       vim.keymap.set({ "n", "x" }, "<leader>ca", code_action, { buffer = event.buf, desc = "Code action" })
       map("<leader>cd", require("neo.csharp").insert_docstring, "Insert C# docstring")

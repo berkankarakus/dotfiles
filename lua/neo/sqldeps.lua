@@ -171,6 +171,22 @@ function M.references(argument)
   )
 end
 
+function M.columns(argument)
+  local name = object_name(argument)
+  if not name then return end
+
+  run_query(
+    "SELECT table_name, column_name, operation, source_file, line FROM column_usage WHERE source_object = "
+      .. quote(name)
+      .. " COLLATE NOCASE ORDER BY source_file, line, table_name, column_name",
+    function(rows)
+      show_results("sqldeps columns: " .. name, source_root(), rows, function(row)
+        return string.format("%s %s.%s", row.operation, row.table_name, row.column_name)
+      end)
+    end
+  )
+end
+
 function M.setup()
   vim.api.nvim_create_user_command("SqlDef", function(command)
     M.definition(command.args)
@@ -178,6 +194,9 @@ function M.setup()
   vim.api.nvim_create_user_command("SqlRefs", function(command)
     M.references(command.args)
   end, { nargs = "?", force = true, desc = "Open sqldeps references in quickfix" })
+  vim.api.nvim_create_user_command("SqlColumns", function(command)
+    M.columns(command.args)
+  end, { nargs = "?", force = true, desc = "Open sqldeps column usage in quickfix" })
   vim.api.nvim_create_autocmd("FileType", {
     group = vim.api.nvim_create_augroup("SqlDepsCSharpNavigation", { clear = true }),
     pattern = "cs",
