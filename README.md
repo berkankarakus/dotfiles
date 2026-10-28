@@ -229,6 +229,10 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 - `bootstrap-macos.sh`: Yeni bir Mac'i aynı ortamla kurar
 - `bootstrap-macos-csharp.sh`: `bootstrap-macos.sh --no-elm` için kısa sarmalayıcı (Fossil ve Elm araçları kurulmaz)
 
+## T-SQL bağımlılık dizini (`tools/sqldeps`)
+
+`tools/sqldeps`, bir klasördeki `.sql` dosyalarını Microsoft'un `ScriptDom` ayrıştırıcısıyla okuyup "hangi yordam hangi tabloyu hangi işlemle kullanıyor" bilgisini SQLite'a yazan küçük bir .NET aracıdır (CodeGraph SQL'i desteklemediği için). `./tools/sqldeps/install.sh` ile `~/.local/bin/sqldeps` olarak kurulur; kullanım, tablolar ve örnek sorgular `tools/sqldeps/README.md` içindedir.
+
 ## Makine Denetimi (`:NeoDoctor`)
 
 `:NeoDoctor`, bu config'in dayandığı her şeyi tek raporda listeler ve bu makinenin beklenenle uyuşup uyuşmadığını gösterir (`q` kapatır). Her satır `ok`, `WARN`, `FAIL` veya (Elm gibi isteğe bağlı kurulmayan şeyler için) `info` olarak işaretlenir. Bölümler:
