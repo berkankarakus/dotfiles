@@ -87,6 +87,23 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 
 Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add using...** seçin.
 
+## sqldeps ile SQL Gezinme
+
+Bir SQL projesini önce `sqldeps index .` ile indeksleyin. SQL nesnesinin üstündeyken `:SqlDef` tanımını,
+`:SqlRefs` ise o nesneyi kullanan yordamları quickfix listesinde açar; adı komuta doğrudan da
+verebilirsiniz (`:SqlDef dbo.UpdatePrices`). Bu komutlar C# LSP'nin `gd` ve `gr` kısayollarını değiştirmez.
+Bir C# tamponunda prosedür adının üstündeyken `Space c s`, tek bir tanım bulunursa onu doğrudan açar;
+birden fazla tanım varsa seçim için quickfix listesi açılır. Kaydedilmemiş C# değişikliği varsa mevcut
+tamponu korumak için tanım sağ bölmede açılır.
+
+Varsayılan indeks, Neovim'in çalışma klasörü için `~/.local/share/sqldeps/<klasör>.sqlite` yolunda aranır.
+Farklı bir indeks veya SQL kökü için Neovim'de şunları ayarlayabilirsiniz:
+
+```lua
+vim.g.sqldeps_database = "/mutlak/yol/deps.sqlite"
+vim.g.sqldeps_root = "/mutlak/yol/sql-kaynaklari"
+```
+
 ## Tree-sitter Text Objects
 
 C#, T-SQL ve JSON dosyalarında sözdizimine göre seçim yapmak için aşağıdaki text object'ler Visual (`v`) ve operator-pending modunda çalışır; örneğin `vab` bir block'u seçer, `daf` ise bir metodu siler.
