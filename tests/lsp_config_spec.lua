@@ -24,6 +24,12 @@ assert_equal("off", elm.init_options.elmReviewDiagnostics, "the Elm init options
 assert_equal("utf-8", elm.capabilities.offsetEncoding[1], "the Elm offset encoding")
 assert(elm.capabilities.textDocument.foldingRange, "the shared capabilities should reach Elm too")
 
+-- sqldeps: local, stdio-based SQL navigation without nvim-lspconfig.
+local sqldeps = vim.lsp.config["sqldeps-lsp"]
+assert_equal("sqldeps", sqldeps.cmd[1], "sqldeps should use the local command")
+assert_equal("lsp", sqldeps.cmd[2], "sqldeps should use its LSP subcommand")
+assert_equal("sql", sqldeps.filetypes[1], "sqldeps should attach only to SQL files")
+
 local project = vim.fn.tempname()
 vim.fn.mkdir(project .. "/src", "p")
 vim.fn.writefile({ "{}" }, project .. "/elm.json")
@@ -42,6 +48,16 @@ assert_equal(vim.uv.fs_realpath(project), vim.uv.fs_realpath(root_for(project ..
 assert_equal(vim.uv.fs_realpath(project), vim.uv.fs_realpath(root_for(project .. "/elm.json", "json")), "elm.json itself should attach too")
 vim.fn.writefile({ "{}" }, project .. "/other.json")
 assert_equal(nil, root_for(project .. "/other.json", "json"), "other JSON files must not attach the Elm server")
+vim.fn.mkdir(project .. "/.git", "p")
+vim.fn.writefile({ "SELECT 1;" }, project .. "/src/example.sql")
+local sql_buffer = vim.fn.bufadd(project .. "/src/example.sql")
+vim.fn.bufload(sql_buffer)
+local sql_root
+sqldeps.root_dir(sql_buffer, function(dir) sql_root = dir end)
+assert_equal(vim.uv.fs_realpath(project), vim.uv.fs_realpath(sql_root), "sqldeps should use the Git root")
+vim.fn.delete(project .. "/.git", "rf")
+sqldeps.root_dir(sql_buffer, function(dir) sql_root = dir end)
+assert_equal(vim.uv.fs_realpath(project .. "/src"), vim.uv.fs_realpath(sql_root), "sqldeps should fall back to the file directory")
 vim.fn.delete(project, "rf")
 
 -- The keymaps still attach with the language server.

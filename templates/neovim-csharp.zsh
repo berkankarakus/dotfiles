@@ -184,7 +184,7 @@ git() {
   if (( meaningful_status == 0 )); then
     command git diff --quiet "$@"
     if (( $? == 1 )); then
-      print -P '\n%F{yellow}Not: yalnızca whitespace farkları var.%f'
+      print -P '%F{yellow}Note: only whitespace differences.%f'
     fi
   fi
 

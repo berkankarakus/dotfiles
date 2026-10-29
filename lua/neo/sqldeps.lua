@@ -1,4 +1,5 @@
--- Navigate a sqldeps SQLite index from SQL buffers without replacing C# LSP navigation.
+-- SQL buffers use sqldeps' ScriptDom-backed LSP server. The SQLite commands below remain
+-- useful for C# -> SQL navigation, where no SQL LSP client is attached.
 local M = {}
 
 local function configured_path(name)
@@ -188,6 +189,28 @@ function M.columns(argument)
 end
 
 function M.setup()
+  vim.lsp.config("sqldeps-lsp", require("lsp.sqldeps"))
+  vim.lsp.enable("sqldeps-lsp")
+
+  vim.api.nvim_create_autocmd("LspAttach", {
+    group = vim.api.nvim_create_augroup("SqlDepsLspKeymaps", { clear = true }),
+    callback = function(event)
+      local client = vim.lsp.get_client_by_id(event.data.client_id)
+      if not client or client.name ~= "sqldeps-lsp" or vim.bo[event.buf].filetype ~= "sql" then return end
+
+      local map = function(keys, action, description)
+        vim.keymap.set("n", keys, action, { buffer = event.buf, desc = description })
+      end
+      map("gd", vim.lsp.buf.definition, "SQL definition")
+      map("gr", vim.lsp.buf.references, "SQL references")
+      map("K", vim.lsp.buf.hover, "SQL documentation")
+      map("<leader>ds", vim.lsp.buf.document_symbol, "SQL document symbols")
+      map("<leader>ws", vim.lsp.buf.workspace_symbol, "SQL workspace symbols")
+      map("<leader>ca", vim.lsp.buf.code_action, "SQL code action")
+      map("<leader>e", vim.diagnostic.open_float, "SQL diagnostics")
+    end,
+  })
+
   vim.api.nvim_create_user_command("SqlDef", function(command)
     M.definition(command.args)
   end, { nargs = "?", force = true, desc = "Open sqldeps definitions in quickfix" })

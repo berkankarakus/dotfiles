@@ -88,12 +88,17 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 
 Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add using...** seçin.
 
-## sqldeps ile SQL Gezinme
+## sqldeps ile T-SQL Desteği
 
-Bir SQL projesini önce `sqldeps index .` ile indeksleyin. SQL nesnesinin üstündeyken `:SqlDef` tanımını,
-`:SqlRefs` ise o nesneyi kullanan yordamları, `:SqlColumns` da okuduğu ve yazdığı sütunları quickfix
-listesinde açar; adı komuta doğrudan da verebilirsiniz (`:SqlDef dbo.UpdatePrices`). Bu komutlar C# LSP'nin
-`gd` ve `gr` kısayollarını değiştirmez.
+`.sql` tamponlarında `sqldeps lsp`, ScriptDom ile ayrıştırma, tanılar, completion, hover ve gezinmeyi sağlar.
+`gd`, `gr` ve `K` sırasıyla tanıma gitme, başvuruları bulma ve hover içindir; `Space d s` belge, `Space w s`
+çalışma alanı sembollerini açar. `Space c a`, sqldeps lint tanıları için quick fix'leri açar. Rename ve
+formatlama özellikle yapılandırılmaz, çünkü sqldeps bunları desteklemez.
+
+Tree-sitter MSSQL parser'ı bunun yanında kalır: renklendirme, folding, text object ve clause hareketleri için
+kullanılır. Bir SQL projesini önce `sqldeps index .` ile indekslemek komut satırı sorguları ve C# → SQL
+gezinmesi için hâlâ gereklidir. `:SqlDef`, `:SqlRefs` ve `:SqlColumns` bu ikinci kullanım için SQLite indeksini
+quickfix listesinde açar; adı komuta doğrudan da verebilirsiniz (`:SqlDef dbo.UpdatePrices`).
 Bir C# tamponunda prosedür adının üstündeyken `Space c s`, tek bir tanım bulunursa onu doğrudan açar;
 birden fazla tanım varsa seçim için quickfix listesi açılır. Kaydedilmemiş C# değişikliği varsa mevcut
 tamponu korumak için tanım sağ bölmede açılır.
@@ -270,7 +275,7 @@ cd ~/.config/nvim
 ./bootstrap-macos.sh
 ```
 
-Script Homebrew, .NET SDK, Roslyn language server, Neovim, Ghostty, font, Fossil, terminal araçları, debugger ve Zsh eklentisini kurar. Neovim'in `lua`, `after` ve `templates` dosyaları dahil tüm yapılandırması taşınır; var olan dosyalar `~/.config/neovim-csharp-backup` altında yedeklenir.
+Script Homebrew, .NET SDK, Roslyn language server, sqldeps LSP, Neovim, Ghostty, font, Fossil, terminal araçları, debugger ve Zsh eklentisini kurar. Neovim'in `lua`, `after` ve `templates` dosyaları dahil tüm yapılandırması taşınır; var olan dosyalar `~/.config/neovim-csharp-backup` altında yedeklenir. sqldeps kaynaklarını `~/Projects/sqldeps` altında klonlar ve `install.sh` ile `sqldeps lsp` komutunu kurar; mevcut bir sqldeps klasörünü değiştirmez.
 
 Bootstrap eklentileri `lazy-lock.json` içindeki commit'lere sabitler (`Lazy! install`, ardından `Lazy! restore`); böylece iki Mac aynı eklenti sürümlerini kullanır. Roslyn language server de `bootstrap-macos.sh` içindeki `ROSLYN_VERSION` sürümüne sabitlenir; sürüm yükseltmek için bu değeri bilerek değiştirin. Kurulum sonunda Roslyn, debugger, Ghostty ve Tree-sitter parser'larının varlığı denetlenir; eksik bir bileşen varsa script bunu yazar ve hata koduyla çıkar.
 

@@ -87,6 +87,8 @@ function M.setup()
       if client and vim.bo[event.buf].filetype == "cs" and client.server_capabilities.inlayHintProvider then
         vim.lsp.inlay_hint.enable(true, { bufnr = event.buf })
       end
+      if vim.bo[event.buf].filetype ~= "cs" then return end
+
       local code_action = function()
         vim.lsp.buf.code_action()
       end

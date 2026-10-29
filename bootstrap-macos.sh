@@ -41,6 +41,8 @@ GHOSTTY_DIR="$HOME/.config/ghostty"
 ZSH_DIR="$HOME/.config/zsh"
 BACKUP_DIR="$HOME/.config/neovim-csharp-backup/$(date +%Y%m%d-%H%M%S)"
 MONO_DEBUG_DIR="$HOME/.local/share/nvim/mono-debug"
+SQLDEPS_DIR="$HOME/Projects/sqldeps"
+SQLDEPS_REPOSITORY="https://github.com/dotfiles/sqldeps.git"
 
 backup_if_present() {
   local path="$1"
@@ -130,7 +132,7 @@ if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
   for path in init.lua lazy-lock.json README.md bootstrap-macos.sh bootstrap-macos-csharp.sh lua after templates; do
     backup_if_present "$NVIM_DIR/$path"
   done
-  install -d -m 755 "$NVIM_DIR/lua/neo" "$NVIM_DIR/lua/neo/plugins" "$NVIM_DIR/templates"
+  install -d -m 755 "$NVIM_DIR/lua/neo" "$NVIM_DIR/lua/neo/plugins" "$NVIM_DIR/lua/lsp" "$NVIM_DIR/templates"
   install -m 644 "$SOURCE_DIR/init.lua" "$NVIM_DIR/init.lua"
   install -m 644 "$SOURCE_DIR/lazy-lock.json" "$NVIM_DIR/lazy-lock.json"
   install -m 644 "$SOURCE_DIR/README.md" "$NVIM_DIR/README.md"
@@ -138,6 +140,9 @@ if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
   install -m 755 "$SOURCE_DIR/bootstrap-macos-csharp.sh" "$NVIM_DIR/bootstrap-macos-csharp.sh"
   for module in "$SOURCE_DIR"/lua/neo/*.lua "$SOURCE_DIR"/lua/neo/plugins/*.lua; do
     install -m 644 "$module" "$NVIM_DIR/lua/neo/${module#"$SOURCE_DIR"/lua/neo/}"
+  done
+  for module in "$SOURCE_DIR"/lua/lsp/*.lua; do
+    install -m 644 "$module" "$NVIM_DIR/lua/lsp/$(basename "$module")"
   done
   # One directory per language (c_sharp, mssql, json, ...); new languages need no script change.
   for query_dir in "$SOURCE_DIR"/after/queries/*/; do
@@ -149,6 +154,17 @@ if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
   done
   install -m 644 "$SOURCE_DIR/templates/ghostty-config" "$NVIM_DIR/templates/ghostty-config"
   install -m 644 "$SOURCE_DIR/templates/neovim-csharp.zsh" "$NVIM_DIR/templates/neovim-csharp.zsh"
+fi
+
+echo "Installing sqldeps..."
+if [[ ! -e "$SQLDEPS_DIR" ]]; then
+  mkdir -p "$(dirname "$SQLDEPS_DIR")"
+  git clone "$SQLDEPS_REPOSITORY" "$SQLDEPS_DIR"
+fi
+if [[ -x "$SQLDEPS_DIR/install.sh" ]]; then
+  "$SQLDEPS_DIR/install.sh"
+else
+  echo "warning: sqldeps source is not usable at $SQLDEPS_DIR; skipping its installation" >&2
 fi
 
 backup_if_present "$GHOSTTY_DIR/config"
@@ -195,7 +211,11 @@ check() {
 roslyn_is_pinned() {
   [[ "$(dotnet tool list -g | awk '$1 == "roslyn-language-server" { print $2 }')" == "$ROSLYN_VERSION" ]]
 }
+sqldeps_lsp_available() {
+  printf '' | sqldeps lsp >/dev/null 2>&1
+}
 check "roslyn-language-server $ROSLYN_VERSION" roslyn_is_pinned
+check "sqldeps LSP" sqldeps_lsp_available
 check "netcoredbg debugger" test -x "$HOME/.local/share/nvim/lazy/netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg"
 check "Ghostty" test -d /Applications/Ghostty.app
 check "JetBrainsMono Nerd Font" font_installed
