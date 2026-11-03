@@ -74,7 +74,14 @@ assert(vim.api.nvim_win_get_cursor(0)[2] > 10, "argument movement should reach t
 local second_argument_column = vim.api.nvim_win_get_cursor(0)[2]
 press("]a")
 assert(vim.api.nvim_win_get_cursor(0)[2] > second_argument_column, "argument movement should continue to the third argument")
+local third_argument_column = vim.api.nvim_win_get_cursor(0)[2]
+press("]a")
+assert(vim.api.nvim_win_get_cursor(0)[2] < third_argument_column, "argument movement should wrap after the final argument")
 press("[a")
-assert(vim.api.nvim_win_get_cursor(0)[2] == second_argument_column, "backward argument movement should return to the second argument")
+assert(vim.api.nvim_win_get_cursor(0)[2] == third_argument_column, "backward argument movement should wrap before the first argument")
+press("[a")
+assert(vim.api.nvim_win_get_cursor(0)[2] == second_argument_column, "backward argument movement should reach the second argument")
+press("[a")
+assert(vim.api.nvim_win_get_cursor(0)[2] < second_argument_column, "backward argument movement should reach the first argument")
 
 vim.cmd("qa!")

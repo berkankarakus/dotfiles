@@ -47,7 +47,7 @@ function M.setup()
     end
     vim.api.nvim_win_set_cursor(0, { row + 1, column })
   end
-  local function move_with_wrap(query, forward, at_end)
+  local function move_with_wrap(query, forward, at_end, wrap)
     if not has_textobjects() then return end
     local cursor_before = vim.api.nvim_win_get_cursor(0)
     if forward and at_end then
@@ -59,7 +59,7 @@ function M.setup()
     else
       move.goto_previous_start(query, "textobjects")
     end
-    if not vim.deep_equal(cursor_before, vim.api.nvim_win_get_cursor(0)) then return end
+    if not vim.deep_equal(cursor_before, vim.api.nvim_win_get_cursor(0)) or not wrap then return end
 
     local range_index = at_end and 6 or 3
     local range = shared.find_best_range(0, query, "textobjects", function()
@@ -83,17 +83,17 @@ function M.setup()
       move_with_wrap(query, false, true)
     end, { desc = "Previous " .. desc .. " end" })
   end
-  local function map_textobject_start(next_start, previous_start, query, desc, only_csharp)
+  local function map_textobject_start(next_start, previous_start, query, desc, only_csharp, wrap)
     local function allowed()
       return not only_csharp or vim.bo.filetype == "cs" or vim.bo.filetype == "c_sharp"
     end
     vim.keymap.set({ "n", "x", "o" }, next_start, function()
       if not allowed() then return end
-      move_with_wrap(query, true, false)
+      move_with_wrap(query, true, false, wrap)
     end, { desc = "Next " .. desc })
     vim.keymap.set({ "n", "x", "o" }, previous_start, function()
       if not allowed() then return end
-      move_with_wrap(query, false, false)
+      move_with_wrap(query, false, false, wrap)
     end, { desc = "Previous " .. desc })
   end
   -- Jumps to the next/previous node (by start position) captured as one of `captures` in the
@@ -322,7 +322,7 @@ function M.setup()
   map_textobject("aS", "@statement.outer", "Select around SQL statement")
 
   map_textobject_move("]f", "[f", "]F", "[F", "@function.outer", "function")
-  map_textobject_start("]a", "[a", "@parameter.outer", "argument or parameter", true)
+  map_textobject_start("]a", "[a", "@parameter.inner", "argument or parameter", true, true)
   map_textobject_move("]c", "[c", "]C", "[C", "@conditional.outer", "conditional")
   map_sql_query("]r", "[r")
   map_sql_clause("]k", "[k")
