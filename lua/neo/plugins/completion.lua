@@ -29,6 +29,7 @@ return {
         s("foreach", { t("foreach (var "), i(1, "item"), t(" in "), i(2, "items"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("while", { t("while ("), i(1, "condition"), t({ ")", "{", "    " }), i(0), t({ "", "}" }) }),
         s("dowhile", { t({ "do", "{", "    " }), i(1), t({ "", "} while (" }), i(2, "condition"), t(");"), i(0) }),
+        s("?:", { i(1, "condition"), t(" ? "), i(2, "trueValue"), t(" : "), i(3, "falseValue"), i(0) }),
         s("region", { t("#region "), i(1, "Name"), t({ "", "" }), i(0), t({ "", "#endregion" }) }),
         s("comment", { t({ "/*", " * " }), i(1), t({ "", " */", "" }), i(0) }),
         s("psr", { t("private static readonly "), i(0) }),

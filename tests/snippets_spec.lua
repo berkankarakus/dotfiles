@@ -91,6 +91,24 @@ assert_equal("default", current_text(), "the cursor should land on the default")
 -- Other snippets and the first arm's pattern are left to the normal Tab.
 expand("if", "")
 assert_equal(false, swe.switch_tab(), "Tab in another snippet should not be handled")
+vim.cmd("enew!")
+vim.bo.filetype = "cs"
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { "?:" })
+vim.api.nvim_win_set_cursor(0, { 1, 2 })
+vim.cmd("startinsert!")
+assert_equal(true, ls.expandable(), "?: should be expandable from the typed trigger")
+ls.expand()
+assert_equal("condition ? trueValue : falseValue", vim.api.nvim_get_current_line(), "?: should replace its trigger")
+local ternary = expand("?:", "")
+assert_equal("condition ? trueValue : falseValue", ternary[1], "ternary should expand inline")
+assert_equal("condition", current_text(), "ternary should start at the condition")
+for _, expected in ipairs({ "trueValue", "falseValue" }) do
+  ls.jump(1)
+  assert_equal(expected, current_text(), "ternary should jump to " .. expected)
+end
+local ternary_source = "class A { bool M(bool condition, bool a, bool b) => " .. ternary[1] .. "; }"
+local ternary_root = vim.treesitter.get_string_parser(ternary_source, "c_sharp"):parse()[1]:root()
+assert_equal(false, ternary_root:has_error(), "ternary should parse cleanly: " .. ternary_source)
 expand("swe", "var y = ")
 ls.jump(1)
 assert_equal(false, swe.switch_tab(), "Tab on the first pattern should be left to the normal jump")

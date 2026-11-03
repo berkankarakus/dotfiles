@@ -578,7 +578,7 @@ end
 -- cuts a multi-row statement short, or ends an `if (x)` header, does not count). Tried in a
 -- scratch buffer, so a wrong guess never touches the file, and only the member around the
 -- position is parsed, so the cost does not grow with the file.
-local function semicolon_fits(lines, row, column, member, errors_before)
+local function semicolon_fits(lines, row, column, member, errors_before, followed_by_else)
   local scratch = vim.api.nvim_create_buf(false, true)
   local fits = false
   pcall(function()
@@ -596,7 +596,9 @@ local function semicolon_fits(lines, row, column, member, errors_before)
     end
     local root = parser:parse(true)[1]:root()
     local token = root:descendant_for_range(row, column, row, column + 1)
-    fits = not has_error_on(root, row) and count_errors(root) < errors_before
+    local errors_after = count_errors(root)
+    local errors_improved = errors_after < errors_before or followed_by_else and errors_after <= errors_before
+    fits = not has_error_on(root, row) and errors_improved
       and token ~= nil and token:type() == ";"
       and token:parent() ~= nil and ends_a_statement(token:parent())
   end)
@@ -630,8 +632,10 @@ function M.finish_statement()
   if not last or last.type == ";" then return changed end
   local semicolon_column = last.column
   local member = member_node(root, row - 1, semicolon_column - 1)
+  local next_line = vim.api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
+  local followed_by_else = next_line:match("^%s*else%f[%W]") ~= nil
   if not semicolon_fits(vim.api.nvim_buf_get_lines(buf, 0, -1, false), row - 1, semicolon_column, member,
-    count_errors(member or root)) then
+    count_errors(member or root), followed_by_else) then
     return changed
   end
 

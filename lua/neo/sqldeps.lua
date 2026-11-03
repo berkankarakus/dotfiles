@@ -208,6 +208,15 @@ function M.setup()
       map("<leader>ws", vim.lsp.buf.workspace_symbol, "SQL workspace symbols")
       map("<leader>ca", vim.lsp.buf.code_action, "SQL code action")
       map("<leader>e", vim.diagnostic.open_float, "SQL diagnostics")
+      map("<leader>y", function()
+        local diagnostics = vim.diagnostic.get(event.buf, { lnum = vim.api.nvim_win_get_cursor(0)[1] - 1 })
+        if #diagnostics == 0 then
+          vim.notify("No diagnostics on this line.", vim.log.levels.INFO)
+          return
+        end
+        vim.fn.setreg("+", table.concat(vim.tbl_map(function(diagnostic) return diagnostic.message end, diagnostics), "\n"))
+        vim.notify("Diagnostic copied.", vim.log.levels.INFO)
+      end, "Copy SQL diagnostic")
     end,
   })
 

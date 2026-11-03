@@ -509,6 +509,60 @@ assert_equal("class A { int P => f();", rows[1], "an expression body should get 
 changed, rows = finish_rows({ "class A {", "  public int X { get; set; }", "}" }, 2, #"  public int X { get; set; }")
 assert_equal("  public int X { get; set; }", rows[2], "a property without initializer must not get a ;")
 
+changed, rows = finish_rows({
+  "class A { void M() {",
+  "  if (first)",
+  "    First();",
+  "  else if (second)",
+  "    Second()",
+  "  else",
+  "    Third()",
+  "} }",
+}, 5, #"    Second()")
+assert_equal("    Second();", rows[5], "a call below else if should get its ;")
+
+changed, rows = finish_rows({
+  "class A { void M() {",
+  "  if (first)",
+  "    First()",
+  "  else if (second)",
+  "    Second();",
+  "  else",
+  "    Third()",
+  "} }",
+}, 3, #"    First()")
+assert_equal("    First();", rows[3], "a call below if should get its ;")
+
+changed, rows = finish_rows({
+  "class A { void M() {",
+  "  for (var i = 0; i < 1; i++)",
+  "    First()",
+  "  while (ready)",
+  "    Second()",
+  "  switch (value)",
+  "  {",
+  "    default:",
+  "      Third()",
+  "  }",
+  "} }",
+}, 3, #"    First()")
+assert_equal("    First();", rows[3], "a call below for should get its ;")
+
+changed, rows = finish_rows({
+  "class A { void M() {",
+  "  for (var i = 0; i < 1; i++)",
+  "    First();",
+  "  while (ready)",
+  "    Second()",
+  "  switch (value)",
+  "  {",
+  "    default:",
+  "      Third()",
+  "  }",
+  "} }",
+}, 5, #"    Second()")
+assert_equal("    Second();", rows[5], "a call below while should get its ;")
+
 changed, rows = finish_rows({ "abstract class A {", "  void M()", "}" }, 2, #"  void M()")
 assert_equal("  void M()", rows[2], "a method header must not become an abstract declaration")
 
