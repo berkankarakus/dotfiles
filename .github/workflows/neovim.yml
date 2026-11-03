@@ -1,0 +1,54 @@
+name: Neovim configuration
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neovim-config-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: macOS Neovim tests
+    runs-on: macos-14
+    env:
+      XDG_DATA_HOME: ${{ runner.temp }}/xdg-data
+      XDG_STATE_HOME: ${{ runner.temp }}/xdg-state
+      XDG_CACHE_HOME: ${{ runner.temp }}/xdg-cache
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install test dependencies
+        run: brew install neovim ripgrep fzf fd jq tree-sitter-cli
+
+      - name: Install lazy.nvim
+        run: |
+          mkdir -p "$XDG_DATA_HOME/nvim/lazy"
+          git clone --filter=blob:none --branch=stable \
+            https://github.com/folke/lazy.nvim.git \
+            "$XDG_DATA_HOME/nvim/lazy/lazy.nvim"
+
+      - name: Install pinned Neovim plugins
+        run: |
+          nvim --headless '+Lazy! install' '+qa'
+          nvim --headless '+Lazy! restore' '+qa'
+
+      - name: Install Tree-sitter parsers
+        run: >-
+          nvim --headless
+          "+lua local ok, err = pcall(function() require('nvim-treesitter').install({ 'c_sharp', 'mssql', 'json' }):wait(300000) end) if not ok then error(err) end"
+          '+qa'
+
+      - name: Validate shell scripts and run test suite
+        run: |
+          bash -n bootstrap-macos.sh bootstrap-macos-csharp.sh tests/*.sh
+          bash tests/run.sh
+

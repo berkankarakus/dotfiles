@@ -18,6 +18,10 @@ Elm projelerinde (`elm.json` bulunan klasörlerde) `elm-language-server` otomati
 
 Yeni bir `.cs` dosyası oluşturduğunuzda Neovim, bulunduğu `.csproj` ve klasör yolundan file-scoped namespace satırını otomatik ekler.
 
+## CI/CD
+
+`.github/workflows/neovim.yml`, `main` branch'ine push ve pull request'lerde macOS üzerinde pinned Lazy eklentilerini, Tree-sitter parser'larını ve `bash tests/run.sh` testlerini çalıştırır.
+
 ## C# Biçimlendirme
 
 CSharpier kullanılmaz; `Space c f` ile Roslyn `.editorconfig` kurallarını uygular. Örneğin proje köküne aşağıdakine benzer bir dosya koyabilirsiniz:
@@ -127,6 +131,7 @@ C#, T-SQL ve JSON dosyalarında sözdizimine göre seçim yapmak için aşağıd
 | `vaS` | T-SQL statement'ının tamamını seç |
 | `]f` / `[f` | Sonraki / önceki method, function, procedure veya trigger başlangıcı |
 | `]F` / `[F` | Sonraki / önceki method, function, procedure veya trigger sonu |
+| `]a` / `[a` | Sonraki / önceki method argümanı veya parametresi |
 | `]c` / `[c` | Sonraki / önceki conditional başlangıcı |
 | `]C` / `[C` | Sonraki / önceki conditional sonu |
 | `]r` / `[r` | Sonraki T-SQL query / iç query'den parent query veya statement'a çık; JSON'da sonraki / önceki nesne veya dizi (`]r` ve `[r` birbirinin aynasıdır, uçlarda sarar) |
@@ -240,7 +245,7 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 - `init.lua`: Giriş noktası; `lua/neo` modüllerini sırayla yükler
 - `lua/neo/plugins.lua`: lazy.nvim'i kurar ve `lua/neo/plugins/*.lua` modüllerindeki eklenti tanımlarını birleştirir
 - `lua/neo/plugins/`: Eklenti tanımları, konuya göre ayrılmıştır: `ui`, `editing`, `navigation`, `treesitter`, `lsp`, `completion`, `debug`
-- `lua/neo/textobjects.lua`: Tree-sitter textobject seçimi ve yapısal hareketler (`]f`, `]k`, `]s`, ...)
+- `lua/neo/textobjects.lua`: Tree-sitter textobject seçimi ve yapısal hareketler (`]f`, `]a`, `]k`, `]s`, ...)
 - `lua/neo/dotnet_debug.lua`: Debugger için .NET proje keşfi ve `launchSettings.json` okuma
 - `lua/neo/call_parens.lua`: C# tamamlamadan sonra `()` ekleme; imleç konumu ve ilk argüman şablonu (`''`, `x => `), `new int[]` ve generic `<>` tipe göre belirlenir. Ayrıca yazma modu tuşları: `to_initializer` (`Option-i`), `to_collection_expression` (`Option-u`), `finish_statement` (`Option-Enter`)
 - `lua/neo/lsp.lua`: Roslyn ve Elm dil sunucusu ayarları, LSP tuşları (`nvim-lspconfig` kullanılmaz; Elm sunucusu tanımı burada)

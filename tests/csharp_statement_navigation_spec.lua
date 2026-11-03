@@ -60,4 +60,21 @@ assert_line(3, "C# backward movement should include field declarations")
 press("[k")
 assert_line(1, "C# movement should include class declarations")
 
+vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+  "class Calls",
+  "{",
+  "  void Run() {",
+  "    Do(first, second, third);",
+  "  }",
+  "}",
+})
+move_to(4, 10)
+press("]a")
+assert(vim.api.nvim_win_get_cursor(0)[2] > 10, "argument movement should reach the next argument")
+local second_argument_column = vim.api.nvim_win_get_cursor(0)[2]
+press("]a")
+assert(vim.api.nvim_win_get_cursor(0)[2] > second_argument_column, "argument movement should continue to the third argument")
+press("[a")
+assert(vim.api.nvim_win_get_cursor(0)[2] == second_argument_column, "backward argument movement should return to the second argument")
+
 vim.cmd("qa!")

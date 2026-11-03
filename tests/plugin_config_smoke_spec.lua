@@ -32,7 +32,7 @@ for _, filetype in ipairs({ "cs", "sql" }) do
 end
 
 for _, item in ipairs({
-  { "ab", "x" }, { "if", "o" }, { "]k", "n" }, { "[k", "n" },
+  { "ab", "x" }, { "if", "o" }, { "]f", "n" }, { "[f", "n" }, { "]a", "n" }, { "[a", "n" },
   { " ff", "n" }, { " fg", "n" }, { " tt", "n" }, { " tw", "n" },
   { " rr", "n" }, { "<C-\\>", "t" }, { "<F5>", "n" }, { "zR", "n" },
 }) do

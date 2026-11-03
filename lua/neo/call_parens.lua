@@ -616,9 +616,10 @@ function M.finish_statement()
   local row, column = unpack(vim.api.nvim_win_get_cursor(0))
   local line = vim.api.nvim_get_current_line()
   local closers = #line:sub(column + 1):match("^[%)%]]*")
-  local changed = closers > 0
+  local semicolon = line:sub(column + closers + 1, column + closers + 1) == ";"
+  local changed = closers > 0 or semicolon
   if changed then
-    column = column + closers
+    column = column + closers + (semicolon and 1 or 0)
     vim.api.nvim_win_set_cursor(0, { row, column })
   end
 

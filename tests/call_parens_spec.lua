@@ -453,6 +453,7 @@ assert_equal("    var a = new int[3];", text, "brackets should be stepped over a
 changed, text = finish("    list.Clear();", #"    list.Clear(")
 assert_equal("    list.Clear();", text, "an existing ; should not be doubled")
 assert_equal(true, changed, "stepping over the closers still counts as a change")
+assert_equal(#text, vim.api.nvim_win_get_cursor(0)[2], "an existing ; should also be stepped over")
 
 changed, text, col = finish("    list.Clear();", #"    list.Clear();")
 assert_equal(false, changed, "a finished statement at its end should change nothing")

@@ -7,7 +7,7 @@ local function press(key, mode)
   return pcall(mapping.callback)
 end
 
-local keys = { "]f", "[f", "]F", "[F", "]c", "[C", "]r", "[r", "]k", "[k", "]s", "[s", "]K", "[K" }
+local keys = { "]f", "[f", "]F", "[F", "]a", "[a", "]c", "[C", "]r", "[r", "]k", "[k", "]s", "[s", "]K", "[K" }
 
 for _, filetype in ipairs({ "text", "conf" }) do
   vim.api.nvim_buf_set_lines(0, 0, -1, false, { "{", '  "name": "value",', '  "other": [1, 2]', "}" })

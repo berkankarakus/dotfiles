@@ -83,11 +83,16 @@ function M.setup()
       move_with_wrap(query, false, true)
     end, { desc = "Previous " .. desc .. " end" })
   end
-  local function map_textobject_start(next_start, previous_start, query, desc)
+  local function map_textobject_start(next_start, previous_start, query, desc, only_csharp)
+    local function allowed()
+      return not only_csharp or vim.bo.filetype == "cs" or vim.bo.filetype == "c_sharp"
+    end
     vim.keymap.set({ "n", "x", "o" }, next_start, function()
+      if not allowed() then return end
       move_with_wrap(query, true, false)
     end, { desc = "Next " .. desc })
     vim.keymap.set({ "n", "x", "o" }, previous_start, function()
+      if not allowed() then return end
       move_with_wrap(query, false, false)
     end, { desc = "Previous " .. desc })
   end
@@ -317,6 +322,7 @@ function M.setup()
   map_textobject("aS", "@statement.outer", "Select around SQL statement")
 
   map_textobject_move("]f", "[f", "]F", "[F", "@function.outer", "function")
+  map_textobject_start("]a", "[a", "@parameter.outer", "argument or parameter", true)
   map_textobject_move("]c", "[c", "]C", "[C", "@conditional.outer", "conditional")
   map_sql_query("]r", "[r")
   map_sql_clause("]k", "[k")
