@@ -3,6 +3,7 @@
 -- templates in the repo), the settings Ghostty really applies, tools with their versions, plugins at their
 -- locked commits, parsers and the debugger. `:NeoDoctor!` also lists every plugin with its commit.
 local M = {}
+local checks = require("neo.doctor.checks")
 
 local STATUS = { ok = "ok", warn = "WARN", fail = "FAIL", info = "info" }
 
@@ -45,59 +46,16 @@ end
 
 local function first_line(text) return text and text:match("[^\n]+") or nil end
 
--- ---------------------------------------------------------------------- Roslyn
--- ROSLYN_VERSION in bootstrap-macos.sh is the single source of the pinned version.
-function M.pinned_roslyn(script_text)
-  return script_text:match('\nROSLYN_VERSION="([^"]+)"') or script_text:match('^ROSLYN_VERSION="([^"]+)"')
-end
-
--- Parses the table printed by `dotnet tool list -g`.
-function M.installed_roslyn(tool_list)
-  for line in tool_list:gmatch("[^\n]+") do
-    local name, version = line:match("^(%S+)%s+(%S+)")
-    if name == "roslyn-language-server" then return version end
-  end
-end
-
-function M.roslyn_check(pinned, installed)
-  local section = "Tools"
-  if not installed then return check(section, "fail", "Roslyn language server", "not installed (dotnet tool install -g roslyn-language-server)") end
-  if not pinned then return check(section, "warn", "Roslyn language server", installed .. " (pinned version unknown: bootstrap-macos.sh not found)") end
-  if installed ~= pinned then
-    return check(section, "warn", "Roslyn language server", string.format("installed %s, pinned %s", installed, pinned))
-  end
-  return check(section, "ok", "Roslyn language server", installed)
-end
-
--- --------------------------------------------------------------------- plugins
--- `lock` is the decoded lazy-lock.json, `heads` maps plugin name -> installed commit (nil if missing).
-function M.lock_checks(lock, heads, verbose)
-  local section = "Plugins"
-  local names = vim.tbl_keys(lock)
-  table.sort(names)
-  local missing, drifted, listing = {}, {}, {}
-  for _, name in ipairs(names) do
-    local wanted, actual = lock[name].commit, heads[name]
-    if not actual then
-      missing[#missing + 1] = name
-      listing[#listing + 1] = check(section, "fail", name, "not installed (lock " .. wanted:sub(1, 7) .. ")")
-    elseif actual ~= wanted then
-      drifted[#drifted + 1] = string.format("%s (installed %s, lock %s)", name, actual:sub(1, 7), wanted:sub(1, 7))
-      listing[#listing + 1] = check(section, "warn", name, string.format("installed %s, lock %s", actual:sub(1, 7), wanted:sub(1, 7)))
-    else
-      listing[#listing + 1] = check(section, "ok", name, actual:sub(1, 7))
-    end
-  end
-  if verbose then return listing end
-
-  local results = {}
-  if #missing > 0 then results[#results + 1] = check(section, "fail", "Plugins installed", "missing: " .. table.concat(missing, ", ")) end
-  if #drifted > 0 then results[#results + 1] = check(section, "warn", "Plugins match lazy-lock.json", table.concat(drifted, "; ")) end
-  if #missing == 0 and #drifted == 0 then
-    results[#results + 1] = check(section, "ok", "Plugins match lazy-lock.json", #names .. " plugins at their locked commits")
-  end
-  return results
-end
+-- Pure report checks live separately so this module only orchestrates the machine-wide collection.
+M.pinned_roslyn = checks.pinned_roslyn
+M.installed_roslyn = checks.installed_roslyn
+M.roslyn_check = checks.roslyn_check
+M.lock_checks = checks.lock_checks
+M.first_difference = checks.first_difference
+M.file_check = checks.file_check
+M.symlink_check = checks.symlink_check
+M.ghostty_mismatches = checks.ghostty_mismatches
+local shorten = checks.shorten
 
 -- Decoded lazy-lock.json, or nil plus the reason a check line should give.
 local function read_lock()
@@ -121,48 +79,6 @@ local function plugin_checks(verbose)
 end
 
 -- --------------------------------------------------------------- deployed files
--- Where two line lists first differ: { line = n, left = "...", right = "..." }, or nil when equal.
-function M.first_difference(left, right)
-  for index = 1, math.max(#left, #right) do
-    if left[index] ~= right[index] then return { line = index, left = left[index], right = right[index] } end
-  end
-end
-
-local function shorten(text, width)
-  if not text then return "(end of file)" end
-  text = vim.trim(text)
-  return #text > width and text:sub(1, width - 1) .. "…" or text
-end
-
--- The bootstrap copies repo templates to places outside the repo. A tweak made only in the deployed copy
--- (or a template that was never deployed) makes two Macs behave differently without any error.
-function M.file_check(label, template_lines, deployed_lines, template_name)
-  local section = "Deployed files"
-  if not deployed_lines then return check(section, "fail", label, "not deployed (run bootstrap-macos.sh)") end
-  if not template_lines then return check(section, "warn", label, template_name .. " not found in the repo") end
-  local difference = M.first_difference(template_lines, deployed_lines)
-  if not difference then return check(section, "ok", label, "matches " .. template_name) end
-  return check(section, "warn", label, string.format('differs from %s at line %d: deployed "%s", template "%s"',
-    template_name, difference.line, shorten(difference.right, 50), shorten(difference.left, 50)))
-end
-
--- A file that must be a symlink to its original inside the repo (the single copy of
--- ~/.claude/CLAUDE.md). A tool that rewrites the file instead of editing it in place replaces the link
--- with an ordinary file, after which the two copies drift apart without any error.
-function M.symlink_check(label, link_path, target_path, target_name)
-  local section = "Deployed files"
-  local info = vim.uv.fs_lstat(link_path)
-  if not info then return check(section, "warn", label, "missing (see README, Yeni Mac'e Taşıma)") end
-  if info.type ~= "link" then
-    return check(section, "warn", label, "an ordinary file, no longer linked to " .. target_name)
-  end
-  local actual = vim.uv.fs_realpath(link_path)
-  local expected = vim.uv.fs_realpath(target_path)
-  if not actual then return check(section, "warn", label, "a broken link to " .. (vim.uv.fs_readlink(link_path) or "?")) end
-  if actual ~= expected then return check(section, "warn", label, "links to " .. actual .. ", not " .. target_name) end
-  return check(section, "ok", label, "links to " .. target_name)
-end
-
 local function deployed_file_checks()
   local results = {
     M.file_check("zsh config", read_lines(config_path("templates/neovim-csharp.zsh")),
@@ -191,37 +107,6 @@ end
 local function ghostty_binary()
   local path = "/Applications/Ghostty.app/Contents/MacOS/ghostty"
   return vim.fn.executable(path) == 1 and path or nil
-end
-
--- `+show-config` prints modifiers as alt/super and escapes backslashes, the template uses option/command.
-local function normalize_ghostty(line)
-  return (line:gsub("\\", ""):gsub("option%+", "alt+"):gsub("command%+", "super+"))
-end
-
--- Returns the template settings and keybinds that Ghostty does not report as applied. `+show-config`
--- leaves out settings that still have their default value, so a template line also counts as applied
--- when the key is not overridden and `+show-config --default` lists the very same value.
-function M.ghostty_mismatches(template_lines, effective_text, default_text)
-  local effective, overridden, defaults = {}, {}, {}
-  for line in effective_text:gmatch("[^\n]+") do
-    local normalized = normalize_ghostty(vim.trim(line))
-    effective[normalized] = true
-    local key = normalized:match("^([%w-]+) =")
-    if key then overridden[key] = true end
-  end
-  for line in (default_text or ""):gmatch("[^\n]+") do defaults[normalize_ghostty(vim.trim(line))] = true end
-
-  local missing = {}
-  for _, line in ipairs(template_lines) do
-    local trimmed = vim.trim(line)
-    if trimmed ~= "" and not trimmed:match("^#") then
-      local normalized = normalize_ghostty(trimmed)
-      local key = normalized:match("^([%w-]+) =")
-      local at_default = key and key ~= "keybind" and not overridden[key] and defaults[normalized]
-      if not effective[normalized] and not at_default then missing[#missing + 1] = trimmed end
-    end
-  end
-  return missing
 end
 
 local function ghostty_checks()

@@ -2,10 +2,6 @@
 return {
   { "folke/tokyonight.nvim", priority = 1000, opts = { style = "moon" } },
   {
-    "lukas-reineke/virt-column.nvim",
-    opts = { char = "┊", virtcolumn = "120", exclude = { filetypes = { "NvimTree" } } },
-  },
-  {
     "nvim-lualine/lualine.nvim",
     dependencies = { "nvim-tree/nvim-web-devicons" },
     opts = {

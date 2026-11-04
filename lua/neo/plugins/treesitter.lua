@@ -31,7 +31,7 @@ return {
     "nvim-treesitter/nvim-treesitter-textobjects",
     branch = "main",
     dependencies = { "nvim-treesitter/nvim-treesitter" },
-    lazy = false,
+    ft = { "cs", "c_sharp", "sql", "json" },
     config = function() require("neo.textobjects").setup() end,
   },
 }
