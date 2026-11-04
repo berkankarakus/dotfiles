@@ -2,7 +2,7 @@
 return {
   {
     "mfussenegger/nvim-dap",
-    event = "BufReadPost *.cs",
+    event = "VeryLazy",
     keys = {
       { "<F5>", desc = "Debug: Continue" },
       { "<F10>", desc = "Debug: Step over" },
@@ -30,8 +30,11 @@ return {
       vim.fn.sign_define("DapBreakpointCondition", { text = "◆", texthl = "DapBreakpoint", linehl = "", numhl = "" })
       vim.fn.sign_define("DapBreakpointRejected", { text = "○", texthl = "DapBreakpointRejected", linehl = "", numhl = "" })
       local dapui = require("dapui")
-      require("persistent-breakpoints").setup({ load_breakpoints_event = { "BufReadPost" } })
+      require("persistent-breakpoints").setup({ load_breakpoints_event = { "BufReadPost", "BufEnter" } })
       local persistent_breakpoints = require("persistent-breakpoints.api")
+      -- VeryLazy may run after the current buffer's BufReadPost/BufEnter events.
+      -- Load saved breakpoints once immediately so deferring DAP does not lose signs.
+      persistent_breakpoints.load_breakpoints()
       local netcoredbg = vim.fn.stdpath("data") .. "/lazy/netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg"
       local dotnet = require("neo.dotnet_debug")
       local launch_context = dotnet.launch_context_cache(dotnet.resolve_launch_context)
