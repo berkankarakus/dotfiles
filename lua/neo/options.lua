@@ -29,8 +29,6 @@ function M.setup()
   vim.opt.tabstop = 4
   vim.opt.list = true
   vim.opt.listchars = { space = "·", multispace = "·", tab = "→ " }
-  -- Use Neovim's built-in guide instead of virt-column.nvim, whose current release
-  -- still calls the deprecated table-form vim.validate API on Neovim 0.12+.
   vim.opt.colorcolumn = "120"
   vim.opt.whichwrap:append("[")
   vim.opt.whichwrap:append("]")

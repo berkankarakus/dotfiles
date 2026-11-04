@@ -23,7 +23,8 @@ function M.setup()
   })
 
   vim.cmd.colorscheme("tokyonight")
-  vim.api.nvim_set_hl(0, "ColorColumn", { bg = "#24283b" })
+  vim.api.nvim_set_hl(0, "VirtColumn", { fg = "#4a5275" })
+  require("neo.virt_column_tail").setup()
 end
 
 return M

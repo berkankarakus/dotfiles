@@ -1,7 +1,7 @@
 local plugins = require("lazy.core.config").plugins
 local names = vim.tbl_keys(plugins)
 table.sort(names)
-assert(plugins["virt-column.nvim"] == nil, "deprecated virt-column.nvim should not be loaded")
+assert(plugins["virt-column.nvim"] ~= nil, "virt-column.nvim should be configured for the thin guide")
 
 local errors = {}
 local original_notify = vim.notify

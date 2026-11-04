@@ -2,6 +2,16 @@
 return {
   { "folke/tokyonight.nvim", priority = 1000, opts = { style = "moon" } },
   {
+    "lukas-reineke/virt-column.nvim",
+    opts = {
+      char = "┊",
+      highlight = "VirtColumn",
+      -- Reuse the existing `colorcolumn=120` option instead of defining it twice.
+      virtcolumn = "",
+      exclude = { filetypes = { "NvimTree" } },
+    },
+  },
+  {
     "nvim-lualine/lualine.nvim",
     dependencies = { "nvim-tree/nvim-web-devicons" },
     opts = {
