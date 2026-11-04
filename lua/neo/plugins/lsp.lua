@@ -2,6 +2,7 @@
 return {
   {
     "seblyng/roslyn.nvim",
+    ft = { "cs", "c_sharp" },
     config = function()
       require("neo.lsp").setup()
       require("roslyn").setup({})
