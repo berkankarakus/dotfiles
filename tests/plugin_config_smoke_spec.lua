@@ -34,11 +34,14 @@ end
 for _, item in ipairs({
   { "ab", "x" }, { "if", "o" }, { "]f", "n" }, { "[f", "n" }, { "]a", "n" }, { "[a", "n" },
   { " ff", "n" }, { " fg", "n" }, { " tt", "n" }, { " tw", "n" },
-  { " rr", "n" }, { "<C-\\>", "t" }, { "<F5>", "n" }, { "zR", "n" },
+  { " rr", "n" }, { "<C-\\>", "t" }, { "<F5>", "n" },
 }) do
   local mapping = vim.fn.maparg(item[1], item[2], false, true)
   assert(mapping and mapping.lhs and mapping.lhs ~= "", "missing configured mapping " .. item[1])
 end
+
+assert(vim.wo.foldmethod == "expr", "Tree-sitter folding should use Neovim's built-in expr fold method")
+assert(vim.wo.foldexpr == "v:lua.vim.treesitter.foldexpr()", "Tree-sitter foldexpr should be configured")
 
 -- Mason only ever installed an x64 netcoredbg that Apple Silicon cannot run: the debugger adapter uses
 -- the arm64 binary shipped by netcoredbg-macOS-arm64.nvim, so Mason must stay out of the config.

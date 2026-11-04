@@ -25,6 +25,7 @@ return {
       vim.treesitter.language.register("mssql", "sql")
       treesitter.install({ "c_sharp", "mssql", "json" })
       vim.opt.rtp:append(vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/runtime")
+      require("neo.folding").enable(0)
     end,
   },
   {

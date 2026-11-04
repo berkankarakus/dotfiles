@@ -1,5 +1,6 @@
 -- C#-oriented Neovim configuration. Feature modules keep this entrypoint small.
 require("neo.options").setup()
+require("neo.folding").setup()
 require("neo.keymaps").setup()
 require("neo.session").setup()
 require("neo.terminal").setup()

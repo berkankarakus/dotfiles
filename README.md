@@ -65,7 +65,7 @@ Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi 
 | `Left` / `Right` (satır başı/sonunda, yazma modunda) | Önceki satırın sonuna / sonraki satırın başına git |
 | `Left` / `Right` / `h` / `l` (satır başı/sonunda, normal modda) | Önceki satırın sonuna / sonraki satırın başına git |
 | `za` (blok veya `#region` üstünde) | Katlamayı aç/kapat |
-| `zM` / `zR` | Tüm katlamaları kapat / aç |
+| `zM` / `zR` | Tree-sitter katlamalarını tümüyle kapat / aç |
 | `/metin`, `n` | Ara / sonraki sonuç |
 
 ## Kod Gezinme

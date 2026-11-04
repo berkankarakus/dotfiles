@@ -1,4 +1,4 @@
--- Text editing helpers: surround (with scoped format on delete), word highlights and folds.
+-- Text editing helpers: surround (with scoped format on delete) and word highlights.
 return {
   {
     "echasnovski/mini.surround",
@@ -58,27 +58,6 @@ return {
           sql = { case_insensitive_regex = true },
         },
       })
-    end,
-  },
-  {
-    "kevinhwang91/nvim-ufo",
-    event = "VeryLazy",
-    dependencies = { "kevinhwang91/promise-async" },
-    opts = {
-      provider_selector = function(_, filetype, buftype)
-        if buftype ~= "" then return "" end
-        if filetype == "cs" then return { "lsp" } end
-        return { "treesitter", "indent" }
-      end,
-    },
-    config = function(_, opts)
-      vim.o.foldcolumn = "1"
-      vim.o.foldlevel = 99
-      vim.o.foldlevelstart = 99
-      vim.o.foldenable = true
-      require("ufo").setup(opts)
-      vim.keymap.set("n", "zR", require("ufo").openAllFolds, { desc = "Open all folds" })
-      vim.keymap.set("n", "zM", require("ufo").closeAllFolds, { desc = "Close all folds" })
     end,
   },
 }
