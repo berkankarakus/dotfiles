@@ -194,7 +194,15 @@ git() {
 fossil() {
   if [[ "$1" == "diff" ]]; then
     shift
-    command fossil diff "$@" | less -R
+    local diff_output diff_status
+    diff_output=$(command fossil diff "$@")
+    diff_status=$?
+    if (( diff_status != 0 )); then
+      print -r -- "$diff_output"
+      return "$diff_status"
+    fi
+    [[ -z "$diff_output" ]] && return 0
+    print -r -- "$diff_output" | less -R
     return ${pipestatus[1]}
   fi
   if [[ "$1" == "status" || "$1" == "changes" || "$1" == "addremove" ]]; then

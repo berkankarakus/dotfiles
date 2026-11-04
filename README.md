@@ -212,6 +212,12 @@ Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızc
 
 `Space r b` (veya `:DotnetBuild`) açık dosyanın üstündeki çözümü (`.sln`/`.slnx`, yoksa `.csproj`) editörü bloklamadan derler. Hatalar ve uyarılar quickfix listesine düşer; hata varsa liste açılır, `:cnext` / `:cprev` ile açık olmayan dosyalardaki hatalara da gidebilirsiniz. Hataları düzeltince quickfix penceresindeyken tekrar `Space r b` basmanız yeterli; son derlenen hedef kullanılır.
 
+### Sistem kaynak monitorü
+
+Bootstrap, macOS'ta `com.neovim.resource-watch` LaunchAgent'ını kurar. Monitor her 15 saniyede bir tüm süreçleri ve sistem belleği baskısını kontrol eder; bir süreç üç ölçüm boyunca `%80` CPU'yu aşarsa veya boş bellek `%10` altına inerse tek bir macOS bildirimi gönderir. Süreçleri durdurmaz ve hiçbir veriyi dışarı göndermez.
+
+Eşikler ortam değişkenleriyle değiştirilebilir: `NEO_RESOURCE_INTERVAL`, `NEO_RESOURCE_CPU_THRESHOLD`, `NEO_RESOURCE_MEMORY_FREE_THRESHOLD` ve `NEO_RESOURCE_SAMPLES_REQUIRED`. Monitorü kapatmak için `launchctl bootout gui/$UID/com.neovim.resource-watch`, tekrar açmak için bootstrap'ı yeniden çalıştırın.
+
 ## Terminal Araçları
 
 | Komut | İşlev |
@@ -257,6 +263,8 @@ Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesi
 - `README.md`: Bu rehber
 - `bootstrap-macos.sh`: Yeni bir Mac'i aynı ortamla kurar
 - `bootstrap-macos-csharp.sh`: `bootstrap-macos.sh --no-elm` için kısa sarmalayıcı (Fossil ve Elm araçları kurulmaz)
+- `scripts/resource-watch.sh`: Sistem genelinde CPU/bellek alarmı
+- `templates/com.neovim.resource-watch.plist`: Monitor LaunchAgent şablonu
 
 ## Makine Denetimi (`:NeoDoctor`)
 

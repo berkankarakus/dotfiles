@@ -43,6 +43,9 @@ BACKUP_DIR="$HOME/.config/neovim-csharp-backup/$(date +%Y%m%d-%H%M%S)"
 MONO_DEBUG_DIR="$HOME/.local/share/nvim/mono-debug"
 SQLDEPS_DIR="$HOME/Projects/sqldeps"
 SQLDEPS_REPOSITORY="https://github.com/dotfiles/sqldeps.git"
+RESOURCE_WATCH_LABEL="com.neovim.resource-watch"
+RESOURCE_WATCH_BIN="$HOME/.local/bin/resource-watch"
+RESOURCE_WATCH_PLIST="$HOME/Library/LaunchAgents/$RESOURCE_WATCH_LABEL.plist"
 
 backup_if_present() {
   local path="$1"
@@ -129,10 +132,10 @@ fi
 echo "Deploying configuration (old files are backed up when replaced)..."
 mkdir -p "$NVIM_DIR" "$GHOSTTY_DIR" "$ZSH_DIR"
 if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
-  for path in init.lua lazy-lock.json README.md bootstrap-macos.sh bootstrap-macos-csharp.sh lua after templates; do
+  for path in init.lua lazy-lock.json README.md bootstrap-macos.sh bootstrap-macos-csharp.sh lua after templates scripts; do
     backup_if_present "$NVIM_DIR/$path"
   done
-  install -d -m 755 "$NVIM_DIR/lua/neo" "$NVIM_DIR/lua/neo/plugins" "$NVIM_DIR/lua/neo/csharp" "$NVIM_DIR/lua/neo/doctor" "$NVIM_DIR/lua/neo/textobjects" "$NVIM_DIR/lua/neo/sqldeps" "$NVIM_DIR/lua/neo/call_parens" "$NVIM_DIR/lua/lsp" "$NVIM_DIR/templates"
+  install -d -m 755 "$NVIM_DIR/lua/neo" "$NVIM_DIR/lua/neo/plugins" "$NVIM_DIR/lua/neo/csharp" "$NVIM_DIR/lua/neo/doctor" "$NVIM_DIR/lua/neo/textobjects" "$NVIM_DIR/lua/neo/sqldeps" "$NVIM_DIR/lua/neo/call_parens" "$NVIM_DIR/lua/lsp" "$NVIM_DIR/templates" "$NVIM_DIR/scripts"
   install -m 644 "$SOURCE_DIR/init.lua" "$NVIM_DIR/init.lua"
   install -m 644 "$SOURCE_DIR/lazy-lock.json" "$NVIM_DIR/lazy-lock.json"
   install -m 644 "$SOURCE_DIR/README.md" "$NVIM_DIR/README.md"
@@ -169,6 +172,9 @@ if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
   done
   install -m 644 "$SOURCE_DIR/templates/ghostty-config" "$NVIM_DIR/templates/ghostty-config"
   install -m 644 "$SOURCE_DIR/templates/neovim-csharp.zsh" "$NVIM_DIR/templates/neovim-csharp.zsh"
+  for script in "$SOURCE_DIR"/scripts/*; do
+    install -m 755 "$script" "$NVIM_DIR/scripts/$(basename "$script")"
+  done
 fi
 
 echo "Installing sqldeps..."
@@ -187,6 +193,20 @@ install -m 644 "$SOURCE_DIR/templates/ghostty-config" "$GHOSTTY_DIR/config"
 # This file is easy to tweak in place; keep the previous copy so a re-run never silently discards it.
 backup_if_present "$ZSH_DIR/neovim-csharp.zsh"
 install -m 644 "$SOURCE_DIR/templates/neovim-csharp.zsh" "$ZSH_DIR/neovim-csharp.zsh"
+
+echo "Installing system resource monitor..."
+mkdir -p "$HOME/.local/bin" "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
+backup_if_present "$RESOURCE_WATCH_BIN"
+backup_if_present "$RESOURCE_WATCH_PLIST"
+install -m 755 "$SOURCE_DIR/scripts/resource-watch.sh" "$RESOURCE_WATCH_BIN"
+resource_watch_tmp="$(mktemp)"
+sed "s|__HOME__|$HOME|g" "$SOURCE_DIR/templates/com.neovim.resource-watch.plist" > "$resource_watch_tmp"
+install -m 644 "$resource_watch_tmp" "$RESOURCE_WATCH_PLIST"
+rm -f "$resource_watch_tmp"
+launchctl bootout "gui/$UID/$RESOURCE_WATCH_LABEL" >/dev/null 2>&1 || true
+if ! launchctl bootstrap "gui/$UID" "$RESOURCE_WATCH_PLIST"; then
+  echo "warning: could not start the resource monitor LaunchAgent" >&2
+fi
 
 if ! grep -Fq 'source "$HOME/.config/zsh/neovim-csharp.zsh"' "$HOME/.zshrc" 2>/dev/null; then
   {
@@ -234,6 +254,7 @@ check "sqldeps LSP" sqldeps_lsp_available
 check "netcoredbg debugger" test -x "$HOME/.local/share/nvim/lazy/netcoredbg-macOS-arm64.nvim/netcoredbg/netcoredbg"
 check "Ghostty" test -d /Applications/Ghostty.app
 check "JetBrainsMono Nerd Font" font_installed
+check "system resource monitor" launchctl print "gui/$UID/$RESOURCE_WATCH_LABEL"
 check "jq (JSON formatting)" command -v jq
 check "awk (Homebrew)" test -x /opt/homebrew/opt/awk/bin/awk
 for parser in c_sharp mssql json; do

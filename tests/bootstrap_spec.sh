@@ -9,6 +9,10 @@ fail() {
 for script in bootstrap-macos.sh bootstrap-macos-csharp.sh; do
   bash -n "$script"
 done
+[[ -x scripts/resource-watch.sh ]] || fail "the system resource monitor script is missing"
+grep -Fq 'RESOURCE_WATCH_LABEL=' bootstrap-macos.sh || fail "bootstrap should install the resource monitor"
+grep -Fq 'launchctl bootstrap' bootstrap-macos.sh || fail "bootstrap should load the resource monitor LaunchAgent"
+grep -Fq 'com.neovim.resource-watch' templates/com.neovim.resource-watch.plist || fail "resource monitor plist is missing its label"
 grep -Fq '/after/queries/*/' bootstrap-macos.sh || fail "main script should deploy the queries of every language"
 [[ -z "$(find after/queries -mindepth 3 -name '*.scm')" ]] || fail "queries nested deeper than after/queries/<language>/ would not be deployed"
 for language in c_sharp mssql json; do
