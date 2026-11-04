@@ -17,7 +17,8 @@ concurrency:
 jobs:
   test:
     name: macOS Neovim tests
-    runs-on: macos-14
+    # macos-14 is not available for private repositories; macos-15 is.
+    runs-on: macos-15
     env:
       XDG_DATA_HOME: ${{ runner.temp }}/xdg-data
       XDG_STATE_HOME: ${{ runner.temp }}/xdg-state
