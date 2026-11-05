@@ -84,6 +84,49 @@ local function return_type_from_head(head)
   return before
 end
 
+local function signature_from_buffer(bufnr, line_number, line_count, declaration)
+  local signature = declaration
+  for next_line = line_number + 1, math.min(line_number + 6, line_count) do
+    -- Only keep reading while a parameter list is open; a class, property or field
+    -- line has no "(" and must not borrow the next method's parameters.
+    if not signature:find("(", 1, true) or find_parameter_list(signature) then break end
+    signature = signature .. " " .. vim.api.nvim_buf_get_lines(bufnr, next_line - 1, next_line, false)[1]
+  end
+  return signature
+end
+
+local function docstring_lines(declaration, signature)
+  local indent = declaration:match("^(%s*)") or ""
+  local lines = { indent .. "/// <summary>", indent .. "/// ", indent .. "/// </summary>" }
+  local parameters, head = find_parameter_list(signature)
+  if parameters then
+    for _, parameter in ipairs(split_parameters(parameters)) do
+      local name = parameter_name(parameter)
+      if name then lines[#lines + 1] = indent .. '/// <param name="' .. name .. '"></param>' end
+    end
+  end
+  if head and return_type_from_head(head) then lines[#lines + 1] = indent .. "/// <returns></returns>" end
+  return lines
+end
+
+local function fields_in_docstring(lines)
+  local fields = {}
+  local in_summary = false
+  for offset, text in ipairs(lines) do
+    if text:match("<summary>") then
+      in_summary = true
+    elseif text:match("</summary>") then
+      in_summary = false
+    elseif in_summary and text:match("^%s*///%s*$") then
+      fields[#fields + 1] = { row = offset, column = #text }
+    end
+
+    local closing_tag = text:find("></param>", 1, true) or text:find("></returns>", 1, true)
+    if closing_tag then fields[#fields + 1] = { row = offset, column = closing_tag } end
+  end
+  return fields
+end
+
 local function insert()
   if vim.bo.filetype ~= "cs" then
     vim.notify("Docstring shortcut is only available in C# files.", vim.log.levels.WARN)
@@ -114,27 +157,9 @@ local function insert()
     return
   end
 
-  local indent = declaration:match("^(%s*)") or ""
-  local lines = { indent .. "/// <summary>", indent .. "/// ", indent .. "/// </summary>" }
-  local signature = declaration
-  for next_line = line_number + 1, math.min(line_number + 6, vim.api.nvim_buf_line_count(bufnr)) do
-    -- Only keep reading while a parameter list is open; a class, property or field
-    -- line has no "(" and must not borrow the next method's parameters.
-    if not signature:find("(", 1, true) or find_parameter_list(signature) then break end
-    signature = signature .. " " .. vim.api.nvim_buf_get_lines(bufnr, next_line - 1, next_line, false)[1]
-  end
-
-  local parameters, head = find_parameter_list(signature)
-  if parameters then
-    for _, parameter in ipairs(split_parameters(parameters)) do
-      local name = parameter_name(parameter)
-      if name then table.insert(lines, indent .. '/// <param name="' .. name .. '"></param>') end
-    end
-  end
-
-  if head and return_type_from_head(head) then
-    table.insert(lines, indent .. "/// <returns></returns>")
-  end
+  local line_count = vim.api.nvim_buf_line_count(bufnr)
+  local signature = signature_from_buffer(bufnr, line_number, line_count, declaration)
+  local lines = docstring_lines(declaration, signature)
 
   vim.api.nvim_buf_set_lines(bufnr, line_number - 1, line_number - 1, false, lines)
   vim.api.nvim_win_set_cursor(0, { line_number + 1, #indent + 4 })
@@ -160,21 +185,9 @@ local function jump_field()
   while start_row > 1 and is_doc_line(start_row - 1) do start_row = start_row - 1 end
   while end_row < line_count and is_doc_line(end_row + 1) do end_row = end_row + 1 end
 
-  local fields = {}
-  local in_summary = false
-  for line_number = start_row, end_row do
-    local text = vim.api.nvim_buf_get_lines(bufnr, line_number - 1, line_number, false)[1]
-    if text:match("<summary>") then
-      in_summary = true
-    elseif text:match("</summary>") then
-      in_summary = false
-    elseif in_summary and text:match("^%s*///%s*$") then
-      table.insert(fields, { row = line_number, column = #text })
-    end
-
-    local closing_tag = text:find("></param>", 1, true) or text:find("></returns>", 1, true)
-    if closing_tag then table.insert(fields, { row = line_number, column = closing_tag }) end
-  end
+  local doc_lines = vim.api.nvim_buf_get_lines(bufnr, start_row - 1, end_row, false)
+  local fields = fields_in_docstring(doc_lines)
+  for _, field in ipairs(fields) do field.row = field.row + start_row - 1 end
 
   for _, field in ipairs(fields) do
     if field.row > row or (field.row == row and field.column > column) then
