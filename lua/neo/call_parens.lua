@@ -187,6 +187,40 @@ local function leave_closer(item, row, column, before_cursor, after_cursor)
   return true
 end
 
+local function completion_context()
+  local buf = vim.api.nvim_get_current_buf()
+  local row, column = unpack(vim.api.nvim_win_get_cursor(0))
+  local line = vim.api.nvim_get_current_line()
+  return {
+    buf = buf,
+    row = row,
+    column = column,
+    line = line,
+    before_cursor = line:sub(1, column),
+    after_cursor = line:sub(column + 1),
+  }
+end
+
+local function request_call_plan(context)
+  local params = {
+    textDocument = vim.lsp.util.make_text_document_params(context.buf),
+    position = {
+      line = context.row - 1,
+      character = vim.str_utfindex(context.line, "utf-16", context.column) + 1,
+    },
+    context = { triggerKind = 2, triggerCharacter = "(", isRetrigger = false },
+  }
+  local tick = vim.api.nvim_buf_get_changedtick(context.buf)
+  M.request(context.buf, params, function(help)
+    local plan = M.plan(help)
+    if not plan then return end
+    if vim.api.nvim_get_current_buf() ~= context.buf or vim.api.nvim_buf_get_changedtick(context.buf) ~= tick then return end
+    local current_row, current_column = unpack(vim.api.nvim_win_get_cursor(0))
+    if current_row ~= context.row or current_column ~= context.column + 1 then return end
+    apply_plan(context.buf, context.row, context.column, plan)
+  end)
+end
+
 -- Inserts "()" after a confirmed C# method/constructor completion with the cursor
 -- inside, then asks the language server what the call takes: a parameterless call moves the
 -- cursor past ")" and a first argument of a known type gets a placeholder (`''`, `x => `). The
@@ -196,37 +230,19 @@ function M.handle(event)
   if event.commit_character then return end
 
   local item = event.entry:get_completion_item()
-  local buf = vim.api.nvim_get_current_buf()
-  local row, column = unpack(vim.api.nvim_win_get_cursor(0))
-  local line = vim.api.nvim_get_current_line()
-  local before_cursor = line:sub(1, column)
-  local after_cursor = line:sub(column + 1)
-  local next_character = after_cursor:sub(1, 1)
-  if leave_closer(item, row, column, before_cursor, after_cursor) then return end
+  local context = completion_context()
+  local next_character = context.after_cursor:sub(1, 1)
+  if leave_closer(item, context.row, context.column, context.before_cursor, context.after_cursor) then return end
   if next_character == "(" or next_character == "[" or next_character == "<" then return end
-  if handle_array(item, buf, row, column, before_cursor) then return end
-  if handle_keyword(item, CSHARP_KEYWORDS, buf, row, column, line) then return end
-  if handle_generic(item, buf, row, column, before_cursor) then return end
+  if handle_array(item, context.buf, context.row, context.column, context.before_cursor) then return end
+  if handle_keyword(item, CSHARP_KEYWORDS, context.buf, context.row, context.column, context.line) then return end
+  if handle_generic(item, context.buf, context.row, context.column, context.before_cursor) then return end
 
-  if not is_call_item(item.kind, before_cursor) then return end
+  if not is_call_item(item.kind, context.before_cursor) then return end
 
-  vim.api.nvim_buf_set_text(buf, row - 1, column, row - 1, column, { "()" })
-  vim.api.nvim_win_set_cursor(0, { row, column + 1 })
-  local tick = vim.api.nvim_buf_get_changedtick(buf)
-
-  local params = {
-    textDocument = vim.lsp.util.make_text_document_params(buf),
-    position = { line = row - 1, character = vim.str_utfindex(line, "utf-16", column) + 1 },
-    context = { triggerKind = 2, triggerCharacter = "(", isRetrigger = false },
-  }
-  M.request(buf, params, function(help)
-    local plan = M.plan(help)
-    if not plan then return end
-    if vim.api.nvim_get_current_buf() ~= buf or vim.api.nvim_buf_get_changedtick(buf) ~= tick then return end
-    local current_row, current_column = unpack(vim.api.nvim_win_get_cursor(0))
-    if current_row ~= row or current_column ~= column + 1 then return end
-    apply_plan(buf, row, column, plan)
-  end)
+  vim.api.nvim_buf_set_text(context.buf, context.row - 1, context.column, context.row - 1, context.column, { "()" })
+  vim.api.nvim_win_set_cursor(0, { context.row, context.column + 1 })
+  request_call_plan(context)
 end
 
 M.to_initializer = initializers.to_initializer
