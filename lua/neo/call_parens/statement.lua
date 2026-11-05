@@ -123,15 +123,64 @@ local function member_regions(member)
   }
 end
 
+local COMPACT_MEMBER_TYPES = {
+  method_declaration = true,
+  constructor_declaration = true,
+  destructor_declaration = true,
+  operator_declaration = true,
+  conversion_operator_declaration = true,
+  property_declaration = true,
+  indexer_declaration = true,
+  field_declaration = true,
+  event_field_declaration = true,
+  event_declaration = true,
+  delegate_declaration = true,
+}
+
+local function range_text(lines, start_row, start_column, end_row, end_column)
+  if start_row == end_row then return lines[start_row + 1]:sub(start_column + 1, end_column) end
+  local result = { lines[start_row + 1]:sub(start_column + 1) }
+  for row = start_row + 1, end_row - 1 do result[#result + 1] = lines[row + 1] end
+  result[#result + 1] = lines[end_row + 1]:sub(1, end_column)
+  return table.concat(result, "\n")
+end
+
+local function compact_member_lines(lines, row, column, member)
+  if not member or not COMPACT_MEMBER_TYPES[member:type()] then return end
+  local regions = member_regions(member)
+  local prefix_range, member_range, suffix_range = regions[1], regions[2], regions[3]
+  if not suffix_range then return end
+  local prefix = range_text(lines, prefix_range[1], prefix_range[2], prefix_range[3], prefix_range[4])
+  local body = range_text(lines, member_range[1], member_range[2], member_range[3], member_range[4])
+  local suffix = range_text(lines, suffix_range[1], suffix_range[2], suffix_range[3], suffix_range[4])
+  local compact = prefix .. "\n" .. body .. "\n" .. suffix
+  local compact_lines = vim.split(compact, "\n", { plain = true, trimempty = false })
+  local prefix_lines = select(2, prefix:gsub("\n", "")) + 1
+  local target_row = prefix_lines + row - member_range[1]
+  local target_column = row == member_range[1] and column - member_range[2] or column
+  if target_column < 0 then return end
+  return compact_lines, target_row, target_column
+end
+
+local function insert_at(lines, row, column, text)
+  local offset = column
+  for index = 1, row do offset = offset + #lines[index] + 1 end
+  local source = table.concat(lines, "\n")
+  return source:sub(1, offset) .. text .. source:sub(offset + 1)
+end
+
 local function semicolon_fits(lines, row, column, member, errors_before, followed_by_else)
-  local scratch = vim.api.nvim_create_buf(false, true)
   local fits = false
+  local parser
   pcall(function()
-    vim.api.nvim_buf_set_lines(scratch, 0, -1, false, lines)
-    vim.api.nvim_buf_set_text(scratch, row, column, row, column, { ";" })
-    local parser = vim.treesitter.get_parser(scratch, "c_sharp")
-    if member then
-      local regions = member_regions(member)
+    local parse_lines, parse_row, parse_column = compact_member_lines(lines, row, column, member)
+    local regions
+    if not parse_lines then
+      parse_lines, parse_row, parse_column = lines, row, column
+      regions = member and member_regions(member) or nil
+    end
+    parser = vim.treesitter.get_string_parser(insert_at(parse_lines, parse_row, parse_column, ";"), "c_sharp")
+    if regions then
       for _, region in ipairs(regions) do
         if region[1] == row and region[2] >= column then region[2] = region[2] + 1 end
         if region[3] == row and region[4] >= column then region[4] = region[4] + 1 end
@@ -139,14 +188,14 @@ local function semicolon_fits(lines, row, column, member, errors_before, followe
       parser:set_included_regions({ regions })
     end
     local root = parser:parse(true)[1]:root()
-    local token = root:descendant_for_range(row, column, row, column + 1)
+    local token = root:descendant_for_range(parse_row, parse_column, parse_row, parse_column + 1)
     local errors_after = count_errors(root)
     local errors_improved = errors_after < errors_before or followed_by_else and errors_after <= errors_before
-    fits = not has_error_on(root, row) and errors_improved
+    fits = not has_error_on(root, parse_row) and errors_improved
       and token ~= nil and token:type() == ";"
       and token:parent() ~= nil and ends_a_statement(token:parent())
   end)
-  vim.api.nvim_buf_delete(scratch, { force = true })
+  if parser then parser:destroy() end
   return fits
 end
 

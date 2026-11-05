@@ -29,6 +29,14 @@ vim.fn.writefile({}, root .. "/Touched.cs")
 lines = skeleton_of(root .. "/Touched.cs")
 assert_equal("namespace My.App;", lines[1], "an empty existing file should get a skeleton")
 
+-- Projects without RootNamespace fall back to the namespace in an existing source file.
+local fallback_root = vim.fn.tempname() .. "-fallback-skeleton"
+vim.fn.mkdir(fallback_root .. "/Models", "p")
+vim.fn.writefile({ "<Project></Project>" }, fallback_root .. "/Fallback.csproj")
+vim.fn.writefile({ "namespace Fallback.App;", "public class Existing {}" }, fallback_root .. "/Existing.cs")
+lines = skeleton_of(fallback_root .. "/Models/Person.cs")
+assert_equal("namespace Fallback.App.Models;", lines[1], "namespace should fall back to an existing source file")
+
 -- A file that already has content is left alone.
 vim.fn.writefile({ "// keep me" }, root .. "/Existing.cs")
 lines = skeleton_of(root .. "/Existing.cs")
@@ -53,5 +61,6 @@ assert(before > 0, "the skeleton autocmds should be registered by setup")
 
 vim.fn.delete(root, "rf")
 vim.fn.delete(orphan, "rf")
+vim.fn.delete(fallback_root, "rf")
 print("csharp_new_file_spec: ok")
 vim.cmd("qa!")

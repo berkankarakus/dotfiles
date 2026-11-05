@@ -2,10 +2,19 @@ local M = {}
 
 local function setup_signature_help(event, client, map)
   local signature_state = {}
+  local request_generation = 0
   local function show_next_signature(direction)
     direction = direction or 1
+    request_generation = request_generation + 1
+    local generation = request_generation
+    local request_position = vim.api.nvim_win_get_cursor(0)
     local params = vim.lsp.util.make_position_params(0, client and client.offset_encoding or "utf-16")
     vim.lsp.buf_request(event.buf, "textDocument/signatureHelp", params, function(err, result)
+      if generation ~= request_generation
+        or vim.api.nvim_get_current_buf() ~= event.buf
+        or not vim.deep_equal(request_position, vim.api.nvim_win_get_cursor(0)) then
+        return
+      end
       if err or not result or not result.signatures or #result.signatures == 0 then
         vim.notify("No signature available here.", vim.log.levels.INFO)
         return

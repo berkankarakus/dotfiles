@@ -67,6 +67,25 @@ vim.api.nvim_win_set_cursor(0, { 1, 6 })
 forward()
 assert_equal(" Overload 1/3 ", titles[8], "moving the cursor resets the overload cycle")
 
+-- A slower response from an earlier request must not overwrite the latest one.
+local queued = {}
+vim.lsp.buf_request = function(_, _, _, callback)
+  table.insert(queued, callback)
+end
+forward()
+forward()
+assert_equal(2, #queued, "each signature request should be tracked")
+queued[1](nil, {
+  activeSignature = 0,
+  signatures = { { label = "Stale()" } },
+})
+assert_equal(8, #titles, "a stale signature response should be ignored")
+queued[2](nil, {
+  activeSignature = 0,
+  signatures = { { label = "Fresh()" } },
+})
+assert_equal(9, #titles, "the latest signature response should be shown")
+
 vim.lsp.get_client_by_id = old_get_client
 vim.lsp.buf_request = old_request
 vim.lsp.util.open_floating_preview = old_preview

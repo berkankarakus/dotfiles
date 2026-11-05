@@ -13,7 +13,9 @@ local function refresh()
       if buftype == "" and filetype ~= "NvimTree" then
         local line_count = vim.api.nvim_buf_line_count(buf)
         local first = math.max(0, line_count - 3)
-        vim.api.nvim_buf_clear_namespace(buf, namespace, first, line_count)
+        -- Clear the whole namespace so marks that fell out of the trailing window
+        -- cannot remain when the buffer grows or shrinks.
+        vim.api.nvim_buf_clear_namespace(buf, namespace, 0, -1)
 
         local leftcol = vim.api.nvim_win_call(win, vim.fn.winsaveview).leftcol or 0
         for row = first, line_count - 1 do
@@ -37,12 +39,10 @@ local function refresh()
 end
 
 function M.setup()
-  local group = vim.api.nvim_create_augroup("NeoVirtColumnTail", {})
+  local group = vim.api.nvim_create_augroup("NeoVirtColumnTail", { clear = true })
   vim.api.nvim_create_autocmd({
     "BufEnter",
     "BufWinEnter",
-    "CursorMoved",
-    "CursorMovedI",
     "TextChanged",
     "TextChangedI",
     "WinEnter",

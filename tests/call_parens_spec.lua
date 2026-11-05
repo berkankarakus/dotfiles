@@ -483,6 +483,27 @@ end
 
 local function inside_method(statement) return { "class A { void M() {", statement, "} }" } end
 
+-- The speculative parse should not copy unrelated members from a large class.
+local large_class = { "class A {" }
+for index = 1, 200 do large_class[#large_class + 1] = "  int field" .. index .. " = " .. index .. ";" end
+large_class[#large_class + 1] = "  void M() {"
+large_class[#large_class + 1] = "    Call()"
+large_class[#large_class + 1] = "  }"
+large_class[#large_class + 1] = "}"
+local full_source_length = #table.concat(large_class, "\n")
+local largest_speculative_source = 0
+local original_string_parser = vim.treesitter.get_string_parser
+vim.treesitter.get_string_parser = function(source, language, options)
+  largest_speculative_source = math.max(largest_speculative_source, #source)
+  return original_string_parser(source, language, options)
+end
+local large_row = #large_class - 2
+local _, large_rows = finish_rows(large_class, large_row, #large_class[large_row])
+vim.treesitter.get_string_parser = original_string_parser
+assert_equal("    Call();", large_rows[large_row], "the compact parse should still add the semicolon")
+assert(largest_speculative_source < full_source_length,
+  "the speculative parse should omit unrelated class members")
+
 for _, case in ipairs({
   { "    throw new Exception()", "    throw new Exception();" },
   { "    yield return f()", "    yield return f();" },
