@@ -1,30 +1,30 @@
-# Neovim C# Ortamı
+# Neovim Development Environment
 
-Bu ayar; Roslyn tabanlı C# ve Elm dil sunucuları, otomatik formatlama, hata ayıklama, arama ve Tokyo Night temasını içerir.
+This configuration provides a Roslyn-based C# environment, Elm language-server support, formatting, debugging, project search, Tree-sitter text objects, and the Tokyo Night theme.
 
-## Başlangıç
+## Getting started
 
-Bir .NET projesinin kök klasöründe Neovim'i açın:
+Open Neovim from the root of a .NET project:
 
 ```sh
 nvim .
 ```
 
-`nvim .`, aynı proje klasöründe en son düzenlediğiniz dosyayı açar.
+`nvim .` restores the last file used in that project directory.
 
-Kaydetme dosyayı biçimlendirmez. Biçimlendirmek için `Space c f` kullanın (Visual modda yalnızca seçili kısım); C# dosyalarında Roslyn kullanılır ve biçim kuralları projenin kökündeki `.editorconfig` dosyasından okunur.
+Saving does not format the file automatically. Use `Space c f` to format the current file (or only the Visual selection). C# formatting is provided by Roslyn and follows the project’s `.editorconfig`.
 
-Elm projelerinde (`elm.json` bulunan klasörlerde) `elm-language-server` otomatik başlar; `Space c f` `elm-format` ile biçimlendirir. Derleme için `elm make`, test için `elm-test` kullanabilirsiniz.
+In Elm projects (directories containing `elm.json`), `elm-language-server` starts automatically. `Space c f` runs `elm-format`; use `elm make` and `elm-test` for builds and tests.
 
-Yeni bir `.cs` dosyası oluşturduğunuzda Neovim, bulunduğu `.csproj` ve klasör yolundan file-scoped namespace satırını otomatik ekler.
+When a new `.cs` file is created, Neovim generates a file-scoped namespace from the nearest `.csproj` and directory path.
 
-## CI/CD
+## CI
 
-`.github/workflows/neovim.yml`, `main` branch'ine push ve pull request'lerde macOS üzerinde pinned Lazy eklentilerini, Tree-sitter parser'larını ve `bash tests/run.sh` testlerini çalıştırır.
+`.github/workflows/neovim.yml` runs on pushes to `main` and pull requests. It installs the pinned Lazy plugins and Tree-sitter parsers on macOS, then runs `bash tests/run.sh`.
 
-## C# Biçimlendirme
+## C# formatting
 
-CSharpier kullanılmaz; `Space c f` ile Roslyn `.editorconfig` kurallarını uygular. Örneğin proje köküne aşağıdakine benzer bir dosya koyabilirsiniz:
+CSharpier is not used. `Space c f` applies Roslyn formatting rules from `.editorconfig`, for example:
 
 ```ini
 [*.cs]
@@ -35,280 +35,213 @@ csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = true
 ```
 
-## C# Şablonları
+## C# snippets
 
-Yazma modunda `ctor`, `prop`, `propg`, `if`, `for`, `foreach`, `dowhile`, `?:` (`condition ? trueValue : falseValue`), `lst`, `hset`, `arr`, `dict`, `queue`, `stack` (tipi solda bir kez yazılan koleksiyon bildirimi; `lst`, `hset`, `arr` için `= [|];`, `queue` ve `stack` için `= new([|]);` (`Add` metotları olmadığı için elemanlar kurucuya girer), `dict` için `= new() { [anahtar] = değer };`; C# 12+), `swe` (switch expression: sonucu yazıp `Tab`'a basınca yeni kol eklenir; dokunmadığınız boş kolda `Tab` onu geri siler ve `_ =>` varsayılanına geçer), `region`, `try` veya `cw` yazın; completion menüsünden şablonu `Enter` ile seçin. `Tab` sonraki yer tutucuya, `Shift-Tab` öncekine gider. `ctor`, içinde bulunduğunuz sınıfın adını otomatik kullanır.
+In Insert mode, type `ctor`, `prop`, `propg`, `if`, `for`, `foreach`, `dowhile`, `?:`, `lst`, `hset`, `arr`, `dict`, `queue`, `stack`, `swe`, `region`, `try`, or `cw`, then select the snippet with `Enter`. `Tab` moves to the next placeholder and `Shift-Tab` moves to the previous one. `ctor` uses the enclosing class name.
 
-Sınıf içinde `Space c a` ayrıca C# dil sunucusunun constructor üretme gibi code action'larını gösterir. Birkaç statement'ı `V` ile seçip `Space c a` yaptığınızda **Extract method** ile fonksiyona ayırabilirsiniz.
+Collection snippets use C# 12 collection expressions where appropriate. `swe` creates a switch expression and supports adding or removing arms with `Tab`.
 
-İmleci sınıf, metot veya property bildiriminin üstüne getirin ve `Space c d` ile XML docstring ekleyin. Metot parametreleri için `<param>` satırları da üretilir.
+Inside a class, `Space c a` opens Roslyn code actions such as constructor generation. Select statements with `V` and use the same command for **Extract method**.
 
-## Temel Vim
+Place the cursor on a class, method, or property declaration and press `Space c d` to generate XML documentation. Method parameters receive `<param>` entries.
 
-| Kısayol | İşlev |
+## Basic Vim commands
+
+`<leader>` is mapped to `Space`.
+
+| Key | Action |
 | --- | --- |
-| `i` | Yazma modu |
-| `Esc` | Normal moda dön |
-| `:w` | Kaydet |
-| Buffer değiştirince veya Neovim odağı kaybedince | Değişmiş, normal dosyayı otomatik kaydet |
-| `:q` | Tüm dosyaları kaydet, sonra çık |
-| `:wq` | Kaydet ve çık |
-| `u` / `Ctrl-r` | Geri al / ileri al |
-| `Shift-↑` / `Shift-↓` | Satırı clipboard’a dokunmadan yukarı / aşağı taşı; yazma modunda da çalışır |
-| 120. sütundaki ince çizgi | Önerilen satır uzunluğu rehberi |
-| `Option-Left` / `Option-Right` (yazma modunda) | Önceki / sonraki kelimeye git |
-| `Option-i` (C# yazma modunda) | `new List<int>()` içindeki `()` yerine `{ | }` koleksiyon başlatıcısı koyar; `new int[3]` sonuna da ekler; hedef tipli `new()` için `new() { | }` yapar |
-| Tamamlama sonrası (C#) | `HashSet<int\|>`, `List<Foo\|>`, `typeof(Foo\|)`, `sizeof`, `default` ve `nameof(...)` içinde öneriyi onaylayınca imleç kapanış `>` / `)` sonrasına geçer; satır `>` ile bitiyorsa araya bir boşluk eklenir (`List<int> |`, değişken adını yazmak için), `(` ya da `;` geliyorsa bitişik kalır (tek tip argümanlı jenerikler: `List`, `HashSet`, `Task`, `IEnumerable` vb.; `Dictionary<` gibi çok argümanlılarda virgül için yerinde kalır). `nameof` içinde metot `()` almaz |
-| `Option-u` (C# yazma modunda) | `List<int> l = new List<int>()` ya da `new()` ifadesini `[|]` koleksiyon ifadesine çevirir (C# 12+); `List<int> m` gibi başlatıcısız bir bildirimin sonunda ` = [|]` ekler (tip yazılı ve koleksiyon olmalı: `List`, `HashSet`, `int[]`, `IEnumerable` vb.). Hedef tip bilinmeli: `var x = new List<int>()`, argümanlı kurucu ve başlatıcılı ifadelere dokunmaz |
-| `Option-Enter` (C# yazma modunda) | İfadeyi bitirir: imleç `)` / `]` içinde olsa bile onların dışına atlar ve eksik `;`'yi ekler. Sonraki satır ne ile başlarsa başlasın çalışır; alan, property başlatıcısı, `=>` gövdesi, dosya üstü ifadeler ve `using` dahildir. `if (x)` başlığı, kapanmamış parantez, zincirin ortasındaki satır ve lambda gövdesi gibi belirsiz satırlara dokunmaz |
-| `Command-Left` / `Command-Right` (yazma modunda) | Satır başına / sonuna git |
-| `Left` / `Right` (satır başı/sonunda, yazma modunda) | Önceki satırın sonuna / sonraki satırın başına git |
-| `Left` / `Right` / `h` / `l` (satır başı/sonunda, normal modda) | Önceki satırın sonuna / sonraki satırın başına git |
-| `za` (blok veya `#region` üstünde) | Katlamayı aç/kapat |
-| `zM` / `zR` | Tree-sitter katlamalarını tümüyle kapat / aç |
-| `/metin`, `n` | Ara / sonraki sonuç |
+| `i` | Enter Insert mode |
+| `Esc` | Return to Normal mode |
+| `:w` | Save |
+| `:q` | Save all files, then quit |
+| `:wq` | Save and quit |
+| `u` / `Ctrl-r` | Undo / redo |
+| `Shift-Up` / `Shift-Down` | Move the current line without touching the clipboard; also works in Insert mode |
+| `Option-Left` / `Option-Right` | Move by word in Insert mode |
+| `Command-Left` / `Command-Right` | Move to the first non-whitespace character / end of line in Insert mode |
+| `Left` / `Right` at a line boundary | Move to the previous line’s end / next line’s beginning in Insert mode |
+| `za` | Toggle the fold under the cursor |
+| `zM` / `zR` | Close / open all Tree-sitter folds |
+| `/text`, `n` | Search / next match |
 
-## Kod Gezinme
+For C# completion, `Option-i` converts compatible `new` expressions to an initializer, `Option-u` converts compatible collection declarations to collection expressions, and `Option-Enter` finishes the current expression by moving past a closing delimiter and adding a missing semicolon when it is safe.
 
-`<leader>` bu ayarda `Space` tuşudur.
+## Code navigation
 
-| Kısayol | İşlev |
+| Key | Action |
 | --- | --- |
-| `gd` | Tanıma git |
-| `gi` | Implementation'a git |
-| `gr` | Referansları göster |
-| Değişken/metot üzerinde kısa süre bekle | Açık dosyadaki kullanımlarını vurgula |
-| SQL'de bir identifier üzerinde kısa süre bekle | Aynı identifier'ın diğer geçişlerini vurgula (harf duyarsız) |
-| `K` | Dokümantasyonu aç |
-| `Space s` | Metod parametrelerini göster |
-| `Option-s` / `Option-Shift-s` | Açık imza yardımında sonraki / önceki overload'a geç |
-| `Space r n` | Sembolü yeniden adlandır |
-| `Space c a` | Kod aksiyonu |
-| `Space c d` | C# XML docstring ekle |
-| `Space c f` | Dosyayı; Visual modda yalnızca seçili kodu biçimlendir (C#: Roslyn, Elm: `elm-format`, JSON: `jq`) |
-| `Space e` | Hata ayrıntısı |
-| `Space x` | Hata listesini panelde aç/kapat |
-| `[d` / `]d` | Önceki / sonraki hata |
+| `gd` | Go to definition |
+| `gi` | Go to implementation |
+| `gr` | Find references |
+| `K` | Show documentation / hover information |
+| `Space s` | Show method parameters and signature help |
+| `Option-s` / `Option-Shift-s` | Next / previous overload while signature help is open |
+| `Space r n` | Rename symbol |
+| `Space c a` | Code action |
+| `Space c d` | Generate C# XML documentation |
+| `Space c f` | Format the file or Visual selection |
+| `Space e` | Show the diagnostic under the cursor |
+| `Space y` | Copy the diagnostic under the cursor |
+| `Space x` | Toggle the diagnostic list |
+| `[d` / `]d` | Previous / next diagnostic |
 
-Eksik bir import için hatalı sembolün üstünde `Space c a` açıp **Add using...** seçin.
+Unused imports and similar fixes are available through `Space c a` and the relevant Roslyn action.
 
-## sqldeps ile T-SQL Desteği
+## SQL Server and sqldeps
 
-`.sql` tamponlarında `sqldeps lsp`, ScriptDom ile ayrıştırma, tanılar, completion, hover ve gezinmeyi sağlar.
-`gd`, `gr` ve `K` sırasıyla tanıma gitme, başvuruları bulma ve hover içindir; `Space d s` belge, `Space w s`
-çalışma alanı sembollerini açar. `Space c a`, sqldeps lint tanıları için quick fix'leri açar. Rename ve
-formatlama özellikle yapılandırılmaz, çünkü sqldeps bunları desteklemez.
+For `.sql` buffers, `sqldeps lsp` provides ScriptDom parsing, diagnostics, completion, hover, and navigation over stdio. `gd`, `gr`, `K`, `Space d s`, and `Space w s` provide the standard LSP actions. Rename and formatting are intentionally not configured because sqldeps does not support them.
 
-Tree-sitter MSSQL parser'ı bunun yanında kalır: renklendirme, folding, text object ve clause hareketleri için
-kullanılır. Bir SQL projesini önce `sqldeps index .` ile indekslemek komut satırı sorguları ve C# → SQL
-gezinmesi için hâlâ gereklidir. `:SqlDef`, `:SqlRefs` ve `:SqlColumns` bu ikinci kullanım için SQLite indeksini
-quickfix listesinde açar; adı komuta doğrudan da verebilirsiniz (`:SqlDef dbo.UpdatePrices`).
-Bir C# tamponunda prosedür adının üstündeyken `Space c s`, tek bir tanım bulunursa onu doğrudan açar;
-birden fazla tanım varsa seçim için quickfix listesi açılır. Kaydedilmemiş C# değişikliği varsa mevcut
-tamponu korumak için tanım sağ bölmede açılır.
+Tree-sitter’s MSSQL parser remains responsible for highlighting, folding, text objects, and clause motions. Index a SQL project with `sqldeps index .` for command-line queries and C# → SQL navigation.
 
-Varsayılan indeks, Neovim'in çalışma klasörü için `~/.local/share/sqldeps/<klasör>.sqlite` yolunda aranır.
-Farklı bir indeks veya SQL kökü için Neovim'de şunları ayarlayabilirsiniz:
+The commands `:SqlDef`, `:SqlRefs`, and `:SqlColumns` query the SQLite index and open their results in the quickfix list. From a C# buffer, `Space c s` opens the matching stored procedure definition.
+
+The default index is searched under `~/.local/share/sqldeps/<workspace>.sqlite`. Override it in Neovim with:
 
 ```lua
-vim.g.sqldeps_database = "/mutlak/yol/deps.sqlite"
-vim.g.sqldeps_root = "/mutlak/yol/sql-kaynaklari"
+vim.g.sqldeps_database = "/absolute/path/deps.sqlite"
+vim.g.sqldeps_root = "/absolute/path/sql-sources"
 ```
 
-## Tree-sitter Text Objects
+## Tree-sitter text objects and motions
 
-C#, T-SQL ve JSON dosyalarında sözdizimine göre seçim yapmak için aşağıdaki text object'ler Visual (`v`) ve operator-pending modunda çalışır; örneğin `vab` bir block'u seçer, `daf` ise bir metodu siler.
+These mappings work in Visual and operator-pending mode for C#, T-SQL, and JSON:
 
-| Kısayol | İşlev |
+| Key | Action |
 | --- | --- |
-| `vab` / `vib` | Block'un tamamını / içini ( `{}` hariç) seç; JSON'da nesne veya dizi ( `{}` / `[]` hariç) |
-| `vaf` / `vif` | Metot veya function'ın tamamını / içini ( `{}` hariç) seç |
-| `val` / `vil` | `for`, `foreach`, `while` veya `do` loop'un tamamını / içini ( `{}` hariç) seç |
-| `vaC` / `viC` | `if` veya `switch` conditional'ının tamamını / içini ( `{}` hariç) seç |
-| `vac` / `vic` | Class, struct, record, interface veya enum'un tamamını / içini seç |
-| `vaa` / `via` | Parametre ya da argument'ın tamamını / içini seç; JSON'da anahtar-değer çifti veya dizi öğesi (`vaa` virgülü de alır, sondaki öğede öncekini) |
-| `vaq` | T-SQL query'sinin tamamını seç |
-| `vaS` | T-SQL statement'ının tamamını seç |
-| `]f` / `[f` | Sonraki / önceki method, function, procedure veya trigger başlangıcı |
-| `]F` / `[F` | Sonraki / önceki method, function, procedure veya trigger sonu |
-| `]a` / `[a` | Sonraki / önceki method argümanı veya parametresi |
-| `]c` / `[c` | Sonraki / önceki conditional başlangıcı |
-| `]C` / `[C` | Sonraki / önceki conditional sonu |
-| `]r` / `[r` | Sonraki T-SQL query / iç query'den parent query veya statement'a çık; JSON'da sonraki / önceki nesne veya dizi (`]r` ve `[r` birbirinin aynasıdır, uçlarda sarar) |
-| `]k` / `[k` | T-SQL'de sonraki / önceki clause (`SELECT`, `FROM`, `JOIN`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, `OFFSET/FETCH`; ayrıca `UPDATE`/`DELETE` ve `SET`); C#'ta sonraki / önceki class, method, field veya statement (block'larda durmadan içeri girer); JSON'da sonraki / önceki anahtar-değer çifti veya dizi öğesi |
-| `]s` / `[s` | Sonraki / önceki T-SQL statement |
-| `]S` / `[S` | Sonraki / önceki yazım hatası (spellcheck açıkken) |
-| `]K` / `[K` | Sonraki / önceki C# `case` veya `default` bölümü |
+| `vab` / `vib` | Select a block including / excluding delimiters |
+| `vaf` / `vif` | Select a method or function including / excluding its body delimiters |
+| `val` / `vil` | Select a loop including / excluding its body delimiters |
+| `vaC` / `viC` | Select an `if` or `switch` conditional |
+| `vac` / `vic` | Select a class, struct, record, interface, or enum |
+| `vaa` / `via` | Select an argument or parameter |
+| `vaq` / `vaS` | Select a T-SQL query / statement |
+| `]f` / `[f` | Next / previous method, function, procedure, or trigger |
+| `]F` / `[F` | Next / previous method, function, procedure, or trigger end |
+| `]a` / `[a` | Next / previous argument or parameter |
+| `]c` / `[c` | Next / previous conditional |
+| `]r` / `[r` | Next / previous query or parent query |
+| `]k` / `[k` | Next / previous clause or C# structural item |
+| `]s` / `[s` | Next / previous T-SQL statement |
+| `]S` / `[S` | Next / previous spelling error |
+| `]K` / `[K` | Next / previous C# `case` or `default` arm |
 
-T-SQL'de `vaf` / `vif` stored procedure, function veya trigger'ı; `vab` / `vib` ise `BEGIN` / `END` block'unu seçer. İç seçimler `BEGIN` ve `END` anahtar sözcüklerini kapsamaz.
+## Search
 
-## Arama
-
-| Kısayol | İşlev |
+| Key | Action |
 | --- | --- |
-| `Space f f` | Mevcut projedeki tüm dosyaları bul; sık ve yakın zamanda kullanılanlar önce gelir |
-| `Space f g` | Proje metninde, büyük/küçük harf duyarsız ara |
-| `Space f G` | Kaynak ve proje dosyalarında fuzzy ara; karakterler sıralı geçsin yeter |
-| `Space f b` | Açık dosyalarda ara |
-| `Space f s` | Açık dosyadaki sınıf/metotları ara |
-| `Space f S` | Proje genelindeki sınıf/metotları ara |
-| `Space f h` | Neovim yardımında ara |
+| `Space f f` | Find files; frequently and recently used files come first |
+| `Space f g` | Search project text case-insensitively |
+| `Space f G` | Fuzzy-search source and project files |
+| `Space f b` | Search open buffers |
+| `Space f s` | Search symbols in the current file |
+| `Space f S` | Search project symbols |
+| `Space f h` | Search Neovim help |
 
-## Surround
+## Surround and file tree
 
-| Kısayol | İşlev |
+| Key | Action |
 | --- | --- |
-| `sa` sonra çevreleyici | Metni çevrele; ör. `saiw)` kelimeyi paranteze alır |
-| `ds` sonra çevreleyici | Çevreleyiciyi sil; ör. `ds}` çok satırlı bloğu da bir seviye geri alır; ardından yalnızca etkilenen satırlar biçimlendirilir |
-| `sr` eski/yeni çevreleyici | Çevreleyiciyi değiştir; ör. `sr)]` |
-| `Space o` | Dosya gezginini aç |
-| `Space n` | Soldaki, ikonlu dosya ağacını aç/kapat |
-| `→` (dosya ağacında) | Seçili dosyayı aç; klasörü genişlet |
-| `←` (dosya ağacında) | Klasörü daralt; üst klasöre dön |
-| `Tab` (dosya ağacında) | Seçili dosyayı geçici preview olarak aç; odak ağaçta kalır |
-| `W` (dosya ağacında) | Tüm klasörleri kapat |
+| `sa` + delimiter | Add a surrounding pair; e.g. `saiw)` |
+| `ds` + delimiter | Delete a surrounding pair |
+| `sr` + old/new delimiter | Replace a surrounding pair |
+| `Space n` | Toggle the icon-enabled file tree |
+| `Right` in the tree | Open a file or expand a directory |
+| `Left` in the tree | Collapse a directory or go to its parent |
+| `Tab` in the tree | Preview the selected file while keeping focus in the tree |
+| `W` in the tree | Collapse all directories |
+
+The tree hides `bin/`, `obj/`, `.DS_Store`, and other generated noise. Opening it focuses the directory of the current file.
 
 ## Debugger
 
-Önce `dotnet build` çalıştırın. Ardından `F5`, açık dosya bir class library içindeyse çözümdeki çalıştırılabilir (`OutputType=Exe`, Web veya Worker SDK) projeyi bulup onun Debug `.dll` çıktısını başlatır. Projede `Properties/launchSettings.json` varsa `commandLineArgs`, `workingDirectory` ve environment değerleri de otomatik uygulanır. Web projelerinde `applicationUrl` uygulanır; `launchBrowser` açıksa Swagger adresi açılır. Breakpoint'ler proje kapatılıp açıldığında korunur. Breakpoint'e ulaşıldığında macOS bildirimi gelir; bildirime tıklamak Neovim'in çalıştığı terminali öne getirir. Bulamazsa yalnızca o zaman DLL yolunu sorar. Apple Silicon macOS'ta yerel ARM netcoredbg ikilisi kullanılır.
+Run `dotnet build`, then press `F5`. The configuration discovers an executable, web, or worker project and launches its Debug DLL with `netcoredbg`. `Properties/launchSettings.json` values such as `commandLineArgs`, `workingDirectory`, environment variables, and web URLs are applied when available.
 
-### .NET Framework projelerini hata ayıklama (Mono)
-
-`F5`, projeye bakarak hata ayıklayıcıyı seçer: `net4x` hedefli (`net48`, `net472` vb.) ya da eski tarz `TargetFrameworkVersion v4.x` projeleri Mono'nun hata ayıklayıcısıyla (Microsoft'un `mono-debug` adaptörü), diğerleri `netcoredbg` ile başlar. Çalıştırılacak dosya `bin/Debug` altındaki en yeni `<AssemblyName>.exe`'dir; önce projeyi derleyin (`Space r b`, eski tarz projede terminalden `msbuild`). Çıktı Neovim içindeki konsolda görünür.
-
-Gerekenler: Mono (`brew install mono`) ve `mono-debug.exe`. İkisi de `./bootstrap-macos.sh --with-mono` ile kurulur; elle kurmak için adaptör Microsoft'un hazır paketinden (Open VSX'teki `ms-vscode.mono-debug` 0.16.3) çıkarılıp `~/.local/share/nvim/mono-debug/` altına konur (adres `NEO_MONO_DEBUG` ortam değişkeniyle değiştirilebilir). Kaynaktan derlemek (`vscode-mono-debug` deposu) macOS'ta `dotnet build` ile çalışmaz: alt projeler eski tarz ve NuGet paketlerini çözemez. Paketin yayınlanan SHA-256 özeti kontrol edilir:
-
-```sh
-d=$(mktemp -d)
-curl -fsSL -o "$d/mono-debug.vsix" https://open-vsx.org/api/ms-vscode/mono-debug/0.16.3/file/ms-vscode.mono-debug-0.16.3.vsix
-echo "a9a6b460583f81f96077bdec636671058ca89fd4b4b07fec3c77a2bcf60deace  $d/mono-debug.vsix" | shasum -a 256 -c -
-unzip -q "$d/mono-debug.vsix" 'extension/bin/Release/*' -d "$d/out"
-mkdir -p ~/.local/share/nvim/mono-debug
-cp -R "$d/out/extension/bin/Release/." ~/.local/share/nvim/mono-debug/
-ls ~/.local/share/nvim/mono-debug/mono-debug.exe
-```
-
-Adaptör yoksa `F5` bir hata mesajıyla durur. Ayrıntı: `lua/neo/dotnet_debug.lua` (proje tanıma, `.exe` bulma) ve `lua/neo/plugins/debug.lua`.
-
-
-Terminaldeki `dotnet run`, aksi belirtilmedikçe Release yapılandırmasını kullanır. `Microsoft.NET.Sdk.Web` projelerinde `launchSettings.json` içinde `launchBrowser: true` ve `applicationUrl` tanımlıysa uygulama hazır olduğunda Swagger adresi tarayıcıda açılır. `--configuration Debug` veya `--no-launch-profile` gibi açık seçenekler korunur; Worker ve class library projeleri tarayıcı açmaz.
-
-Terminalde `git diff`, whitespace farklarını göstermez. Değişiklik yalnızca whitespace ise bunun yerine kısa bir uyarı yazar; ham görünümü gerektiğinde `command git diff` ile alabilirsiniz.
-
-| Kısayol | İşlev |
+| Key | Action |
 | --- | --- |
-| `Space b` | Bulunduğun satırda breakpoint aç/kapat |
-| `F5` | Başlat / devam et |
+| `Space b` | Toggle a breakpoint on the current line |
+| `F5` | Start / continue |
 | `F10` | Step over |
 | `F11` | Step into |
 | `F12` | Step out |
-| `Space d u` | Debug panelini aç/kapat |
-| `Space d c` | Tüm breakpoint'leri temizle |
-| `Space d r` | Debug REPL'i aç |
+| `Space d u` | Toggle the debug UI |
+| `Space d c` | Clear all breakpoints |
+| `Space d r` | Open the debug REPL |
 
-## Terminal
+Legacy .NET Framework projects can be debugged with Mono when installed through `./bootstrap-macos.sh --with-mono`.
 
-`Space t t` altta yerleşik terminali açar veya kapatır. `Space t w` `dotnet test --watch` başlatır; `Space r r` test paketini bir kez çalıştırır; `Space r t` imlecin bulunduğu test metodunu (metodun dışında ama sınıfın içindeyse sınıfı) yalnızca kendisini çalıştıracak şekilde `dotnet test --filter` ile başlatır. Metot adı Tree-sitter ile bulunur, bu yüzden xUnit, NUnit ve MSTest ile aynı çalışır; `Adds` çalıştırılırken `Adds2` ya da başka bir sınıftaki `Adds` çalışmaz, `Theory` satırlarının hepsi çalışır. Terminaldeyken `Ctrl-\\` terminali anında gizler ve son editör pencerenize döner.
+## Terminal and tests
 
-`Space r b` (veya `:DotnetBuild`) açık dosyanın üstündeki çözümü (`.sln`/`.slnx`, yoksa `.csproj`) editörü bloklamadan derler. Hatalar ve uyarılar quickfix listesine düşer; hata varsa liste açılır, `:cnext` / `:cprev` ile açık olmayan dosyalardaki hatalara da gidebilirsiniz. Hataları düzeltince quickfix penceresindeyken tekrar `Space r b` basmanız yeterli; son derlenen hedef kullanılır.
+`Space t t` toggles the built-in terminal. While the terminal has focus, `Ctrl-\\` hides it and returns to the previous editor window.
 
-### Sistem kaynak monitorü
-
-Bootstrap, macOS'ta `com.neovim.resource-watch` LaunchAgent'ını kurar. Monitor her 15 saniyede bir tüm süreçleri ve sistem belleği baskısını kontrol eder; bir süreç üç ölçüm boyunca `%80` CPU'yu aşarsa veya boş bellek `%10` altına inerse tek bir macOS bildirimi gönderir. Süreçleri durdurmaz ve hiçbir veriyi dışarı göndermez.
-
-Eşikler ortam değişkenleriyle değiştirilebilir: `NEO_RESOURCE_INTERVAL`, `NEO_RESOURCE_CPU_THRESHOLD`, `NEO_RESOURCE_MEMORY_FREE_THRESHOLD` ve `NEO_RESOURCE_SAMPLES_REQUIRED`. Monitorü kapatmak için `launchctl bootout gui/$UID/com.neovim.resource-watch`, tekrar açmak için bootstrap'ı yeniden çalıştırın.
-
-## Terminal Araçları
-
-| Komut | İşlev |
+| Key | Action |
 | --- | --- |
-| `z isim` | Sık kullanılan bir klasöre geçer; ör. `z api` |
-| `fd isim` | Dosya adına göre hızlı arama |
-| `bat dosya.cs` | Syntax highlighting ile dosya içeriğini gösterir |
-| `fossil status`, `changes`, `addremove`, `extras`, `timeline`, `branch list`, `tag list`, `info`, `annotate` | Durum, geçmiş ve metadata çıktısını renkli gösterir |
+| `Space r b` | Build the current solution or project asynchronously |
+| `Space r r` | Run the test suite once |
+| `Space r t` | Run the test or class under the cursor |
+| `Space t w` | Start `dotnet test --watch` |
 
-## Zsh / Ghostty
+Build errors and warnings are sent to the quickfix list. Use `:cnext` and `:cprev` to navigate them, including errors in other files.
 
-| Kısayol | İşlev |
+## Resource monitor
+
+Bootstrap installs the macOS LaunchAgent `com.neovim.resource-watch`. Every 15 seconds it checks all processes and system memory pressure. A single macOS notification is sent when a process exceeds 80% CPU for three samples or free memory falls below 10%. The monitor never stops processes and sends no data anywhere.
+
+Configure it with `NEO_RESOURCE_INTERVAL`, `NEO_RESOURCE_CPU_THRESHOLD`, `NEO_RESOURCE_MEMORY_FREE_THRESHOLD`, and `NEO_RESOURCE_SAMPLES_REQUIRED`. Disable it with:
+
+```sh
+launchctl bootout gui/$UID/com.neovim.resource-watch
+```
+
+## Command-line tools
+
+The bootstrap installs or configures tools such as `z`, `fd`, `bat`, `fzf`, `lazygit`, `direnv`, `fossil`, and `gh`. Fossil commands including `status`, `changes`, `addremove`, `extras`, `timeline`, `branch list`, `tag list`, `info`, and `annotate` use readable, subdued colors.
+
+| Key | Action |
 | --- | --- |
-| `Ctrl-r` | Altta geçmiş komut aramasını açar; yazdıkça filtreler |
-| `Enter` | Yazılan komutu çalıştırır; silik geçmiş önerisini kabul etmez |
-| `Ctrl-g` | Silik geçmiş önerisini prompt'a alır (kabul eder); komutu çalıştırmaz |
-| `Option-Delete` | İmlecin sağındaki kelimeyi siler |
+| `Ctrl-r` | Open interactive history search |
+| `Enter` | Run the command currently typed at the prompt |
+| `Ctrl-g` | Accept the faded history suggestion without executing it |
+| `Option-Delete` | Delete the word to the right of the cursor |
 
-## Kısayol Yardımı
+## Configuration layout
 
-Normal modda `Space` tuşuna kısa süre basılı bekleyin: Which-key kullanılabilir devam tuşlarını gösterir.
+- `init.lua`: entry point; loads the `lua/neo` modules
+- `lua/neo/plugins.lua`: bootstraps lazy.nvim and imports plugin modules
+- `lua/neo/plugins/`: plugin definitions grouped by topic
+- `lua/neo/textobjects.lua`: Tree-sitter text objects and structural motions
+- `lua/neo/dotnet_debug.lua`: .NET project discovery and launch settings
+- `lua/neo/call_parens.lua`: C# completion post-processing and Insert-mode expression helpers
+- `lua/neo/lsp.lua`: Roslyn, Elm, and sqldeps LSP setup
+- `lua/neo/snippets.lua`: C# snippets and documentation templates
+- `lua/neo/dotnet_build.lua`: asynchronous build and quickfix integration
+- `lua/neo/dotnet_test.lua`: test discovery and execution
 
-`Space Space`, arama vurgusunu ve komut satırında kalan mesajı hemen temizler. Hata vermeyen bir `:` komutundan 3 saniye sonra komut satırı kendiliğinden temizlenir; hata mesajları ekranda kalır. `Ctrl-l` pencere gezintisine ayrıldığı için olağan yeniden çizim tuşu kullanılamaz.
+Press and briefly hold `Space` in Normal mode to see available mappings with which-key. Use `:Lazy sync` to update plugins and `:restart` after changing `init.lua` or plugin configuration. Run `bash tests/run.sh` after plugin updates to validate the configuration in headless mode.
 
-Eklentileri güncellemek gerektiğinde `:Lazy sync` çalıştırın. `init.lua` içindeki eklenti ya da ayar değişikliklerinin uygulanması için `:restart` kullanın; Lazy bu dosyanın tekrar source edilmesini desteklemez.
+## New Mac setup
 
-Eklenti güncellemesinden sonra tüm eklenti yapılandırmalarının yüklenmesini, önemli kısayolları ve C#/SQL dosya türü ayarlarını doğrulamak için Neovim config klasöründe `bash tests/run.sh` çalıştırın. Test, kayıtlı tüm Lazy eklentilerini headless ortamda yükler; bir eklentinin API değişikliği yapılandırma hatasına yol açarsa başarısız olur.
-
-## Yapılandırma
-
-- `init.lua`: Giriş noktası; `lua/neo` modüllerini sırayla yükler
-- `lua/neo/plugins.lua`: lazy.nvim'i kurar ve `lua/neo/plugins/*.lua` modüllerindeki eklenti tanımlarını birleştirir
-- `lua/neo/plugins/`: Eklenti tanımları, konuya göre ayrılmıştır: `ui`, `editing`, `navigation`, `treesitter`, `lsp`, `completion`, `debug`
-- `lua/neo/textobjects.lua`: Tree-sitter textobject seçimi ve yapısal hareketler (`]f`, `]a`, `]k`, `]s`, ...)
-- `lua/neo/dotnet_debug.lua`: Debugger için .NET proje keşfi ve `launchSettings.json` okuma
-- `lua/neo/call_parens.lua`: C# tamamlamadan sonra `()` ekleme; imleç konumu ve ilk argüman şablonu (`''`, `x => `), `new int[]` ve generic `<>` tipe göre belirlenir. Ayrıca yazma modu tuşları: `to_initializer` (`Option-i`), `to_collection_expression` (`Option-u`), `finish_statement` (`Option-Enter`)
-- `lua/neo/lsp.lua`: Roslyn ve Elm dil sunucusu ayarları, LSP tuşları (`nvim-lspconfig` kullanılmaz; Elm sunucusu tanımı burada)
-- `lua/neo/snippets.lua`: `swe` switch expression snippet'i ve `Tab` ile kol ekleme/silme mantığı
-- `lua/neo/dotnet_build.lua`: `dotnet build` hatalarını quickfix'e alır (`Space r b`)
-- `lua/neo/dotnet_test.lua`: İmlecin altındaki testi veya sınıfı çalıştırır (`Space r t`)
-- `lua/neo/doctor.lua`: `:NeoDoctor` sağlık raporu
-- `lazy-lock.json`: Eklentilerin sabitlenmiş sürümleri
-- `README.md`: Bu rehber
-- `bootstrap-macos.sh`: Yeni bir Mac'i aynı ortamla kurar
-- `bootstrap-macos-csharp.sh`: `bootstrap-macos.sh --no-elm` için kısa sarmalayıcı (Fossil ve Elm araçları kurulmaz)
-- `scripts/resource-watch.sh`: Sistem genelinde CPU/bellek alarmı
-- `templates/com.neovim.resource-watch.plist`: Monitor LaunchAgent şablonu
-
-## Makine Denetimi (`:NeoDoctor`)
-
-`:NeoDoctor`, bu config'in dayandığı her şeyi tek raporda listeler ve bu makinenin beklenenle uyuşup uyuşmadığını gösterir (`q` kapatır). Her satır `ok`, `WARN`, `FAIL` veya (Elm gibi isteğe bağlı kurulmayan şeyler için) `info` olarak işaretlenir. Bölümler:
-
-- **Environment:** Neovim sürümü ve konumu, işlemci mimarisi, macOS sürümü, kabuk, Ghostty sürümü.
-- **Deployed files:** Bootstrap'ın repodaki şablonlardan dağıttığı dosyalar (`~/.config/zsh/neovim-csharp.zsh`, `~/.config/ghostty/config`) şablonla aynı mı; farklıysa ilk farklı satırı iki sürümüyle gösterir. Ayrıca `~/.zshrc` zsh dosyasını `source` ediyor mu ve `zsh-autosuggestions` kurulu mu. `~/.claude/CLAUDE.md`'nin (ve `~/.codex` varsa `~/.codex/AGENTS.md`'nin) depodaki `templates/*-global.md` dosyasına giden bir sembolik bağlantı olup olmadığına da bakar; bağlantı sıradan bir dosyaya dönmüşse ya da kopmuşsa uyarır.
-- **Ghostty:** `ghostty +show-config` çıktısına göre şablondaki her ayarın ve tuş bağının gerçekten uygulandığı (varsayılan değerler dahil) ve `~/Library/Application Support/com.mitchellh.ghostty/config` gibi, ana config'i geçersiz kılabilecek ikinci bir config olup olmadığı.
-- **Tools:** Roslyn'in sabitlenen sürümle kurulu sürümü ve `dotnet`, `git`, `rg`, `fd`, `tree-sitter`, `jq`, `fzf`, `zoxide`, `bat`, `terminal-notifier` ile Elm araçlarının (`node`, `elm`, `elm-format`, `elm-language-server`, `elm-test`, `fossil`) konumu ve sürümü.
-- **Plugins:** Eklentilerin `lazy-lock.json` ile aynı commit'te olup olmadığı. `:NeoDoctor!` her eklentiyi commit'iyle tek tek listeler.
-- **Parsers and debugger:** Tree-sitter parser'ları ve debugger.
-
-Dosya sapması, bir makinede sessizce farklı davranışa yol açar: örneğin `Ctrl-g` ayarı yalnızca dağıtılan dosyada değiştirilirse repodaki şablon eski kalır ve başka bir Mac eskisi gibi çalışır. İki Mac farklı davrandığında ikisinde de çalıştırıp çıktıları karşılaştırın.
-
-## Yeni Mac'e Taşıma
-
-Bu klasörü yeni Mac'e taşıyın (Git deposu olarak ya da sıkıştırılmış dosyayla) ve ardından çalıştırın:
+Clone this repository to `~/.config/nvim`, then run:
 
 ```sh
 cd ~/.config/nvim
 ./bootstrap-macos.sh
 ```
 
-Script Homebrew, .NET SDK, Roslyn language server, sqldeps LSP, Neovim, Ghostty, font, Fossil, terminal araclari, debugger ve Zsh eklentisini kurar. Neovim yapilandirmasini tasir ve var olan dosyalari yedekler. `SQLDEPS_REPOSITORY` verilirse sqldeps kaynagini `SQLDEPS_DIR` altinda klonlar; mevcut bir sqldeps klasorunu degistirmez. Kaynak zaten `~/Projects/sqldeps` altinda varsa dogrudan kurar.
-
-Bootstrap eklentileri `lazy-lock.json` içindeki commit'lere sabitler (`Lazy! install`, ardından `Lazy! restore`); böylece iki Mac aynı eklenti sürümlerini kullanır. Roslyn language server de `bootstrap-macos.sh` içindeki `ROSLYN_VERSION` sürümüne sabitlenir; sürüm yükseltmek için bu değeri bilerek değiştirin. Kurulum sonunda Roslyn, debugger, Ghostty ve Tree-sitter parser'larının varlığı denetlenir; eksik bir bileşen varsa script bunu yazar ve hata koduyla çıkar.
-
-Eklentileri bu makinede güncelledikten sonra `lazy-lock.json` dosyasını commit etmeyi unutmayın; yeni Mac'e taşınan sürümler bu dosyadan gelir.
-
-
-İsteğe bağlı olarak .NET Framework projeleri için Mono ve Mono hata ayıklama adaptörü kurulabilir (varsayılan olarak kurulmaz; `brew install mono` ve Open VSX'ten SHA-256'sı doğrulanan `mono-debug` 0.16.3 paketi):
+Useful options:
 
 ```sh
 ./bootstrap-macos.sh --with-mono
-```
-
-Fossil ve Elm gerekmeyen bir Mac'te bunun yerine şunu çalıştırın:
-
-```sh
 ./bootstrap-macos.sh --no-elm
 ```
 
-`./bootstrap-macos-csharp.sh` aynı işi yapan kısa bir sarmalayıcıdır.
+If `~/Projects/sqldeps` already exists, bootstrap uses it. To clone sqldeps automatically, provide a repository URL (and optionally a different destination):
 
-Bu varyant Elm, `elm-language-server`, Tree-sitter Elm parserı ve Fossil'i kurmaz; C#, debugger, Ghostty, Zsh araçları ve tüm Neovim ayarları korunur.
+```sh
+SQLDEPS_REPOSITORY=https://github.com/<owner>/sqldeps.git ./bootstrap-macos.sh
+SQLDEPS_REPOSITORY=https://github.com/<owner>/sqldeps.git \
+SQLDEPS_DIR="$HOME/Projects/sqldeps" \
+./bootstrap-macos.sh
+```
 
-macOS Terminal'in varsayılan Menlo fontuyla uyum için Nerd Font ikonları kapalıdır.
+The script installs the required package-manager tools, Neovim, Ghostty configuration, language servers, formatters, debugger support, and shell helpers. Review the script before running it on another machine if you want a narrower installation.

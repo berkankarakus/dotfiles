@@ -23,7 +23,7 @@ if grep -Fq "bindkey '^G' autosuggest-clear" "$template"; then
 fi
 
 # The README documents the same behaviour.
-grep -Fq '| `Ctrl-g` | Silik geçmiş önerisini prompt'"'"'a alır' README.md || fail "the README should describe Ctrl-g accepting the suggestion"
-grep -Fq '| `Enter` | Yazılan komutu çalıştırır' README.md || fail "the README should describe Enter just running the command"
+grep -Fq '| `Ctrl-g` | Accept the faded history suggestion without executing it |' README.md || fail "the README should describe Ctrl-g accepting the suggestion"
+grep -Fq '| `Enter` | Run the command currently typed at the prompt |' README.md || fail "the README should describe Enter just running the command"
 
 printf 'zsh_template_spec: ok\n'
