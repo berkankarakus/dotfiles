@@ -238,8 +238,8 @@ Useful options:
 If `~/Projects/sqldeps` already exists, bootstrap uses it. To clone sqldeps automatically, provide a repository URL (and optionally a different destination):
 
 ```sh
-SQLDEPS_REPOSITORY=https://github.com/<owner>/sqldeps.git ./bootstrap-macos.sh
-SQLDEPS_REPOSITORY=https://github.com/<owner>/sqldeps.git \
+SQLDEPS_REPOSITORY=https://github.com/berkankarakus/sqldeps.git ./bootstrap-macos.sh
+SQLDEPS_REPOSITORY=https://github.com/berkankarakus/sqldeps.git \
 SQLDEPS_DIR="$HOME/Projects/sqldeps" \
 ./bootstrap-macos.sh
 ```
