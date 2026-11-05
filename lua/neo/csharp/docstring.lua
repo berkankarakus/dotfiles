@@ -160,6 +160,7 @@ local function insert()
   local line_count = vim.api.nvim_buf_line_count(bufnr)
   local signature = signature_from_buffer(bufnr, line_number, line_count, declaration)
   local lines = docstring_lines(declaration, signature)
+  local indent = declaration:match("^(%s*)") or ""
 
   vim.api.nvim_buf_set_lines(bufnr, line_number - 1, line_number - 1, false, lines)
   vim.api.nvim_win_set_cursor(0, { line_number + 1, #indent + 4 })
