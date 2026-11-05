@@ -30,6 +30,7 @@ grep -Fq '/lua/neo/doctor/*.lua' bootstrap-macos.sh || fail "nested doctor modul
 grep -Fq '/lua/neo/textobjects/*.lua' bootstrap-macos.sh || fail "nested textobject modules should be deployed"
 grep -Fq '/lua/neo/sqldeps/*.lua' bootstrap-macos.sh || fail "nested sqldeps modules should be deployed"
 grep -Fq '/lua/neo/call_parens/*.lua' bootstrap-macos.sh || fail "nested call_parens modules should be deployed"
+grep -Fq '/lua/neo/lsp/*.lua' bootstrap-macos.sh || fail "nested LSP modules should be deployed"
 grep -Fq '/lua/lsp/*.lua' bootstrap-macos.sh || fail "LSP configuration modules should be deployed"
 grep -Fq '"$NVIM_DIR/lua/neo/plugins"' bootstrap-macos.sh || fail "the plugins directory should be created before copying"
 grep -Fq '"$NVIM_DIR/lua/neo/csharp"' bootstrap-macos.sh || fail "the nested C# directory should be created before copying"
@@ -37,6 +38,7 @@ grep -Fq '"$NVIM_DIR/lua/neo/doctor"' bootstrap-macos.sh || fail "the nested doc
 grep -Fq '"$NVIM_DIR/lua/neo/textobjects"' bootstrap-macos.sh || fail "the nested textobject directory should be created before copying"
 grep -Fq '"$NVIM_DIR/lua/neo/sqldeps"' bootstrap-macos.sh || fail "the nested sqldeps directory should be created before copying"
 grep -Fq '"$NVIM_DIR/lua/neo/call_parens"' bootstrap-macos.sh || fail "the nested call_parens directory should be created before copying"
+grep -Fq '"$NVIM_DIR/lua/neo/lsp"' bootstrap-macos.sh || fail "the nested LSP directory should be created before copying"
 grep -Fq '"$NVIM_DIR/lua/lsp"' bootstrap-macos.sh || fail "the LSP directory should be created before copying"
 grep -Fq 'SQLDEPS_REPOSITORY=' bootstrap-macos.sh || fail "sqldeps should be available to bootstrap"
 grep -Fq '"$SQLDEPS_DIR/install.sh"' bootstrap-macos.sh || fail "sqldeps should be installed during bootstrap"
@@ -47,10 +49,10 @@ touch "$work/lua/neo/a.lua" "$work/lua/neo/plugins/b.lua"
 deployed=$(for module in "$work"/lua/neo/*.lua "$work"/lua/neo/plugins/*.lua; do printf '%s\n' "${module#"$work"/lua/neo/}"; done)
 [[ "$deployed" == $'a.lua\nplugins/b.lua' ]] || fail "module destination paths should keep the plugins/ subdirectory"
 # Every module that exists in the repo must be covered by one of the deployment globs.
-for module in lua/neo/*.lua lua/neo/plugins/*.lua lua/neo/csharp/*.lua lua/neo/doctor/*.lua lua/neo/textobjects/*.lua lua/neo/sqldeps/*.lua lua/neo/call_parens/*.lua lua/lsp/*.lua; do
+for module in lua/neo/*.lua lua/neo/plugins/*.lua lua/neo/csharp/*.lua lua/neo/doctor/*.lua lua/neo/textobjects/*.lua lua/neo/sqldeps/*.lua lua/neo/call_parens/*.lua lua/neo/lsp/*.lua lua/lsp/*.lua; do
   [[ -f "$module" ]] || fail "unexpected non-file $module"
 done
-[[ -z "$(find lua -mindepth 3 -name '*.lua' -not -path 'lua/neo/plugins/*' -not -path 'lua/neo/csharp/*' -not -path 'lua/neo/doctor/*' -not -path 'lua/neo/textobjects/*' -not -path 'lua/neo/sqldeps/*' -not -path 'lua/neo/call_parens/*' -not -path 'lua/lsp/*')" ]] || fail "a Lua module sits in a directory the bootstrap does not deploy"
+[[ -z "$(find lua -mindepth 3 -name '*.lua' -not -path 'lua/neo/plugins/*' -not -path 'lua/neo/csharp/*' -not -path 'lua/neo/doctor/*' -not -path 'lua/neo/textobjects/*' -not -path 'lua/neo/sqldeps/*' -not -path 'lua/neo/call_parens/*' -not -path 'lua/neo/lsp/*' -not -path 'lua/lsp/*')" ]] || fail "a Lua module sits in a directory the bootstrap does not deploy"
 
 # The C# variant is a thin wrapper, so it cannot drift from the main script.
 grep -Fq -- 'bootstrap-macos.sh" --no-elm' bootstrap-macos-csharp.sh || fail "wrapper should delegate with --no-elm"
