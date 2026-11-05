@@ -1,3 +1,12 @@
 nvim.log
 *.bundle
 .codegraph/
+.DS_Store
+*.swp
+*.swo
+.env
+.env.*
+*.sqlite
+*.db
+*.pem
+*.key

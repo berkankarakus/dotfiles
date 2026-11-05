@@ -288,25 +288,12 @@ cd ~/.config/nvim
 ./bootstrap-macos.sh
 ```
 
-Script Homebrew, .NET SDK, Roslyn language server, sqldeps LSP, Neovim, Ghostty, font, Fossil, terminal araçları, debugger ve Zsh eklentisini kurar. Neovim'in `lua`, `after` ve `templates` dosyaları dahil tüm yapılandırması taşınır; var olan dosyalar `~/.config/neovim-csharp-backup` altında yedeklenir. sqldeps kaynaklarını `~/Projects/sqldeps` altında klonlar ve `install.sh` ile `sqldeps lsp` komutunu kurar; mevcut bir sqldeps klasörünü değiştirmez.
+Script Homebrew, .NET SDK, Roslyn language server, sqldeps LSP, Neovim, Ghostty, font, Fossil, terminal araclari, debugger ve Zsh eklentisini kurar. Neovim yapilandirmasini tasir ve var olan dosyalari yedekler. `SQLDEPS_REPOSITORY` verilirse sqldeps kaynagini `SQLDEPS_DIR` altinda klonlar; mevcut bir sqldeps klasorunu degistirmez. Kaynak zaten `~/Projects/sqldeps` altinda varsa dogrudan kurar.
 
 Bootstrap eklentileri `lazy-lock.json` içindeki commit'lere sabitler (`Lazy! install`, ardından `Lazy! restore`); böylece iki Mac aynı eklenti sürümlerini kullanır. Roslyn language server de `bootstrap-macos.sh` içindeki `ROSLYN_VERSION` sürümüne sabitlenir; sürüm yükseltmek için bu değeri bilerek değiştirin. Kurulum sonunda Roslyn, debugger, Ghostty ve Tree-sitter parser'larının varlığı denetlenir; eksik bir bileşen varsa script bunu yazar ve hata koduyla çıkar.
 
 Eklentileri bu makinede güncelledikten sonra `lazy-lock.json` dosyasını commit etmeyi unutmayın; yeni Mac'e taşınan sürümler bu dosyadan gelir.
 
-Claude Code ve Codex için kişisel genel talimatların aslı bu depoda durur: `templates/claude-global.md` ve `templates/codex-global.md`. `~/.claude/CLAUDE.md` ve `~/.codex/AGENTS.md` bunlara bağlanan sembolik bağlantılardır, böylece her dosyanın tek kopyası vardır ve değişiklikler `git status`'ta görünür. İki dosyanın kuralları aynıdır; tek fark commit mesajındaki `Co-Authored-By` satırıdır. Bir kuralı değiştirirken ikisini de güncelleyin. Her ikisinde de, CodeGraph kurucusunun yönettiği bölümün (`<!-- CODEGRAPH_START -->`) dışında, "kod ararken önce CodeGraph" kuralı yazılıdır. Bootstrap bunları kurmaz; yeni Mac'te elle bağlayın (var olan dosya önce yedeklenir):
-
-```sh
-mkdir -p ~/.claude ~/.codex
-[ -e ~/.claude/CLAUDE.md ] && [ ! -L ~/.claude/CLAUDE.md ] && mv ~/.claude/CLAUDE.md ~/.claude/CLAUDE.md.bak
-[ -e ~/.codex/AGENTS.md ] && [ ! -L ~/.codex/AGENTS.md ] && mv ~/.codex/AGENTS.md ~/.codex/AGENTS.md.bak
-ln -sfn ~/.config/nvim/templates/claude-global.md ~/.claude/CLAUDE.md
-ln -sfn ~/.config/nvim/templates/codex-global.md ~/.codex/AGENTS.md
-```
-
-Repo kökündeki `AGENTS.md` (Codex) ve ona `@AGENTS.md` ile işaret eden `CLAUDE.md` (Claude Code), o depoya özel kısa kuralları ve "önce CodeGraph" hatırlatmasını taşır.
-
-Bağlantı `~/.config/nvim` yoluna bağlıdır. Bir araç dosyayı yerinde değiştirmek yerine yeniden yazıp adını değiştirirse bağlantı kopar ve `~/.claude/CLAUDE.md` bağımsız bir dosyaya döner; `ls -l ~/.claude/CLAUDE.md ~/.codex/AGENTS.md` ile `->` işaretini görerek denetleyin; `:NeoDoctor` da ikisini denetler.
 
 İsteğe bağlı olarak .NET Framework projeleri için Mono ve Mono hata ayıklama adaptörü kurulabilir (varsayılan olarak kurulmaz; `brew install mono` ve Open VSX'ten SHA-256'sı doğrulanan `mono-debug` 0.16.3 paketi):
 

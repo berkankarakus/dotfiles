@@ -41,8 +41,8 @@ GHOSTTY_DIR="$HOME/.config/ghostty"
 ZSH_DIR="$HOME/.config/zsh"
 BACKUP_DIR="$HOME/.config/neovim-csharp-backup/$(date +%Y%m%d-%H%M%S)"
 MONO_DEBUG_DIR="$HOME/.local/share/nvim/mono-debug"
-SQLDEPS_DIR="$HOME/Projects/sqldeps"
-SQLDEPS_REPOSITORY="https://github.com/dotfiles/sqldeps.git"
+SQLDEPS_DIR="${SQLDEPS_DIR:-$HOME/Projects/sqldeps}"
+SQLDEPS_REPOSITORY="${SQLDEPS_REPOSITORY:-}"
 RESOURCE_WATCH_LABEL="com.neovim.resource-watch"
 RESOURCE_WATCH_BIN="$HOME/.local/bin/resource-watch"
 RESOURCE_WATCH_PLIST="$HOME/Library/LaunchAgents/$RESOURCE_WATCH_LABEL.plist"
@@ -178,14 +178,16 @@ if [[ "$SOURCE_DIR" != "$NVIM_DIR" ]]; then
 fi
 
 echo "Installing sqldeps..."
-if [[ ! -e "$SQLDEPS_DIR" ]]; then
+if [[ ! -e "$SQLDEPS_DIR" && -n "$SQLDEPS_REPOSITORY" ]]; then
   mkdir -p "$(dirname "$SQLDEPS_DIR")"
   git clone "$SQLDEPS_REPOSITORY" "$SQLDEPS_DIR"
 fi
 if [[ -x "$SQLDEPS_DIR/install.sh" ]]; then
   "$SQLDEPS_DIR/install.sh"
-else
+elif [[ -n "$SQLDEPS_REPOSITORY" ]]; then
   echo "warning: sqldeps source is not usable at $SQLDEPS_DIR; skipping its installation" >&2
+else
+  echo "info: sqldeps is not configured; set SQLDEPS_REPOSITORY or place its source at $SQLDEPS_DIR" >&2
 fi
 
 backup_if_present "$GHOSTTY_DIR/config"
@@ -203,6 +205,9 @@ resource_watch_tmp="$(mktemp)"
 sed "s|__HOME__|$HOME|g" "$SOURCE_DIR/templates/com.neovim.resource-watch.plist" > "$resource_watch_tmp"
 install -m 644 "$resource_watch_tmp" "$RESOURCE_WATCH_PLIST"
 rm -f "$resource_watch_tmp"
+legacy_resource_watch_label="com.$(id -un).resource-watch"
+launchctl bootout "gui/$UID/$legacy_resource_watch_label" >/dev/null 2>&1 || true
+rm -f "$HOME/Library/LaunchAgents/$legacy_resource_watch_label.plist"
 launchctl bootout "gui/$UID/$RESOURCE_WATCH_LABEL" >/dev/null 2>&1 || true
 if ! launchctl bootstrap "gui/$UID" "$RESOURCE_WATCH_PLIST"; then
   echo "warning: could not start the resource monitor LaunchAgent" >&2
