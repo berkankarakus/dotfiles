@@ -38,6 +38,7 @@ run_nvim_test tests/ui_spec.lua
 run_nvim_test tests/cmdline_clear_spec.lua
 run_nvim_test tests/terminal_spec.lua
 run_nvim_test tests/frecency_cleanup_spec.lua
+run_nvim_test tests/telescope_search_spec.lua
 run_nvim_test tests/json_format_spec.lua
 run_nvim_test tests/dotnet_build_spec.lua
 run_nvim_test tests/dotnet_test_spec.lua
