@@ -9,16 +9,24 @@ local function dotnet_project_file()
     limit = 1,
   })[1]
 end
+
+local function read_project_text(project_file)
+  if not project_file or vim.fn.filereadable(project_file) == 0 then return nil end
+  return table.concat(vim.fn.readfile(project_file), "\n")
+end
+
+local function sdk_from_text(project_text)
+  return project_text and project_text:match('<Project[^>]-Sdk%s*=%s*["\']([^"\']+)["\']') or nil
+end
+
 local function project_sdk(project_file)
-  if not project_file or vim.fn.filereadable(project_file) == 0 then return false end
-  local project_text = table.concat(vim.fn.readfile(project_file), "\n")
-  return project_text:match('<Project[^>]-Sdk%s*=%s*["\']([^"\']+)["\']')
+  return sdk_from_text(read_project_text(project_file)) or false
 end
 local function project_is_executable(project_file)
-  if not project_file or vim.fn.filereadable(project_file) == 0 then return false end
-  local project_text = table.concat(vim.fn.readfile(project_file), "\n")
+  local project_text = read_project_text(project_file)
+  if not project_text then return false end
   local has_executable_output = project_text:match("<OutputType>%s*[Ww]?Exe%s*</OutputType>") ~= nil
-  local sdk = project_sdk(project_file)
+  local sdk = sdk_from_text(project_text)
   return has_executable_output or sdk == "Microsoft.NET.Sdk.Web" or sdk == "Microsoft.NET.Sdk.Worker"
 end
 local function debug_project_file()
@@ -65,8 +73,8 @@ end
 -- .NET Framework projects (net4x, or an old-style TargetFrameworkVersion v4.x) cannot run on the
 -- .NET runtime; they run on Mono and are debugged through its soft debugger.
 local function project_is_framework(project_file)
-  if not project_file or vim.fn.filereadable(project_file) == 0 then return false end
-  local project_text = table.concat(vim.fn.readfile(project_file), "\n")
+  local project_text = read_project_text(project_file)
+  if not project_text then return false end
   if project_text:match("<TargetFrameworkVersion>%s*v4[%.%d]*%s*</TargetFrameworkVersion>") then return true end
 
   local frameworks = project_text:match("<TargetFrameworks?[^>]*>%s*([^<]-)%s*</TargetFrameworks?>")
@@ -79,7 +87,7 @@ end
 local function framework_program(project_file)
   local project_dir = project_file and vim.fs.dirname(project_file) or vim.fn.getcwd()
   if project_file then
-    local project_text = table.concat(vim.fn.readfile(project_file), "\n")
+    local project_text = read_project_text(project_file)
     local assembly_name = project_text:match("<AssemblyName>%s*([^<]-)%s*</AssemblyName>")
       or vim.fn.fnamemodify(project_file, ":t:r")
     local candidates = vim.fn.globpath(project_dir, "bin/Debug/*.exe", false, true)
