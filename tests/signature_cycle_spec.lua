@@ -43,6 +43,9 @@ local forward = callback_for("<M-s>", "n")
 local backward = callback_for("<M-S>", "n")
 callback_for("<M-s>", "i")
 callback_for("<M-S>", "i")
+for _, lhs in ipairs({ "gd", "gi", "gr", "K", "<leader>rn", "<leader>ca", "<leader>cd", "<leader>e", "<leader>y" }) do
+  callback_for(lhs, "n")
+end
 
 forward()
 forward()
