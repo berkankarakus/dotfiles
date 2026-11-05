@@ -152,6 +152,9 @@ for _, expected in ipairs({
 }) do
   assert(report:find(expected, 1, true), "the report should mention " .. expected .. ":\n" .. report)
 end
+if vim.uv.fs_stat(vim.fn.expand("~/.codex")) then
+  assert(report:find("~/.codex/AGENTS.md link", 1, true), "the report should check the Codex instructions link:\n" .. report)
+end
 vim.api.nvim_feedkeys("q", "x", false)
 assert(vim.bo.filetype ~= "neo-doctor", "q should close the report")
 

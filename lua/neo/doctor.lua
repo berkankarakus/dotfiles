@@ -89,6 +89,12 @@ local function deployed_file_checks()
       config_path("templates/claude-global.md"), "templates/claude-global.md"),
   }
 
+  -- Codex is optional: a Mac without ~/.codex has nothing to link.
+  if vim.uv.fs_stat(home(".codex")) then
+    results[#results + 1] = M.symlink_check("~/.codex/AGENTS.md link", home(".codex/AGENTS.md"),
+      config_path("templates/codex-global.md"), "templates/codex-global.md")
+  end
+
   local zshrc = read_lines(home(".zshrc")) or {}
   local sourced = false
   for _, line in ipairs(zshrc) do
